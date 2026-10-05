@@ -165,5 +165,12 @@
     return s + (st.reason === 'checkmate' ? '#' : st.check ? '+' : '');
   }
 
-  return { initial, legalMoves, apply, status, inCheck, notate, sqName };
+  // Position identity for threefold repetition (en passant counts only when it is actually legal).
+  function key(state) {
+    const c = state.castle;
+    const ep = state.ep != null && legalMoves(state).some((m) => m.enPassant) ? state.ep : '';
+    return state.board.map((p) => p || '--').join('') + state.turn + (c.wK ? 'K' : '') + (c.wQ ? 'Q' : '') + (c.bK ? 'k' : '') + (c.bQ ? 'q' : '') + ep;
+  }
+
+  return { initial, legalMoves, apply, status, inCheck, notate, sqName, key };
 });
