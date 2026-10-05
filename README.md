@@ -2,7 +2,7 @@
 
 Multiplayer chess in the browser. Make a game, share the 5-letter code (or challenge a username), and play.
 
-**Features:** email accounts · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat · admin panel · sounds.
+**Features:** email accounts · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and voice calls (WebRTC) · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat · admin panel · sounds.
 
 No framework and no build step: a vanilla JS client, a small Node API, and an optional Supabase database.
 
@@ -26,6 +26,7 @@ Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (s
    | `SUPABASE_URL` | Project URL (Supabase → Project Settings → API) |
    | `SUPABASE_SERVICE_KEY` | The `service_role` / secret key. **Server-only, never commit it** |
    | `ADMIN_KEY` | A long passphrase of your choice (enables the admin panel) |
+   | `TURN_URL`, `TURN_USER`, `TURN_PASS` | Optional: a TURN relay for voice calls on networks that block direct connections |
    | `SUPABASE_ANON_KEY` | Optional: the *publishable / anon* key (Project Settings → API). Turns on instant live updates; without it the app polls |
 
 3. Deploy. Pushing to `main` redeploys automatically.
