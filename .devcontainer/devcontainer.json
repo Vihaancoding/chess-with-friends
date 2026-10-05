@@ -1,0 +1,8 @@
+{
+  "name": "Chess With Friends",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "forwardPorts": [3000],
+  "portsAttributes": { "3000": { "label": "Chess", "onAutoForward": "openBrowser" } },
+  "postStartCommand": "node server.js",
+  "customizations": { "vscode": { "extensions": ["dbaeumer.vscode-eslint"] } }
+}
