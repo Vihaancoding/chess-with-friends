@@ -168,6 +168,38 @@
   #promo { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 10; }
   #promo .box { background: #fff; padding: 8px; border-radius: 8px; display: flex; gap: 4px; }
   #promo button { padding: 4px; background: #ebecd0; box-shadow: none; } #promo button:hover { background: #cfd3a8; }
+
+  .leftcol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .ph { margin: 0 0 12px; font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .empty { padding: 10px 0; font-size: .9rem; }
+  .announce { background: #4a3c12; border-left: 4px solid var(--gold); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; font-weight: 700; }
+  .liverow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .liverow:first-child { border-top: 0; }
+  .liverow .lv { flex: 1; min-width: 160px; } .liverow i { color: var(--muted); font-style: normal; font-size: .85rem; } .liverow .lm { font-size: .8rem; }
+  #chatlog { height: 250px; overflow-y: auto; background: #1f1e1b; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-size: .92rem; scrollbar-width: thin; }
+  .msg { padding: 2px 0; word-break: break-word; position: relative; padding-right: 22px; }
+  .msg .mt { color: #6d6c6a; font-size: .72rem; margin-right: 4px; }
+  .msg .mn { color: #8fc1ff; } .msg .mn.adm { color: var(--gold); }
+  .msg .mx { color: #e8e8e6; }
+  .admtag { background: var(--gold); color: #302e2b; font-size: .6rem; font-weight: 800; text-transform: uppercase; border-radius: 3px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
+  .msg .x { position: absolute; right: 0; top: 0; min-height: 20px; padding: 0 6px; background: none; box-shadow: none; color: var(--bad); font-size: 1rem; }
+  #chatErr { color: var(--bad); font-size: .82rem; min-height: 1.1em; margin-top: 6px; font-weight: 600; }
+  #chatIn { text-align: left; }
+  #claimForm { margin-bottom: 14px; }
+  #claimErr { color: var(--bad); font-size: .85rem; margin-top: 6px; min-height: 1em; font-weight: 600; }
+
+  #admin { max-width: 1060px; margin: 0 auto; padding: 22px 18px 50px; }
+  #admin .panel { margin-bottom: 16px; overflow-x: auto; }
+  .statrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0 16px; }
+  .stat { background: var(--panel); border-radius: 10px; padding: 16px 18px; }
+  .stat b { display: block; font-size: 2rem; line-height: 1.1; font-weight: 800; }
+  .stat span { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+  #admin td .acts { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+  .badge { font-size: .62rem; font-weight: 800; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; margin-left: 6px; background: #ffffff1a; vertical-align: 1px; }
+  .badge.gold { background: var(--gold); color: #302e2b; } .badge.red { background: var(--bad); color: #fff; }
+  button.danger { background: #6b2a24; box-shadow: 0 2px 0 #3d1815; }
+  #admin tbody td:first-child { width: auto; color: inherit; }
+  #admin tbody tr:nth-child(1) td:first-child, #admin tbody tr:nth-child(2) td:first-child, #admin tbody tr:nth-child(3) td:first-child { color: inherit; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -179,6 +211,7 @@
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
+    <button id="navAdmin" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg> Admin</button>
   </div>
   <div class="userbox">
     <div><div class="nm" id="meName"></div><div><span class="elo" id="meElo"></span> <span class="rec" id="meRec"></span></div></div>
@@ -211,9 +244,24 @@
 
 <!-- lobby -->
 <div id="lobby" class="hidden">
+  <div id="announce" class="announce hidden"></div>
+  <form id="claimForm" class="panel hidden">
+    <h2 class="ph">Admin access</h2>
+    <div class="row"><input id="claimKey" type="password" placeholder="Admin key" autocomplete="off"><button class="primary" type="submit">Unlock</button></div>
+    <div id="claimErr" role="alert"></div>
+  </form>
   <div id="banners"></div>
   <div class="lobby-grid">
-    <div id="previewwrap"><div id="preview"></div></div>
+    <div class="leftcol">
+      <div id="previewwrap"><div id="preview"></div></div>
+      <div class="panel" id="livecard"><h2 class="ph">Live games</h2><div id="livelist"></div></div>
+      <div class="panel" id="chatcard">
+        <h2 class="ph">Lobby chat</h2>
+        <div id="chatlog"></div>
+        <form id="chatForm" class="row"><input id="chatIn" maxlength="200" placeholder="Say something…" autocomplete="off"><button class="primary" type="submit">Send</button></form>
+        <div id="chatErr" role="alert"></div>
+      </div>
+    </div>
     <div class="panel">
       <h1 class="ptitle">Play Chess</h1>
       <div class="label" style="margin-top:12px">Time control</div>
@@ -244,6 +292,24 @@
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</h2>
     <table><thead><tr><th>#</th><th>Player</th><th class="r">Rating</th><th class="r">W / L / D</th><th></th></tr></thead>
     <tbody id="lb"></tbody></table>
+  </div>
+</div>
+
+<!-- admin -->
+<div id="admin" class="hidden">
+  <h1 class="ptitle">Admin panel</h1>
+  <div class="statrow" id="adstats"></div>
+  <div class="panel">
+    <h2 class="ph">Announcement</h2>
+    <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
+  </div>
+  <div class="panel">
+    <h2 class="ph">Live games</h2>
+    <table><thead><tr><th>White</th><th>Black</th><th>Time</th><th class="r">Moves</th><th></th></tr></thead><tbody id="adlive"></tbody></table>
+  </div>
+  <div class="panel">
+    <h2 class="ph">Players <button class="small" id="adClearChat">Clear lobby chat</button></h2>
+    <table><thead><tr><th>Player</th><th>Email</th><th class="r">Rating</th><th class="r">W / L / D</th><th></th></tr></thead><tbody id="adusers"></tbody></table>
   </div>
 </div>
 
@@ -284,12 +350,12 @@ function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
   return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
 }
-const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
 let pickColor = 'r';
-let lobbyTimer = null, gameTimer = null, clockTimer = null;
+let lobbyTimer = null, gameTimer = null, clockTimer = null, adminTimer = null;
 let gameCode = null, snap = null, snapAt = 0, sig = '';
 let selected = null, legal = [];
 
@@ -316,6 +382,7 @@ async function login(name, token) {
   return r;
 }
 let authMode = 'up';
+let wantAdmin = false;
 function setMode(m) {
   authMode = m;
   $('#tabUp').classList.toggle('on', m === 'up'); $('#tabIn').classList.toggle('on', m === 'in');
@@ -346,7 +413,9 @@ async function boot() {
   show('welcome');
 }
 async function start() {
-  const q = new URLSearchParams(location.search).get('game');
+  const params = new URLSearchParams(location.search);
+  if (params.has('admin')) wantAdmin = true;
+  const q = params.get('game');
   if (q) { const r = await api('join', { code: q }); if (r.ok) return enterGame(r.code); }
   enterLobby();
 }
@@ -374,7 +443,7 @@ $('#chBtn').onclick = () => challenge($('#chName').value);
 $('#chName').addEventListener('keydown', (e) => e.key === 'Enter' && $('#chBtn').click());
 
 function enterLobby() {
-  stopGame(); gameCode = null; view = 'lobby';
+  stopGame(); stopAdmin(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
   show('lobby'); $('#err').textContent = ''; drawPreview();
   pollLobby();
@@ -403,6 +472,12 @@ async function pollLobby() {
   $('#meName').textContent = r.user.name;
   $('#meElo').textContent = r.user.elo;
   $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
+  $('#navAdmin').classList.toggle('hidden', !r.user.admin);
+  $('#claimForm').classList.toggle('hidden', !(wantAdmin && !r.user.admin));
+  $('#announce').textContent = r.announce || '';
+  $('#announce').classList.toggle('hidden', !r.announce);
+  renderLive(r.live, r.user.name);
+  renderChat(r.chat, r.user.admin, r.user.muted);
 
   let html = '';
   for (const c of r.inbox)
@@ -430,9 +505,102 @@ async function pollLobby() {
   $('#lb').querySelectorAll('[data-ch]').forEach((b) => b.onclick = () => challenge(b.dataset.ch));
 }
 
+// ---------- live games, chat, admin ----------
+function renderLive(list, me) {
+  const el = $('#livelist');
+  if (!list.length) { el.innerHTML = '<div class="muted empty">No games in progress right now.</div>'; return; }
+  el.innerHTML = list.map((g) => {
+    const mine = g.w.name === me || g.b.name === me;
+    return `<div class="liverow"><span class="lv"><b>${esc(g.w.name)}</b> <i>(${g.w.elo})</i> vs <b>${esc(g.b.name)}</b> <i>(${g.b.elo})</i></span>
+      <span class="muted lm">${tcLabel(g.tc)} · move ${Math.floor(g.moves / 2) + 1}</span>
+      <button class="small ${mine ? 'primary' : ''}" data-watch="${g.code}">${mine ? 'Rejoin' : 'Watch'}</button></div>`;
+  }).join('');
+  el.querySelectorAll('[data-watch]').forEach((b) => b.onclick = async () => {
+    const r = await api('join', { code: b.dataset.watch });
+    r.ok ? enterGame(r.code) : ($('#err').textContent = r.error);
+  });
+}
+
+let chatSig = '';
+const hhmm = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function renderChat(msgs, isAdmin, muted) {
+  $('#chatIn').placeholder = muted ? 'You are muted' : 'Say something…';
+  $('#chatIn').disabled = !!muted;
+  const sig = msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '') + ':' + isAdmin;
+  if (sig === chatSig) return;
+  const first = chatSig === '';
+  chatSig = sig;
+  const log = $('#chatlog');
+  const near = log.scrollHeight - log.scrollTop - log.clientHeight < 50;
+  log.innerHTML = msgs.length
+    ? msgs.map((m) => `<div class="msg"><span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${esc(m.text)}</span>${isAdmin ? `<button class="x" data-del="${m.id}" title="Delete message">×</button>` : ''}</div>`).join('')
+    : '<div class="muted empty">No messages yet. Say hi!</div>';
+  if (first || near) log.scrollTop = log.scrollHeight;
+  log.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => { await api('admin_delete_msg', { id: b.dataset.del }); pollLobby(); });
+}
+$('#chatForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = $('#chatIn').value;
+  if (!text.trim()) return;
+  const r = await api('chat_send', { text });
+  $('#chatErr').textContent = r.ok ? '' : r.error;
+  if (r.ok) { $('#chatIn').value = ''; chatSig = ''; pollLobby(); }
+});
+
+$('#claimForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await api('admin_claim', { key: $('#claimKey').value });
+  $('#claimKey').value = '';
+  if (!r.ok) return ($('#claimErr').textContent = r.error);
+  wantAdmin = false; $('#claimErr').textContent = '';
+  pollLobby();
+});
+
+function enterAdmin() {
+  stopGame(); stopLobby(); view = 'admin'; gameCode = null;
+  history.replaceState(null, '', '/');
+  show('admin');
+  loadAdmin();
+  clearInterval(adminTimer); adminTimer = setInterval(loadAdmin, 5000);
+}
+function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
+$('#navAdmin').onclick = enterAdmin;
+
+async function loadAdmin() {
+  if (view !== 'admin') return;
+  const r = await api('admin_overview');
+  if (view !== 'admin') return;
+  if (!r.ok) { if (r.status === 403 || r.status === 401) enterLobby(); return; }
+  $('#adstats').innerHTML = [['Players', r.stats.users], ['Live games', r.stats.live], ['Chat messages', r.stats.chat]]
+    .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+  if (document.activeElement !== $('#annIn')) $('#annIn').value = r.announce;
+  $('#adlive').innerHTML = r.live.length ? r.live.map((g) => `<tr><td>${esc(g.w.name)} <span class="muted">(${g.w.elo})</span></td><td>${esc(g.b.name)} <span class="muted">(${g.b.elo})</span></td>
+      <td>${tcLabel(g.tc)}</td><td class="r">${Math.ceil(g.moves / 2)}</td>
+      <td><div class="acts"><button class="small" data-act="watch" data-code="${g.code}">Watch</button><button class="small danger" data-act="abort" data-code="${g.code}">End game</button></div></td></tr>`).join('')
+    : '<tr><td colspan="5" class="muted">No games in progress.</td></tr>';
+  $('#adusers').innerHTML = r.users.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.admin ? '<span class="badge gold">admin</span>' : ''}${u.muted ? '<span class="badge red">muted</span>' : ''}</td>
+      <td class="muted">${esc(u.email || '—')}</td><td class="r">${u.elo}</td><td class="r muted">${u.w}-${u.l}-${u.d}</td>
+      <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>
+      <button class="small" data-act="reset" data-name="${esc(u.name)}">Reset rating</button>
+      <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
+}
+$('#admin').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const { act, name, code } = b.dataset;
+  if (act === 'watch') { const r = await api('join', { code }); if (r.ok) enterGame(r.code); return; }
+  if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
+  if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
+  if (act === 'delete') { if (!confirm(`Permanently delete ${name}'s account?`)) return; await api('admin_delete', { name }); }
+  if (act === 'abort') { if (!confirm('End this game with no rating change?')) return; await api('admin_abort', { code }); }
+  loadAdmin();
+});
+$('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
+$('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); await api('admin_announce', { text: $('#annIn').value }); loadAdmin(); });
+
 // ---------- game ----------
 function enterGame(code) {
-  stopLobby(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
+  stopLobby(); stopAdmin(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
   history.replaceState(null, '', '?game=' + code);
   show('game');
   $('#gcode').textContent = code;
@@ -454,7 +622,7 @@ async function pollGame(once) {
   if (view !== 'game') return;
   if (r.ok) {
     snap = r; snapAt = Date.now();
-    const s = [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w].join('|');
+    const s = [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching].join('|');
     if (s !== sig) {
       if (!sig || sig.split('|')[0] !== String(r.moves.length) || sig.split('|')[1] !== r.you) { selected = null; legal = []; }
       sig = s; render();
@@ -536,6 +704,7 @@ function render() {
     t = state.turn === you ? 'Your move' : "Opponent's move";
     s = status.check ? 'Check!' : tcLabel(snap.tc);
   }
+  if (snap.watching) s += (s ? ' · ' : '') + snap.watching + ' watching';
   $('#status').textContent = t; $('#sub').textContent = s;
 
   $('#invite').classList.toggle('hidden', !!(players.w && players.b));
