@@ -66,9 +66,10 @@
   .sq .coord { position: absolute; font-size: .7rem; font-weight: 700; opacity: .7; pointer-events: none; }
   .sq.l .coord { color: var(--dark); } .sq.d .coord { color: var(--light); }
   .coord.f { right: 3px; bottom: 1px; } .coord.r { left: 3px; top: 1px; }
-  .piece { font-size: 11cqmin; line-height: 1; position: relative; z-index: 1; font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", serif; }
-  .piece.w { color: #fff; -webkit-text-stroke: 1.2px #222; text-shadow: 0 1px 2px #0006; }
-  .piece.b { color: #1c1c1c; -webkit-text-stroke: .6px #000; text-shadow: 0 1px 1px #fff3; }
+  img.piece { width: 88%; height: 88%; position: relative; z-index: 1; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 2px 2px #0004); }
+  .glyph { font-size: 70cqmin; line-height: 1; position: relative; z-index: 1; font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", serif; }
+  .glyph.w { color: #fff; -webkit-text-stroke: 1.2px #222; text-shadow: 0 1px 2px #0006; }
+  .glyph.b { color: #1c1c1c; -webkit-text-stroke: .6px #000; text-shadow: 0 1px 1px #fff3; }
 
   aside .card { padding: 16px; }
   #status { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
@@ -81,7 +82,7 @@
 
   #promo { position: fixed; inset: 0; background: #000a; display: flex; align-items: center; justify-content: center; z-index: 10; }
   #promo .box { background: var(--panel); padding: 16px; border-radius: 14px; display: flex; gap: 8px; }
-  #promo button { font-size: 3rem; padding: 6px 14px; }
+  #promo button { padding: 6px; }
 </style>
 </head>
 <body>
@@ -182,6 +183,11 @@
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
+const PIECE_CDN = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/';
+function pieceHTML(p) {
+  const g = GLYPH[p[1]] + '\uFE0E';
+  return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
+}
 const show = (id) => ['welcome', 'lobby', 'game'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id));
 
 let user = null;       // { name, token, elo, ... }
@@ -370,7 +376,7 @@ function render() {
     if (sq === kingSq) el.classList.add('check');
     if (targets.has(sq)) { el.classList.add('hint'); if (state.board[sq] || targets.get(sq).enPassant) el.classList.add('cap'); }
     const p = state.board[sq];
-    if (p) el.innerHTML = `<span class="piece ${p[0]}">${GLYPH[p[1]]}︎</span>`;
+    if (p) el.innerHTML = pieceHTML(p);
     if (i % 8 === 0) el.insertAdjacentHTML('beforeend', `<span class="coord r">${8 - (flip ? 7 - (i >> 3) : (i >> 3))}</span>`);
     if (i >= 56) el.insertAdjacentHTML('beforeend', `<span class="coord f">${'abcdefgh'[flip ? 7 - (i & 7) : (i & 7)]}</span>`);
     el.onclick = () => clickSquare(sq);
@@ -444,7 +450,7 @@ function askPromo(from, to) {
   const box = $('#promo .box'); box.innerHTML = '';
   for (const k of 'QRBN') {
     const b = document.createElement('button');
-    b.innerHTML = `<span class="piece ${snap.you}" style="font-size:3rem">${GLYPH[k]}︎</span>`;
+    b.innerHTML = pieceHTML(snap.you + k).replace('class="piece"', 'class="piece" style="width:64px;height:64px"');
     b.onclick = () => { $('#promo').classList.add('hidden'); send(from, to, k); };
     box.appendChild(b);
   }
