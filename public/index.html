@@ -225,7 +225,7 @@
   .movenav button { flex: 1; min-height: 34px; padding: 4px; box-shadow: none; background: #2e2d2a; }
   .movenav button:active { transform: none; }
   .movenav svg { width: 16px; height: 16px; }
-  #moves .mv { cursor: pointer; } #moves .mv:hover { background: #ffffff12; }
+  #moves .mv { cursor: pointer; } #moves .mv.ph { cursor: default; } #moves .mv:hover { background: #ffffff12; }
   #moves .mv.cur { background: #ffffff24; color: #fff; }
   #drawbox { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 14px; font-weight: 700; background: #3b4a2b; }
   #over { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
@@ -555,7 +555,7 @@ const tcLabel = (tc) => (tc ? `${tc.base / 60} + ${tc.inc}` : 'No clock');
 
 
 // ---------- live updates: pushed events (Supabase Realtime in production, SSE locally), polling as a fallback ----------
-const RTC = { mode: 'none', sb: null, ready: null };
+const RTC = { mode: 'none', sb: null, ready: null, conn: Math.random().toString(36).slice(2) + Date.now().toString(36) };
 const loadScript = (src) => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = no; document.head.appendChild(el); });
 function rtInit() {
   if (RTC.ready) return RTC.ready;
@@ -565,49 +565,105 @@ function rtInit() {
     if (RTC.mode === 'supabase') {
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js');
-        RTC.sb = window.supabase.createClient(c.url, c.anon, { auth: { persistSession: false, autoRefreshToken: false } });
+        RTC.sb = window.supabase.createClient(c.url, c.anon, { auth: { persistSession: false, autoRefreshToken: false } });   // one websocket; channels share it
       } catch { RTC.mode = 'none'; }
     }
   })();
   return RTC.ready;
 }
+// Local dev (SSE): ONE EventSource for the whole session; topics are added/removed on it without reconnecting.
+const SSE = { es: null, open: false, everOpen: false, topics: new Map() };
+const sseTopics = (op, list) => fetch(`/api/events?conn=${RTC.conn}&${op}=${encodeURIComponent(list.join(','))}`, { method: 'POST' }).catch(() => {});
+function sseEnsure() {
+  if (SSE.es && SSE.es.readyState !== 2) return;
+  const es = SSE.es = new EventSource(`/api/events?conn=${RTC.conn}&topics=${encodeURIComponent([...SSE.topics.keys()].join(','))}`);
+  es.onopen = () => {
+    if (SSE.everOpen) sseTopics('add', [...SSE.topics.keys()]);       // after a reconnect, make sure the server has every topic
+    SSE.open = SSE.everOpen = true;
+    for (const t of SSE.topics.values()) t.onState && t.onState(true);
+  };
+  es.onerror = () => {
+    SSE.open = false;
+    for (const t of SSE.topics.values()) t.onState && t.onState(false);
+    if (es.readyState === 2) setTimeout(sseEnsure, 1000);               // closed for good: reopen
+  };
+  for (const ev of ['m', 's', 'ping', 'chat']) es.addEventListener(ev, (e) => {
+    let d; try { d = JSON.parse(e.data); } catch { return; }
+    for (const t of SSE.topics.values()) if (t.handlers[ev]) t.handlers[ev](d);
+  });
+}
 // subscribe to a topic; handlers = { event: fn(payload) }; onState(connected) fires on every (re)connect/disconnect
 function rtSubscribe(topic, handlers, onState) {
-  let closed = false, es = null, ch = null;
-  const state = (ok) => { if (!closed && onState) onState(ok); };
+  let closed = false, ch = null;
   rtInit().then(() => {
     if (closed) return;
     if (RTC.mode === 'sse') {
-      es = new EventSource('/api/events?topic=' + encodeURIComponent(topic));
-      for (const [ev, fn] of Object.entries(handlers)) es.addEventListener(ev, (e) => { try { fn(JSON.parse(e.data)); } catch {} });
-      es.onopen = () => state(true);
-      es.onerror = () => state(false);            // EventSource reconnects by itself; onopen fires again
+      SSE.topics.set(topic, { handlers, onState });
+      if (!SSE.es) sseEnsure(); else { sseTopics('add', [topic]); if (SSE.open && onState) onState(true); }
     } else if (RTC.mode === 'supabase' && RTC.sb) {
       ch = RTC.sb.channel(topic, { config: { broadcast: { self: false } } });
       for (const [ev, fn] of Object.entries(handlers)) ch.on('broadcast', { event: ev }, (m) => fn(m.payload || {}));
-      ch.subscribe((st) => state(st === 'SUBSCRIBED'));   // supabase-js rejoins automatically after drops
-    } else state(false);
+      ch.subscribe((st) => { if (!closed && onState) onState(st === 'SUBSCRIBED'); });   // supabase-js rejoins after drops
+    } else if (onState) onState(false);
   });
-  return () => { closed = true; if (es) es.close(); if (ch && RTC.sb) RTC.sb.removeChannel(ch); };
+  return () => {
+    closed = true;
+    if (RTC.mode === 'sse') { SSE.topics.delete(topic); sseTopics('remove', [topic]); }
+    if (ch && RTC.sb) RTC.sb.removeChannel(ch);
+  };
 }
-let rtRoomOff = null, rtRoomLive = false, rtUserOff = null, rtLobbyOff = null, rtLobbyLive = false;
+let rtRoomOff = null, rtRoomLive = false, rtSession = false, rtLobbyLive = false;
 function paintRtDot() { const d = $('#rtDot'); if (d) { d.classList.toggle('on', rtLobbyLive); d.title = rtLobbyLive ? 'Live updates on' : 'Live updates off (polling)'; } }
+// session-wide subscriptions: made once after sign-in, kept while navigating
+function ensureSessionSubs() {
+  if (rtSession || !user || !user.topic) return;
+  rtSession = true;
+  rtSubscribe(user.topic, { ping: onUserPing }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok && view === 'lobby') pollLobby(false); });
+  rtSubscribe('lobby', { chat: onRtChat }, () => {});
+}
+function onUserPing(d) {
+  if (d.why === 'challenge' && d.ch && !curInbox.some((c) => c.id === d.ch.id)) syncChallenges(curInbox.concat([d.ch]), curOut);   // banner straight from the push
+  if (d.why === 'accepted' && d.code && curOut && curOut.status === 'pending' && view !== 'game') {
+    localOut = null; curOut = null; api('cancel');
+    return enterGame(d.code, d.g ? seedSnap(d.code, d.g) : null);                // the push carries everything needed to draw the game
+  }
+  if (view === 'lobby') pollLobby(false);
+}
+function seedSnap(code, g) {
+  const you = g.players.w && g.players.w.name === user.name ? 'w' : g.players.b && g.players.b.name === user.name ? 'b' : 's';
+  return { code, you, state: Chess.initial(), moves: [], last: null, status: { over: false, result: null, reason: null, check: false },
+    players: g.players, present: { w: true, b: true }, tc: g.tc, clock: g.tc ? { w: g.tc.base * 1000, b: g.tc.base * 1000, running: null } : null,
+    delta: null, rematch: [], hist: [], drawOffer: null, watching: 0, cat: g.cat, ratings: null, unrated: false, startedAt: null, endedAt: null, v: g.v };
+}
 
-// A move pushed by the server: apply it straight away (validated by the local engine), then confirm with the server.
+// A move pushed by the server, e.g. {m:"e2e4", v:42, k:[wMs,bMs]}: validate with the local engine and draw it.
+const sqIdx = (q) => 'abcdefgh'.indexOf(q[0]) + (8 - +q[1]) * 8;
 function onRtMove(ev) {
-  if (view !== 'game' || isBot() || !snap) return;
-  const n = snap.moves.length;
-  if (ev.ply < n) return;                               // already on the board (e.g. my own optimistic move)
-  if (ev.ply > n || pending) { kick(); return; }        // we missed something: resync from the server
-  const m = Chess.legalMoves(snap.state).find((x) => x.from === ev.from && x.to === ev.to && (x.promo || null) === (ev.promo || null));
-  if (!m) { kick(); return; }
-  const ns = Chess.apply(snap.state, m);
+  if (window.__perf) window.__perf.recv = performance.now();         // measurement hook (off unless a test enables it)
+  if (view !== 'game' || isBot() || !snap || !ev.m) return;
+  const myV = snap.v || 0;
+  if (ev.v <= myV) return;                                            // already applied (or a duplicate)
+  const from = sqIdx(ev.m.slice(0, 2)), to = sqIdx(ev.m.slice(2, 4)), promo = ev.m[4] ? ev.m[4].toUpperCase() : undefined;
+  if (pending) {
+    const mine = snap.hist[snap.hist.length - 1];
+    if (ev.v === myV + 1 && mine && mine.from === from && mine.to === to) {   // the echo of my own move = its acknowledgement
+      snap.v = ev.v; pending = null; if (ev.k && snap.clock) { snap.clock = { ...snap.clock, w: ev.k[0], b: ev.k[1] }; snapAt = Date.now(); }
+      return;
+    }
+    if (ev.v !== myV + 2) return kick();                              // opponent replied before my ack: my move was v+1
+  } else if (ev.v !== myV + 1) return kick();                         // we missed something: resync once
+  const m = Chess.legalMoves(snap.state).find((x) => x.from === from && x.to === to && (x.promo || undefined) === promo);
+  if (!m) return kick();
+  const s0 = snap, mover = s0.state.turn, ns = Chess.apply(s0.state, m), st = Chess.status(ns), n = s0.moves.length + 1;
+  pending = null;
   applySnapshot({
-    ...snap, state: ns, moves: [...snap.moves, Chess.notate(snap.state, m)],
-    hist: [...(snap.hist || []), m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to }],
-    last: { from: m.from, to: m.to }, status: Chess.status(ns), clock: ev.clock || snap.clock, drawOffer: ev.drawOffer || null,
+    ...s0, v: ev.v, state: ns, moves: [...s0.moves, Chess.notate(s0.state, m)],
+    hist: [...(s0.hist || []), m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to }],
+    last: { from: m.from, to: m.to }, status: st,
+    clock: s0.clock && ev.k ? { w: ev.k[0], b: ev.k[1], running: s0.tc && n >= 2 && !st.over ? ns.turn : null } : s0.clock,
+    drawOffer: s0.drawOffer && s0.drawOffer !== mover ? null : s0.drawOffer,
   });
-  kick();                                               // authoritative confirmation (and ratings, if the game just ended)
+  if (ev.e || st.over) kick();                                        // game over: fetch the final state (ratings follow)
 }
 
 // ---------- sign in ----------
@@ -653,11 +709,12 @@ async function boot() {
   show('welcome');
 }
 async function start() {
+  ensureSessionSubs();
   const params = new URLSearchParams(location.search);
   if (params.has('admin')) wantAdmin = true;
   const q = params.get('game');
   if (params.has('bot')) { const b = botLoad(); if (b) return enterBot(b); }
-  if (q) { const r = await api('join', { code: q }); if (r.ok) return enterGame(r.code); }
+  if (q) { const r = await api('join', { code: q }); if (r.ok) return enterGame(r.code, r.snap); }
   enterLobby();
 }
 
@@ -668,11 +725,11 @@ document.querySelectorAll('.colorpick button').forEach((b) => b.onclick = () => 
 });
 $('#create').onclick = async () => {
   const r = await api('create', { color: pickColor === 'r' ? null : pickColor, tc: tcOf() });
-  r.ok ? enterGame(r.code) : ($('#err').textContent = r.error);
+  r.ok ? enterGame(r.code, r.snap) : ($('#err').textContent = r.error);
 };
 $('#join').onclick = async () => {
   const r = await api('join', { code: $('#code').value.trim().toUpperCase() });
-  r.ok ? enterGame(r.code) : ($('#err').textContent = r.error);
+  r.ok ? enterGame(r.code, r.snap) : ($('#err').textContent = r.error);
 };
 $('#code').addEventListener('keydown', (e) => e.key === 'Enter' && $('#join').click());
 // ----- challenges: instant feedback, one at a time, no duplicate requests -----
@@ -700,7 +757,7 @@ $('#lb').addEventListener('click', (e) => { const b = e.target.closest('[data-ch
 function syncChallenges(inbox, outbox) {
   curInbox = inbox.filter((c) => !goneIds.has(c.id));
   let o = outbox;
-  if (o && o.status === 'accepted') { localOut = null; api('cancel'); return enterGame(o.code); }  // jump straight in
+  if (o && o.status === 'accepted' && view !== 'game') { localOut = null; api('cancel'); return enterGame(o.code); }  // jump straight in
   if (o && o.id && hiddenOut.has(o.id)) o = null;
   if (o) { if (o.status !== 'pending' || !localOut || o.id === localOut.id || !localOut.id) localOut = null; }
   if (!o && localOut) { if (Date.now() - localOut.ts < 6000) o = { status: 'pending', to: localOut.to, local: true }; else localOut = null; }
@@ -744,7 +801,7 @@ $('#banners').addEventListener('click', async (e) => {
     busyIds.add(id); renderBanners();                                  // instant "Joining…"
     const res = await api('accept', { id });
     busyIds.delete(id);
-    if (res.ok) return enterGame(res.code);
+    if (res.ok) return enterGame(res.code, res.snap);
     goneIds.add(id); $('#err').textContent = res.error; syncChallenges(curInbox, curOut); pollLobby(true);
   } else if (a === 'decline') {
     goneIds.add(id); syncChallenges(curInbox, curOut);                 // vanishes instantly
@@ -762,9 +819,7 @@ function enterLobby() {
   stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
   show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume();
-  lobbyTick = 0; pollLobby(true);
-  if (!rtUserOff && user.topic) rtUserOff = rtSubscribe(user.topic, { ping: (d) => { if (d.why === 'accepted' && d.code && curOut && curOut.status === 'pending') { localOut = null; api('cancel'); return enterGame(d.code); } pollLobby(false); } }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok) pollLobby(false); });
-  if (!rtLobbyOff) rtLobbyOff = rtSubscribe('lobby', { chat: onRtChat }, () => {});
+  lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot();
   // with live updates on, polling is only a safety net
   lobbyTimer = setInterval(() => {
     if (document.hidden) return;
@@ -785,7 +840,6 @@ function drawPreview() {
 }
 function stopLobby() {
   clearInterval(lobbyTimer); lobbyTimer = null; lobbyRerun = false;
-  if (rtUserOff) { rtUserOff(); rtUserOff = null; } if (rtLobbyOff) { rtLobbyOff(); rtLobbyOff = null; } rtLobbyLive = false;
 }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -874,7 +928,7 @@ $('#livelist').addEventListener('click', async (e) => {
   if (!b || b.disabled) return;
   b.disabled = true;
   const r = await api('join', { code: b.dataset.watch });
-  if (r.ok) enterGame(r.code); else { b.disabled = false; $('#err').textContent = r.error; }
+  if (r.ok) enterGame(r.code, r.snap); else { b.disabled = false; $('#err').textContent = r.error; }
 });
 
 let chatSig = '';
@@ -890,12 +944,17 @@ function renderChat(msgs, isAdmin, muted, opt) {
   chatSig = sig;
   const log = $('#chatlog');
   const near = log.scrollHeight - log.scrollTop - log.clientHeight < 50;
-  log.innerHTML = msgs.length
-    ? msgs.map((m) => `<div class="msg"><span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${esc(m.text)}</span>${isAdmin ? `<button class="x" data-del="${m.id}" title="Delete message">×</button>` : ''}</div>`).join('')
-    : '<div class="muted empty">No messages yet. Say hi!</div>';
+  const row = (m) => `<div class="msg"><span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${esc(m.text)}</span>${isAdmin ? `<button class="x" data-del="${m.id}" title="Delete message">×</button>` : ''}</div>`;
+  const ids = msgs.map((m) => m.id);
+  let prefix = chatShown.admin === isAdmin && chatShown.ids.length && chatShown.ids.length <= ids.length;
+  for (let i = 0; prefix && i < chatShown.ids.length; i++) if (chatShown.ids[i] !== ids[i]) prefix = false;
+  if (prefix) log.insertAdjacentHTML('beforeend', msgs.slice(chatShown.ids.length).map(row).join(''));   // just the new lines
+  else log.innerHTML = msgs.length ? msgs.map(row).join('') : '<div class="muted empty">No messages yet. Say hi!</div>';
+  chatShown = { ids: msgs.length ? ids : [], admin: isAdmin };
   if (first || near) log.scrollTop = log.scrollHeight;
-  log.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => { await api('admin_delete_msg', { id: b.dataset.del }); pollLobby(true); });
 }
+let chatShown = { ids: [], admin: false };
+$('#chatlog').addEventListener('click', async (e) => { const b = e.target.closest('[data-del]'); if (b) { await api('admin_delete_msg', { id: b.dataset.del }); pollLobby(true); } });
 $('#chatForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = $('#chatIn').value;
@@ -950,7 +1009,7 @@ $('#admin').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const { act, name, code } = b.dataset;
-  if (act === 'watch') { const r = await api('join', { code }); if (r.ok) enterGame(r.code); return; }
+  if (act === 'watch') { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); return; }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
   if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
   if (act === 'delete') { if (!confirm(`Permanently delete ${name}'s account?`)) return; await api('admin_delete', { name }); }
@@ -961,16 +1020,17 @@ $('#adClearChat').onclick = async () => { if (confirm('Delete every message in t
 $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); await api('admin_announce', { text: $('#annIn').value }); loadAdmin(); });
 
 // ---------- game ----------
-function enterGame(code) {
+function enterGame(code, seed) {
   stopLobby(); stopAdmin(); botLeave(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; premove = null; arrows = []; marks = []; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
   history.replaceState(null, '', '?game=' + code);
   show('game');
   $('#gcode').textContent = code;
   gameSkeleton();
+  if (seed) applySnapshot(seed);                       // board and players straight from the response/push
   if (rtRoomOff) rtRoomOff();
   rtRoomLive = false;
-  rtRoomOff = rtSubscribe('room:' + code, { move: onRtMove, sync: () => kick() }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) kick(); });
+  rtRoomOff = rtSubscribe('room:' + code, { m: onRtMove, s: () => kick() }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was && Date.now() - lastKick > 400) kick(); });
   kick();
   clockTimer = setInterval(drawClocks, 200);
 }
@@ -981,10 +1041,10 @@ function gameSkeleton() {
   $('#top').innerHTML = barSk; $('#bottom').innerHTML = barSk;
   $('#status').innerHTML = '<span class="sk" style="width:150px;height:1.1em"></span>';
   $('#sub').innerHTML = '<span class="sk" style="width:110px;height:.8em"></span>';
-  $('#moves').innerHTML = '';
+  $('#moves').innerHTML = ''; mvShown = []; ovSig = '';
   ['#invite', '#drawBtn', '#resign', '#rematch', '#drawbox'].forEach((x) => $(x).classList.add('hidden'));
   boardFlip = null; buildBoard(false);                  // empty squares right away
-  $('#arrows').innerHTML = '';
+  $('#arrows').innerHTML = ''; ovSig = '';
 }
 function stopGame() {
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
@@ -1001,23 +1061,30 @@ $('#rematch').onclick = async () => { if (isBot()) return botRematch(); await ap
 const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer].join('|');
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
-function kick() { if (isBot()) return; pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
+let lastKick = 0;
+function kick() { if (isBot()) return; lastKick = Date.now(); pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
 async function pollGame(gen) {
   if (view !== 'game' || gen !== pollGen) return;
-  const r = await api('room', { code: gameCode });
+  // heartbeat: send the version we have; the server answers with ~30 bytes unless something changed
+  const r = await api('sync', { code: gameCode, v: snap && !pending ? snap.v || 0 : null });
   if (view !== 'game' || gen !== pollGen) return;
   let delay = 1500;
   if (r.ok) {
-    if (pending && Date.now() - pending.t > 5000) pending = null;
-    if (pending && r.moves.length >= pending.expect) pending = null;
-    if (!(pending && r.moves.length < pending.expect)) applySnapshot(r);   // ignore a poll that predates my move
-    const mine = r.you === 'w' || r.you === 'b';
-    delay = rtRoomLive ? (r.status.over ? 6000 : mine && r.state.turn !== r.you ? 2000 : 4000)                   // pushed events do the work; this is a safety net
-      : r.status.over ? 2500 : mine && r.state.turn !== r.you ? 500 : mine ? 1200 : 900;
+    if (r.full) {
+      const f = r.full;
+      if (pending && Date.now() - pending.t > 5000) pending = null;
+      if (pending && f.moves.length >= pending.expect) pending = null;
+      if (!(pending && f.moves.length < pending.expect)) applySnapshot(f);   // ignore a state that predates my move
+    } else if (snap) patchSnap({ present: { w: !!r.p[0], b: !!r.p[1] }, watching: r.n });
+    const s0 = r.full || snap, mine = s0 && (s0.you === 'w' || s0.you === 'b');
+    delay = rtRoomLive ? (s0 && s0.status.over ? 8000 : 4000)                   // push is healthy: light heartbeat only
+      : !s0 || s0.status.over ? 2500 : mine && s0.state.turn !== s0.you ? 500 : 1000;   // push is down: recover fast
     if (document.hidden) delay = Math.max(delay, 2500);
   } else if (r.status === 404 || r.status === 401) { return enterLobby(); }
   gameTimer = setTimeout(() => pollGame(gen), delay);
 }
+// small changes (presence, spectators) without touching clocks or the board
+function patchSnap(p) { snap = { ...snap, ...p }; const s = sigOf(snap); if (s !== sig) { sig = s; render(); } }
 function applySnapshot(r) {
   snap = r; snapAt = Date.now();
   const s = sigOf(r);
@@ -1028,7 +1095,6 @@ function applySnapshot(r) {
   render();
   runPremove();
 }
-
 function fmt(ms) {
   if (ms == null) return '';
   if (ms < 10000) return (ms / 1000).toFixed(1);
@@ -1040,12 +1106,12 @@ function drawClocks() {
   const age = Date.now() - snapAt;
   for (const c of ['w', 'b']) {
     const el = document.querySelector(`.clock[data-c="${c}"]`);
-    if (!el) continue;
+    if (!el || (document.hidden && el.textContent)) continue;           // hidden tab: nothing to paint (time is recomputed on return)
     const running = snap.clock.running === c;
     const ms = Math.max(0, snap.clock[c] - (running ? age : 0));
-    el.textContent = fmt(ms);
-    el.classList.toggle('active', running);
-    el.classList.toggle('low', running && ms < 10000);
+    setText(el, fmt(ms));
+    const cls = 'clock' + (running ? ' active' : '') + (running && ms < 10000 ? ' low' : '');
+    if (el.className !== cls) el.className = cls;
   }
 }
 
@@ -1083,8 +1149,8 @@ function render() {
     return `<span class="avatar ${c}">${p ? esc(p.name[0].toUpperCase()) : '?'}<span class="dot ${present[c] ? 'on' : ''}" title="${present[c] ? 'online' : 'offline'}"></span></span>
       <span class="pcol"><span class="pinfo"><span class="pname ${p && p.name !== 'Computer' ? 'plink' : ''}" data-name="${p ? esc(p.name) : ''}">${name}</span>${p ? ` <span class="prating">(${p.elo}${p.prov ? '?' : ''})</span>` : ''}${you}${dtxt}</span><span class="capt">${capt}</span></span>${clock}`;
   };
-  $('#top').innerHTML = bar(flip ? 'w' : 'b');
-  $('#bottom').innerHTML = bar(flip ? 'b' : 'w');
+  setHTML($('#top'), bar(flip ? 'w' : 'b'));
+  setHTML($('#bottom'), bar(flip ? 'b' : 'w'));
   drawClocks();
 
   let t, s = '';
@@ -1103,42 +1169,57 @@ function render() {
   }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
   if (snap.watching) s += (s ? ' · ' : '') + snap.watching + ' watching';
-  $('#status').textContent = t; $('#sub').textContent = s;
+  setText($('#status'), t); setText($('#sub'), s);
 
   $('#invite').classList.toggle('hidden', !!(players.w && players.b));
   $('#resign').classList.toggle('hidden', !mine || status.over || !players.w || !players.b);
   const rm = $('#rematch');
   rm.classList.toggle('hidden', !mine || !status.over);
   const asked = snap.rematch.includes(you);
-  rm.textContent = asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch';
-  rm.disabled = asked;
+  setText(rm, asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch');
+  if (rm.disabled !== asked) rm.disabled = asked;
 
   const bothIn = !!(players.w && players.b);
   const canDraw = mine && !status.over && bothIn && moves.length >= 2 && !isBot();
   const db = $('#drawBtn');
   db.classList.toggle('hidden', !canDraw);
-  db.disabled = snap.drawOffer === you;
-  db.textContent = snap.drawOffer === you ? 'Draw offered' : 'Offer draw';
+  if (db.disabled !== (snap.drawOffer === you)) db.disabled = snap.drawOffer === you;
+  setText(db, snap.drawOffer === you ? 'Draw offered' : 'Offer draw');
   const incoming = canDraw && snap.drawOffer && snap.drawOffer !== you;
   $('#drawbox').classList.toggle('hidden', !incoming);
-  $('#drawtxt').textContent = 'Your opponent offers a draw';
   updateOver();
 
   // permanent colour indicator (fixed to the bottom of the screen)
   const cb = $('#colorbar');
-  cb.className = mine ? you : 's';
-  $('#cbIcon').innerHTML = mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '';
-  $('#cbText').textContent = mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating';
+  const cbCls = (mine ? you : 's') + (mine && !status.over && bothIn && snap.state.turn === you ? ' myturn' : '');
+  if (cb.className !== cbCls) cb.className = cbCls;
+  setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '');
+  setText($('#cbText'), mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating');
   const liveTurn = snap.state.turn;
-  $('#cbTurn').textContent = status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? "Computer's move" : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`;
-  cb.classList.toggle('myturn', mine && !status.over && bothIn && liveTurn === you);
+  setText($('#cbTurn'), status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? "Computer's move" : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
 
-  let html = '';
-  const cell = (i) => (moves[i] ? `<span class="mv ${upto === i + 1 ? 'cur' : ''}" data-ply="${i + 1}">${moves[i]}</span>` : '<span></span>');
-  for (let i = 0; i < moves.length; i += 2) html += `<span class="n">${i / 2 + 1}.</span>${cell(i)}${cell(i + 1)}`;
-  const ml = $('#moves'); ml.innerHTML = html;
-  const curEl = ml.querySelector('.cur');
-  if (live || !curEl) ml.scrollTop = ml.scrollHeight; else curEl.scrollIntoView({ block: 'nearest' });
+  renderMoves(moves, upto, live);
+}
+
+// DOM helpers: only write when the content actually changes
+function setText(el, t) { if (el.textContent !== t) el.textContent = t; }
+function setHTML(el, h) { if (el._h !== h) { el._h = h; el.innerHTML = h; } }
+// move list: append the new move instead of rebuilding the whole list
+let mvShown = [];
+function renderMoves(moves, upto, live) {
+  const ml = $('#moves');
+  let same = mvShown.length <= moves.length;
+  for (let i = 0; same && i < mvShown.length; i++) if (mvShown[i] !== moves[i]) same = false;
+  if (!same) { ml.innerHTML = ''; mvShown = []; }
+  const added = moves.length > mvShown.length;
+  for (let i = mvShown.length; i < moves.length; i++) {
+    if (i % 2 === 0) ml.insertAdjacentHTML('beforeend', `<span class="n">${i / 2 + 1}.</span><span class="mv" data-ply="${i + 1}">${moves[i]}</span><span class="mv ph" data-ply="${i + 2}"></span>`);
+    else { const ph = ml.lastElementChild; ph.textContent = moves[i]; ph.classList.remove('ph'); }
+    mvShown.push(moves[i]);
+  }
+  const prev = ml.querySelector('.cur'), want = upto ? ml.querySelector(`.mv[data-ply="${upto}"]:not(.ph)`) : null;
+  if (prev !== want) { if (prev) prev.classList.remove('cur'); if (want) want.classList.add('cur'); }
+  if (live) { if (added) ml.scrollTop = ml.scrollHeight; } else if (want) want.scrollIntoView({ block: 'nearest' });
 }
 
 // legal moves for the player: real ones on my turn, "if it were my turn" ones for a premove
@@ -1257,8 +1338,9 @@ function drawOverlay() {
   for (const a of arrows) h += arrowSVG(a.from, a.to, ARROW[a.color], 0.8);
   if (premove && viewPly === null) h += arrowSVG(premove.from, premove.to, ARROW.blue, 0.75);
   if (rdrag) h += rdrag.from === rdrag.to ? circleSVG(rdrag.from, ARROW[rdrag.color], 0.55) : arrowSVG(rdrag.from, rdrag.to, ARROW[rdrag.color], 0.55);
-  svg.innerHTML = h;
+  if (h !== ovSig) { ovSig = h; svg.innerHTML = h; }
 }
+let ovSig = '';
 function finishArrow() {
   const d = rdrag; rdrag = null;
   if (!d) return;
@@ -1284,13 +1366,22 @@ async function send(from, to, promo) {
   sending = true;
   const base = snap, baseAt = snapAt, baseSig = sig;
   applyOptimistic(m);
-  const r = await api('move', { code: gameCode, from, to, promo, ply: base.moves.length });
+  // in the background: the board already moved. Network blips are retried (the server's ply check makes retries safe).
+  let r, tries = 0;
+  for (;;) {
+    r = await api('move', { code: gameCode, from, to, promo, ply: base.moves.length });
+    if (r.status !== undefined || tries >= 8 || view !== 'game') break;
+    await new Promise((ok) => setTimeout(ok, Math.min(250 * 2 ** tries++, 2000)));
+  }
   sending = false;
   if (!r.ok) {
+    if (tries && r.status !== undefined) { pending = null; return kick(); }   // an earlier attempt may have landed: let the server decide
     pending = null; snap = base; snapAt = baseAt; sig = baseSig; prevMoves = base.moves.length;
     render(); $('#sub').textContent = r.error || 'Move failed.';
+    return kick();                              // reconcile with the server
   }
-  kick();                                       // confirm right away and start watching for the reply
+  if (pending && snap && r.v > (snap.v || 0)) { snap.v = r.v; pending = null; }   // acknowledged
+  if (!rtRoomLive) kick();                      // no push: poll quickly for the reply
 }
 function applyOptimistic(m) {
   const s0 = snap, you = s0.you, opp = you === 'w' ? 'b' : 'w';
@@ -1352,7 +1443,7 @@ $('#mvFirst').onclick = () => goPly(0);
 $('#mvPrev').onclick = () => goPly(curPly() - 1);
 $('#mvNext').onclick = () => goPly(curPly() + 1);
 $('#mvLast').onclick = () => goPly(null);
-$('#moves').addEventListener('click', (e) => { const el = e.target.closest('.mv'); if (el) goPly(+el.dataset.ply); });
+$('#moves').addEventListener('click', (e) => { const el = e.target.closest('.mv'); if (el && !el.classList.contains('ph')) goPly(+el.dataset.ply); });
 document.addEventListener('keydown', (e) => {
   if (view !== 'game' || !snap || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
   const k = e.key;
