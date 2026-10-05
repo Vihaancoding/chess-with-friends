@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chess With Friends</title>
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wQ.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wR.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wB.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wP.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bK.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bQ.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bR.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bB.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bN.svg">
+<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bP.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -246,6 +258,17 @@
   .sq.hint.cap::after { width: 100%; height: 100%; background: radial-gradient(circle, transparent 57%, rgba(0, 0, 0, .18) 58%); }
   .sq.hint.cap:hover { box-shadow: none; }
   .sq.dragging img.piece { opacity: .35; }
+
+  #boardwrap { position: relative; }
+  #arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+  .sq.premove { box-shadow: inset 0 0 0 200px rgba(30, 86, 200, .42); }
+  .sq.hint.pre::after { background: rgba(30, 86, 200, .5); }
+  .sq.hint.pre.cap::after { background: radial-gradient(circle, transparent 57%, rgba(30, 86, 200, .5) 58%); }
+  .levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .levels button { min-height: 40px; box-shadow: none; background: #3a3936; border: 2px solid transparent; padding: 6px 4px; }
+  .levels button:active { transform: none; }
+  .levels button.on { border-color: var(--green); background: #3b4a2b; }
+  #botResume { justify-content: space-between; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -310,6 +333,7 @@
     </div>
     <div class="panel">
       <h1 class="ptitle">Play Chess</h1>
+      <div class="authtabs" id="modeTabs" style="margin-top:10px"><button id="modeFriends" class="on">Play friends</button><button id="modeBot">Play computer</button></div>
       <div class="label" style="margin-top:12px">Time control</div>
       <select id="tc" hidden>
         <option value="60,0">1 min</option><option value="120,1">2 | 1</option>
@@ -326,11 +350,21 @@
       </div>
       <div class="label">Play as</div>
       <div class="colorpick"><button data-c="w">White</button><button data-c="r" class="on">Random</button><button data-c="b">Black</button></div>
+      <div id="friendOnly">
       <div style="margin-top:18px"><button class="primary big" id="create">Create game</button></div>
       <div class="or">or join with a code</div>
       <div class="row" style="margin-top:10px"><input id="code" class="code" maxlength="5" placeholder="ABCDE" autocomplete="off"><button class="primary" id="join">Join</button></div>
       <div class="label">Challenge a friend</div>
       <div class="row"><input id="chName" placeholder="Their username" maxlength="16" autocomplete="off"><button id="chBtn">Challenge</button></div>
+      </div>
+      <div id="botOnly" class="hidden">
+        <div class="label">Difficulty</div>
+        <div class="levels" id="levels"><button data-l="1">Easy</button><button data-l="2">Medium</button><button data-l="3">Hard</button><button data-l="4">Expert</button></div>
+        <div class="muted" id="levelDesc" style="font-size:.85rem;margin-top:8px;font-weight:600;min-height:2.6em"></div>
+        <div style="margin-top:10px"><button class="primary big" id="botStart">Play the computer</button></div>
+        <div id="botResume" class="banner hidden" style="margin-top:14px"><span id="botResumeText"></span><span><button class="primary small" id="botResumeBtn">Resume</button> <button class="small" id="botDiscardBtn">Discard</button></span></div>
+        <div class="muted" style="font-size:.8rem;margin-top:12px">Practice games are not rated and do not touch the leaderboard.</div>
+      </div>
       <div id="err"></div>
     </div>
   </div>
@@ -363,7 +397,7 @@
 <div id="game" class="hidden">
   <div class="boardcol">
     <div class="player" id="top"></div>
-    <div id="board"></div>
+    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
     <div class="player" id="bottom"></div>
   </div>
   <aside class="side-panel">
@@ -425,7 +459,7 @@ let selected = null, legal = [];
 let viewPly = null;                       // null = live position; otherwise ply index being reviewed
 let stCache = { hist: [], states: [Chess.initial()], caps: [null] };
 let prevMoves = null, prevOver = false, prevCode = null;
-let drag = null, lastDragEnd = 0;
+let drag = null, lastDragEnd = 0, myElo = 1200;
 let pollGen = 0, sending = false, pending = null;
 
 async function api(route, body) {
@@ -485,6 +519,7 @@ async function start() {
   const params = new URLSearchParams(location.search);
   if (params.has('admin')) wantAdmin = true;
   const q = params.get('game');
+  if (params.has('bot')) { const b = botLoad(); if (b) return enterBot(b); }
   if (q) { const r = await api('join', { code: q }); if (r.ok) return enterGame(r.code); }
   enterLobby();
 }
@@ -589,9 +624,9 @@ let lobbyBusy = false, lobbyRerun = false, lobbyTick = 0;
 function enterLobby() {
   stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
-  show('lobby'); $('#err').textContent = ''; drawPreview();
+  show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume();
   lobbyTick = 0; pollLobby(true);
-  lobbyTimer = setInterval(() => { lobbyTick++; pollLobby(lobbyTick % 3 === 0); }, 1000);
+  lobbyTimer = setInterval(() => { if (document.hidden) return; lobbyTick++; pollLobby(lobbyTick % 3 === 0); }, 1000);
 }
 function drawPreview() {
   const st = Chess.initial(), pv = $('#preview');
@@ -619,7 +654,7 @@ async function pollLobby(full = true) {
     if (!r.ok) return;
     if (full) {
       $('#meName').textContent = r.user.name;
-      $('#meElo').textContent = r.user.elo;
+      $('#meElo').textContent = r.user.elo; myElo = r.user.elo;
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
       $('#navAdmin').classList.toggle('hidden', !r.user.admin);
       $('#claimForm').classList.toggle('hidden', !(wantAdmin && !r.user.admin));
@@ -749,26 +784,26 @@ $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); awai
 
 // ---------- game ----------
 function enterGame(code) {
-  stopLobby(); stopAdmin(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
-  viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
+  stopLobby(); stopAdmin(); botLeave(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
+  viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; premove = null; arrows = []; marks = []; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
   history.replaceState(null, '', '?game=' + code);
   show('game');
   $('#gcode').textContent = code;
   kick();
   clockTimer = setInterval(drawClocks, 200);
 }
-function stopGame() { pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; }
+function stopGame() { pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave(); }
 $('#leave').onclick = enterLobby;
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
 function copy(t, sel) { navigator.clipboard.writeText(t).then(() => { const b = $(sel), o = b.textContent; b.textContent = 'Copied!'; setTimeout(() => b.textContent = o, 1200); }); }
-$('#resign').onclick = async () => { if (confirm('Resign this game?')) { await api('resign', { code: gameCode }); kick(); } };
-$('#rematch').onclick = async () => { await api('rematch', { code: gameCode }); kick(); };
+$('#resign').onclick = async () => { if (!confirm('Resign this game?')) return; if (isBot()) return botEnd(botGame.you === 'w' ? 'b' : 'w', 'resignation'); await api('resign', { code: gameCode }); kick(); };
+$('#rematch').onclick = async () => { if (isBot()) return botRematch(); await api('rematch', { code: gameCode }); kick(); };
 
 const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer].join('|');
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
-function kick() { pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
+function kick() { if (isBot()) return; pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
 async function pollGame(gen) {
   if (view !== 'game' || gen !== pollGen) return;
   const r = await api('room', { code: gameCode });
@@ -779,7 +814,8 @@ async function pollGame(gen) {
     if (pending && r.moves.length >= pending.expect) pending = null;
     if (!(pending && r.moves.length < pending.expect)) applySnapshot(r);   // ignore a poll that predates my move
     const mine = r.you === 'w' || r.you === 'b';
-    delay = r.status.over ? 2500 : mine && r.state.turn !== r.you ? 700 : mine ? 1200 : 1000;
+    delay = r.status.over ? 2500 : mine && r.state.turn !== r.you ? 500 : mine ? 1200 : 900;
+    if (document.hidden) delay = Math.max(delay, 2500);
   } else if (r.status === 404 || r.status === 401) { return enterLobby(); }
   gameTimer = setTimeout(() => pollGame(gen), delay);
 }
@@ -788,7 +824,10 @@ function applySnapshot(r) {
   const s = sigOf(r);
   if (s === sig) return;
   if (!sig || sig.split('|')[0] !== String(r.moves.length) || sig.split('|')[1] !== r.you) { selected = null; legal = []; }
-  sig = s; afterSnapshot(r); render();
+  sig = s; afterSnapshot(r);
+  if (r.status.over) premove = null;
+  render();
+  runPremove();
 }
 
 function fmt(ms) {
@@ -811,42 +850,21 @@ function drawClocks() {
   }
 }
 
-function render() {
-  const { status, present, moves, players, you } = snap;
+function viewInfo() {
   const hist = snap.hist || [];
   const H = buildStates(hist);
   if (H.states.length !== hist.length + 1 || (viewPly !== null && viewPly >= hist.length)) viewPly = null;
   const live = viewPly === null;
-  const state = live ? snap.state : H.states[viewPly];
-  const last = live ? snap.last : viewPly > 0 ? hist[viewPly - 1] : null;
-  const upto = live ? hist.length : viewPly;
+  return { H, live, state: live ? snap.state : H.states[viewPly], last: live ? snap.last : viewPly > 0 ? hist[viewPly - 1] : null, upto: live ? hist.length : viewPly };
+}
+
+function render() {
+  const { status, present, moves, players, you } = snap;
+  const { H, live, state, upto } = viewInfo();
   const flip = you === 'b';
   const mine = you === 'w' || you === 'b';
-  const bd = $('#board'); bd.innerHTML = '';
-  const inChk = live ? status.check : Chess.inCheck(state, state.turn);
-  const kingSq = inChk ? state.board.indexOf(state.turn + 'K') : -1;
-  const canAct = live && !status.over && !!(players.w && players.b) && snap.state.turn === you && !drag;
-  const targets = live ? new Map(legal.filter((m) => m.from === selected).map((m) => [m.to, m])) : new Map();
-
-  for (let i = 0; i < 64; i++) {
-    const sq = flip ? 63 - i : i;
-    const r = sq >> 3, c = sq & 7;
-    const el = document.createElement('div');
-    el.className = 'sq ' + ((r + c) % 2 ? 'd' : 'l');
-    el.dataset.sq = sq;
-    if (drag && drag.moved && sq === drag.from) el.classList.add('dragging');
-    if (last && (sq === last.from || sq === last.to)) el.classList.add('last');
-    if (sq === selected) el.classList.add('sel');
-    if (sq === kingSq) el.classList.add('check');
-    if (targets.has(sq)) { el.classList.add('hint'); if (state.board[sq] || targets.get(sq).enPassant) el.classList.add('cap'); }
-    const p = state.board[sq];
-    if (p && canAct && p[0] === you) el.classList.add('mine');
-    if (p) el.innerHTML = pieceHTML(p);
-    if (i % 8 === 0) el.insertAdjacentHTML('beforeend', `<span class="coord r">${8 - (flip ? 7 - (i >> 3) : (i >> 3))}</span>`);
-    if (i >= 56) el.insertAdjacentHTML('beforeend', `<span class="coord f">${'abcdefgh'[flip ? 7 - (i & 7) : (i & 7)]}</span>`);
-    el.onclick = () => { if (Date.now() - lastDragEnd < 80) return; clickSquare(sq); };
-    bd.appendChild(el);
-  }
+  paintBoard();
+  drawOverlay();
 
   const VAL = { P: 1, N: 3, B: 3, R: 5, Q: 9 };
   const takenBy = { w: [], b: [] };
@@ -881,8 +899,8 @@ function render() {
   } else if (!mine) {
     t = `${state.turn === 'w' ? 'White' : 'Black'} to move`; s = 'You are spectating';
   } else {
-    t = state.turn === you ? 'Your move' : "Opponent's move";
-    s = status.check ? 'Check!' : tcLabel(snap.tc);
+    t = state.turn === you ? 'Your move' : (isBot() ? 'Computer is thinking…' : "Opponent's move");
+    s = status.check ? 'Check!' : (isBot() ? BOT_LEVELS[botGame.level].name + ' · ' : '') + tcLabel(snap.tc);
   }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
   if (snap.watching) s += (s ? ' · ' : '') + snap.watching + ' watching';
@@ -897,7 +915,7 @@ function render() {
   rm.disabled = asked;
 
   const bothIn = !!(players.w && players.b);
-  const canDraw = mine && !status.over && bothIn && moves.length >= 2;
+  const canDraw = mine && !status.over && bothIn && moves.length >= 2 && !isBot();
   const db = $('#drawBtn');
   db.classList.toggle('hidden', !canDraw);
   db.disabled = snap.drawOffer === you;
@@ -913,7 +931,7 @@ function render() {
   $('#cbIcon').innerHTML = mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '';
   $('#cbText').textContent = mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating';
   const liveTurn = snap.state.turn;
-  $('#cbTurn').textContent = status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : "Opponent's move") : `${liveTurn === 'w' ? 'White' : 'Black'} to move`;
+  $('#cbTurn').textContent = status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? "Computer's move" : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`;
   cb.classList.toggle('myturn', mine && !status.over && bothIn && liveTurn === you);
 
   let html = '';
@@ -924,40 +942,146 @@ function render() {
   if (live || !curEl) ml.scrollTop = ml.scrollHeight; else curEl.scrollIntoView({ block: 'nearest' });
 }
 
+// legal moves for the player: real ones on my turn, "if it were my turn" ones for a premove
+const movesFor = (sn) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.state) : Chess.legalMoves({ ...sn.state, turn: sn.you, ep: null }));
+let premove = null, arrows = [], marks = [], rdrag = null;
+
 function clickSquare(sq) {
   if (!snap || snap.status.over || !snap.players.w || !snap.players.b || viewPly !== null) return;
   const { state, you } = snap;
-  if (state.turn !== you) return;
+  if (you !== 'w' && you !== 'b') return;
+  const myTurn = state.turn === you;
   if (selected !== null) {
     const cand = legal.filter((m) => m.from === selected && m.to === sq);
-    if (cand.length) return cand[0].promo ? askPromo(selected, sq) : send(selected, sq);
+    if (cand.length) {
+      if (!myTurn) {                                             // queue a premove (promotes to a queen)
+        premove = { from: selected, to: sq, promo: cand[0].promo ? 'Q' : undefined };
+        selected = null; legal = []; drawOverlay(); paintBoard(); return;
+      }
+      return cand[0].promo ? askPromo(selected, sq) : send(selected, sq);
+    }
   }
   const p = state.board[sq];
-  if (p && p[0] === you && sq !== selected) { selected = sq; legal = Chess.legalMoves(state); }
-  else selected = null;
-  paintSelection();
+  if (p && p[0] === you && sq !== selected) { selected = sq; legal = movesFor(snap); }
+  else { selected = null; legal = []; if (!myTurn && premove) { premove = null; drawOverlay(); } }
+  paintBoard();
+}
+function clearPremove() { if (premove) { premove = null; drawOverlay(); } }
+// Called after every new position: if a premove is queued and it is now my turn, play it (if still legal).
+function runPremove() {
+  if (!premove || !snap) return;
+  if (snap.status.over) { clearPremove(); return; }
+  if (snap.state.turn !== snap.you) return;
+  const pm = premove; premove = null; drawOverlay();
+  const ok = Chess.legalMoves(snap.state).some((x) => x.from === pm.from && x.to === pm.to && (x.promo || undefined) === pm.promo);
+  paintBoard();
+  if (ok) send(pm.from, pm.to, pm.promo);
 }
 
-// Update selection / legal-move highlights in place: no DOM rebuild, so clicks never flicker or lag.
-function paintSelection() {
-  if (!snap) return;
-  const targets = viewPly === null && selected !== null ? new Map(legal.filter((m) => m.from === selected).map((m) => [m.to, m])) : new Map();
-  const bd = snap.state.board;
-  for (const el of $('#board').children) {
-    const sq = +el.dataset.sq, t = targets.get(sq);
-    el.classList.toggle('sel', sq === selected && viewPly === null);
-    el.classList.toggle('hint', !!t);
-    el.classList.toggle('cap', !!t && !!(bd[sq] || t.enPassant));
+// ----- persistent board: squares are built once; a paint only touches what changed -----
+const sqEls = new Array(64);
+let boardFlip = null;
+function buildBoard(flip) {
+  const bd = $('#board');
+  bd.innerHTML = '';
+  boardFlip = flip;
+  for (let i = 0; i < 64; i++) {
+    const sq = flip ? 63 - i : i, r = sq >> 3, c = sq & 7;
+    const el = document.createElement('div');
+    el._base = 'sq ' + ((r + c) % 2 ? 'd' : 'l');
+    el.className = el._base; el.dataset.sq = sq; el._p = ''; el._f = '';
+    if (i % 8 === 0) el.insertAdjacentHTML('beforeend', `<span class="coord r">${8 - (flip ? 7 - (i >> 3) : (i >> 3))}</span>`);
+    if (i >= 56) el.insertAdjacentHTML('beforeend', `<span class="coord f">${'abcdefgh'[flip ? 7 - (i & 7) : (i & 7)]}</span>`);
+    sqEls[sq] = el; bd.appendChild(el);
   }
 }
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && view === 'game' && selected !== null && !drag) { selected = null; legal = []; paintSelection(); } });
+function paintBoard() {
+  if (!snap) return;
+  const flip = snap.you === 'b';
+  if (boardFlip !== flip || !sqEls[0]) buildBoard(flip);
+  const { state, last, live } = viewInfo();
+  const you = snap.you, status = snap.status;
+  const inChk = live ? status.check : Chess.inCheck(state, state.turn);
+  const kingSq = inChk ? state.board.indexOf(state.turn + 'K') : -1;
+  const active = live && !status.over && !!(snap.players.w && snap.players.b) && (you === 'w' || you === 'b');
+  const myTurn = active && snap.state.turn === you;
+  const targets = live && selected !== null ? new Map(legal.filter((m) => m.from === selected).map((m) => [m.to, m])) : new Map();
+  const dragFrom = drag && drag.moved ? drag.from : -1;
+  for (let sq = 0; sq < 64; sq++) {
+    const el = sqEls[sq], p = state.board[sq] || '';
+    if (el._p !== p) {
+      const old = el.querySelector('.piece, .glyph');
+      if (old) old.remove();
+      if (p) el.insertAdjacentHTML('afterbegin', pieceHTML(p));
+      el._p = p;
+    }
+    let f = '';
+    if (last && (sq === last.from || sq === last.to)) f += ' last';
+    if (live && sq === selected) f += ' sel';
+    if (sq === kingSq) f += ' check';
+    const t = targets.get(sq);
+    if (t) f += ' hint' + (p || t.enPassant ? ' cap' : '') + (myTurn ? '' : ' pre');
+    if (active && p && p[0] === you) f += ' mine';
+    if (premove && live && (sq === premove.from || sq === premove.to)) f += ' premove';
+    if (sq === dragFrom) f += ' dragging';
+    if (el._f !== f) { el.className = el._base + f; el._f = f; }
+  }
+}
+const paintSelection = paintBoard;
+$('#board').addEventListener('click', (e) => {
+  const el = e.target.closest('.sq');
+  if (!el || Date.now() - lastDragEnd < 80) return;
+  clickSquare(+el.dataset.sq);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || view !== 'game' || drag) return;
+  if (selected !== null) { selected = null; legal = []; paintBoard(); }
+  else if (premove) clearPremove(), paintBoard();
+  else if (arrows.length || marks.length) { arrows = []; marks = []; drawOverlay(); }
+});
+
+// ----- planning arrows (right-click drag) and square marks (right-click) -----
+const ARROW = { green: '#15781b', red: '#b02020', blue: '#1e56c8', yellow: '#d98a00' };
+function sqXY(sq) { const i = snap && snap.you === 'b' ? 63 - sq : sq; return [(i & 7) + 0.5, (i >> 3) + 0.5]; }
+function arrowSVG(from, to, color, op) {
+  const [x1, y1] = sqXY(from), [x2, y2] = sqXY(to);
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+  const tx = x2 - ux * 0.12, ty = y2 - uy * 0.12, bx = tx - ux * 0.36, by = ty - uy * 0.36, hw = 0.22;
+  return `<g opacity="${op}"><line x1="${x1 + ux * 0.15}" y1="${y1 + uy * 0.15}" x2="${bx}" y2="${by}" stroke="${color}" stroke-width=".17" stroke-linecap="round"/><polygon points="${tx},${ty} ${bx - uy * hw},${by + ux * hw} ${bx + uy * hw},${by - ux * hw}" fill="${color}"/></g>`;
+}
+function circleSVG(sq, color, op) { const [x, y] = sqXY(sq); return `<circle cx="${x}" cy="${y}" r=".44" fill="none" stroke="${color}" stroke-width=".07" opacity="${op}"/>`; }
+function drawOverlay() {
+  const svg = $('#arrows');
+  if (!svg || !snap) return;
+  let h = '';
+  for (const m of marks) h += circleSVG(m.sq, ARROW[m.color], 0.8);
+  for (const a of arrows) h += arrowSVG(a.from, a.to, ARROW[a.color], 0.8);
+  if (premove && viewPly === null) h += arrowSVG(premove.from, premove.to, ARROW.blue, 0.75);
+  if (rdrag) h += rdrag.from === rdrag.to ? circleSVG(rdrag.from, ARROW[rdrag.color], 0.55) : arrowSVG(rdrag.from, rdrag.to, ARROW[rdrag.color], 0.55);
+  svg.innerHTML = h;
+}
+function finishArrow() {
+  const d = rdrag; rdrag = null;
+  if (!d) return;
+  if (d.from === d.to) {
+    const i = marks.findIndex((m) => m.sq === d.from), had = i >= 0 ? marks[i] : null;
+    if (had) marks.splice(i, 1);
+    if (!had || had.color !== d.color) marks.push({ sq: d.from, color: d.color });
+  } else {
+    const i = arrows.findIndex((a) => a.from === d.from && a.to === d.to), had = i >= 0 ? arrows[i] : null;
+    if (had) arrows.splice(i, 1);
+    if (!had || had.color !== d.color) arrows.push({ from: d.from, to: d.to, color: d.color });
+  }
+  drawOverlay();
+}
 
 // Play the move on screen immediately, confirm with the server in the background, roll back if it is refused.
 async function send(from, to, promo) {
+  if (isBot()) return botHumanMove(from, to, promo);
   if (sending || !snap) return;
   const m = Chess.legalMoves(snap.state).find((x) => x.from === from && x.to === to && (x.promo || undefined) === promo);
   selected = null; legal = [];
-  if (!m) { render(); return; }
+  if (!m) { paintBoard(); return; }
   sending = true;
   const base = snap, baseAt = snapAt, baseSig = sig;
   applyOptimistic(m);
@@ -984,7 +1108,7 @@ function applyOptimistic(m) {
   snapAt = Date.now();
   pending = { expect: snap.moves.length, t: Date.now() };
   prevMoves = snap.moves.length;
-  viewPly = null;
+  viewPly = null; arrows = []; marks = [];
   sfx(/[+#]$/.test(note) ? 'check' : note.includes('x') ? 'capture' : 'move');
   sig = sigOf(snap);
   render();
@@ -1041,28 +1165,39 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
 });
 
-// ---------- drag and drop ----------
+// ---------- drag and drop (left) and arrows (right) ----------
 const board = $('#board');
+board.addEventListener('contextmenu', (e) => e.preventDefault());
+const sqAt = (x, y) => { const el = document.elementFromPoint(x, y), q = el && el.closest ? el.closest('#board .sq') : null; return q ? +q.dataset.sq : null; };
 board.addEventListener('pointerdown', (e) => {
-  if (e.button !== 0 || !snap || viewPly !== null || snap.status.over || !snap.players.w || !snap.players.b) return;
+  if (e.button === 2) {
+    const sq = sqAt(e.clientX, e.clientY);
+    if (sq === null) return;
+    rdrag = { from: sq, to: sq, color: e.shiftKey ? 'red' : e.ctrlKey || e.metaKey ? 'blue' : e.altKey ? 'yellow' : 'green' };
+    drawOverlay();
+    return;
+  }
+  if (e.button !== 0) return;
+  if (arrows.length || marks.length) { arrows = []; marks = []; drawOverlay(); }
+  if (!snap || viewPly !== null || snap.status.over || !snap.players.w || !snap.players.b) return;
   const sqEl = e.target.closest('.sq');
   if (!sqEl) return;
   const sq = +sqEl.dataset.sq, p = snap.state.board[sq];
-  if (!p || p[0] !== snap.you || snap.state.turn !== snap.you) return;
+  if (!p || p[0] !== snap.you) return;                // my pieces only (on the opponent's turn this drags a premove)
   drag = { from: sq, x: e.clientX, y: e.clientY, moved: false, ghost: null, size: sqEl.getBoundingClientRect().width, piece: p };
 });
 window.addEventListener('pointermove', (e) => {
+  if (rdrag) { const sq = sqAt(e.clientX, e.clientY); if (sq !== null && sq !== rdrag.to) { rdrag.to = sq; drawOverlay(); } return; }
   if (!drag) return;
   if (!drag.moved) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
     drag.moved = true;
-    selected = drag.from; legal = Chess.legalMoves(snap.state);
+    selected = drag.from; legal = movesFor(snap);
     const g = document.createElement('div');
     g.className = 'dragghost'; g.style.width = g.style.height = drag.size * 1.1 + 'px';
     g.innerHTML = pieceHTML(drag.piece);
     document.body.appendChild(g); drag.ghost = g;
-    paintSelection();
-    const o = board.querySelector(`.sq[data-sq="${drag.from}"]`); if (o) o.classList.add('dragging');
+    paintBoard();
   }
   drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
 });
@@ -1071,16 +1206,18 @@ function endDrag(e, cancel) {
   const d = drag; drag = null;
   if (!d.moved) return;
   lastDragEnd = Date.now();
-  board.querySelectorAll('.dragging').forEach((x) => x.classList.remove('dragging'));
   if (d.ghost) d.ghost.remove();
-  const el = !cancel && document.elementFromPoint(e.clientX, e.clientY);
-  const tsq = el && el.closest ? el.closest('.sq') : null;
-  const to = tsq ? +tsq.dataset.sq : null;
+  const to = cancel ? null : sqAt(e.clientX, e.clientY);
   if (to !== null && to !== d.from && legal.some((m) => m.from === d.from && m.to === to)) clickSquare(to);
-  else { selected = null; legal = []; paintSelection(); }
+  else { selected = null; legal = []; paintBoard(); }
 }
-window.addEventListener('pointerup', (e) => endDrag(e, false));
-window.addEventListener('pointercancel', (e) => endDrag(e, true));
+window.addEventListener('pointerup', (e) => { if (e.button === 2 && rdrag) finishArrow(); else endDrag(e, false); });
+window.addEventListener('pointercancel', (e) => { rdrag = null; drawOverlay(); endDrag(e, true); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (view === 'game' && !isBot()) kick();
+  else if (view === 'lobby') pollLobby(true);
+});
 
 // ---------- sound ----------
 let actx = null, soundOn = (() => { try { return localStorage.getItem('chess:sound') !== '0'; } catch { return true; } })();
@@ -1121,6 +1258,7 @@ document.addEventListener('pointerdown', () => ac(), { once: true });
 // ---------- per-snapshot effects: sounds, title, game-over card ----------
 function afterSnapshot(r) {
   const n = r.moves.length;
+  if (n !== prevMoves) { arrows = []; marks = []; }
   if (prevMoves !== null && n < prevMoves) { viewPly = null; $('#over').classList.add('hidden'); } // rematch started
   if (prevMoves !== null) {
     if (r.status.over && !prevOver) { sfx('end'); showOver(r); }
@@ -1153,7 +1291,7 @@ function updateOver() {
   b.textContent = asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch';
   b.disabled = asked;
 }
-$('#oRematch').onclick = async () => { await api('rematch', { code: gameCode }); kick(); };
+$('#oRematch').onclick = async () => { if (isBot()) { $('#over').classList.add('hidden'); return botRematch(); } await api('rematch', { code: gameCode }); kick(); };
 $('#oClose').onclick = () => $('#over').classList.add('hidden');
 $('#oLobby').onclick = () => { $('#over').classList.add('hidden'); enterLobby(); };
 
@@ -1164,8 +1302,176 @@ $('#drawNo').onclick = async () => { await api('draw_decline', { code: gameCode 
 
 // warn before closing the tab in the middle of a game
 window.addEventListener('beforeunload', (e) => {
-  if (view === 'game' && snap && (snap.you === 'w' || snap.you === 'b') && !snap.status.over && snap.players.w && snap.players.b) { e.preventDefault(); e.returnValue = ''; }
+  if (view === 'game' && !isBot() && snap && (snap.you === 'w' || snap.you === 'b') && !snap.status.over && snap.players.w && snap.players.b) { e.preventDefault(); e.returnValue = ''; }
 });
+
+
+// ---------- play the computer (runs entirely in your browser) ----------
+const BOT_LEVELS = {
+  1: { name: 'Easy', desc: 'Makes plenty of mistakes. A gentle warm-up.' },
+  2: { name: 'Medium', desc: 'Plays sensible chess but misses deeper tactics.' },
+  3: { name: 'Hard', desc: 'Calculates several moves ahead and punishes blunders.' },
+  4: { name: 'Expert', desc: 'Thinks the longest. Tough to beat.' },
+};
+let botGame = null, botWorker = null, botReq = 0, botCb = null, botTimer = null, lobbyMode = 'friends';
+let botLevel = (() => { try { return +localStorage.getItem('chess:botLevel') || 2; } catch { return 2; } })();
+const isBot = () => botGame !== null && gameCode === 'BOT';
+
+function makeBot(level, you, tc) {
+  const st = Chess.initial();
+  return { level, you, tc, state: st, moves: [], hist: [], last: null, positions: { [Chess.key(st)]: 1 }, rep: false, override: null, thinking: false,
+    clock: tc ? { w: tc.base * 1000, b: tc.base * 1000, ts: Date.now() } : null };
+}
+function botStatusOf(b) {
+  if (b.override) return { over: true, result: b.override.result, reason: b.override.reason, check: false };
+  const st = Chess.status(b.state);
+  if (!st.over && b.rep) return { over: true, result: 'draw', reason: 'threefold repetition', check: false };
+  return st;
+}
+function applyBotMove(b, m, timed) {
+  const mover = b.state.turn, now = Date.now();
+  if (b.tc && timed) { if (b.moves.length >= 2) b.clock[mover] += b.tc.inc * 1000 - (now - b.clock.ts); b.clock.ts = now; }
+  b.moves.push(Chess.notate(b.state, m));
+  b.hist.push(m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to });
+  b.state = Chess.apply(b.state, m);
+  b.last = { from: m.from, to: m.to };
+  const k = Chess.key(b.state);
+  b.positions[k] = (b.positions[k] || 0) + 1;
+  if (b.positions[k] >= 3) b.rep = true;
+}
+function botSnap() {
+  const b = botGame, now = Date.now(), st = botStatusOf(b);
+  const run = b.tc && b.moves.length >= 2 && !st.over ? b.state.turn : null;
+  const left = (c) => (b.clock ? Math.max(0, b.clock[c] - (run === c ? now - b.clock.ts : 0)) : null);
+  const me = { name: user.name, elo: myElo }, cpu = { name: 'Computer', elo: BOT_LEVELS[b.level].name };
+  return {
+    code: 'BOT', you: b.you, state: b.state, moves: b.moves, last: b.last, status: st,
+    players: b.you === 'w' ? { w: me, b: cpu } : { w: cpu, b: me }, present: { w: true, b: true },
+    tc: b.tc, clock: b.clock ? { w: left('w'), b: left('b'), running: run } : null,
+    delta: null, rematch: [], hist: b.hist, drawOffer: null, watching: 0,
+  };
+}
+function pushBot() { const sn = botSnap(); applySnapshot(sn); if (sn.status.over) botClear(); }
+
+function botWorkerGet() {
+  if (botWorker) return botWorker;
+  try {
+    botWorker = new Worker('bot.js');
+    botWorker.onmessage = (e) => { if (e.data.id === botReq && botCb) { const cb = botCb; botCb = null; cb(e.data.move); } };
+    botWorker.onerror = () => { botWorker = null; if (botCb) { const cb = botCb; botCb = null; cb(null); } };
+  } catch { botWorker = null; }
+  return botWorker;
+}
+function botThink() {
+  const b = botGame;
+  if (!b || b.thinking || botStatusOf(b).over || b.state.turn === b.you) return;
+  b.thinking = true;
+  const id = ++botReq, t0 = Date.now();
+  const finish = (mv) => setTimeout(() => {
+    if (id !== botReq || botGame !== b) return;
+    b.thinking = false;
+    if (botStatusOf(b).over) return;
+    const all = Chess.legalMoves(b.state);
+    const m = (mv && all.find((x) => x.from === mv.from && x.to === mv.to && (x.promo || undefined) === mv.promo)) || all[Math.floor(Math.random() * all.length)];
+    applyBotMove(b, m, true); botSave(); pushBot();
+  }, Math.max(0, 350 - (Date.now() - t0)));          // never answer instantly: it feels like a person
+  const w = botWorkerGet();
+  if (!w) return finish(null);
+  botCb = finish;
+  w.postMessage({ id, state: b.state, level: b.level, seen: b.positions });
+}
+function botHumanMove(from, to, promo) {
+  const b = botGame;
+  if (!b || b.thinking || b.state.turn !== b.you || botStatusOf(b).over) return;
+  const m = Chess.legalMoves(b.state).find((x) => x.from === from && x.to === to && (x.promo || undefined) === promo);
+  selected = null; legal = [];
+  if (!m) { paintBoard(); return; }
+  viewPly = null; premove = null;
+  applyBotMove(b, m, true); botSave(); pushBot(); botThink();
+}
+function botEnd(result, reason) {
+  const b = botGame; if (!b) return;
+  b.override = { result, reason }; botReq++; botCb = null; b.thinking = false;
+  pushBot();
+}
+function botTick() {
+  const b = botGame;
+  if (!b || !b.tc || b.override) return;
+  const st = botStatusOf(b);
+  if (st.over || b.moves.length < 2) return;
+  const t = b.state.turn;
+  if (b.clock[t] - (Date.now() - b.clock.ts) <= 0) botEnd(t === 'w' ? 'b' : 'w', 'timeout');
+}
+function botSave() {
+  const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
+  let clock = null;
+  if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
+  try { localStorage.setItem('chess:bot', JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock })); } catch {}
+}
+function botClear() { try { localStorage.removeItem('chess:bot'); } catch {} }
+function botLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem('chess:bot'));
+    if (!d || d.v !== 1 || !BOT_LEVELS[d.level]) return null;
+    const b = makeBot(d.level, d.you, d.tc);
+    for (const h of d.hist) {
+      const m = Chess.legalMoves(b.state).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === h.promo);
+      if (!m) return null;
+      applyBotMove(b, m, false);
+    }
+    if (b.tc && d.clock) b.clock = { w: d.clock.w, b: d.clock.b, ts: Date.now() };   // time spent away is not counted
+    return botStatusOf(b).over ? null : b;
+  } catch { return null; }
+}
+function botLeave() {            // leaving the game screen: stop thinking, keep the saved game
+  botReq++; botCb = null; clearInterval(botTimer); botTimer = null;
+  if (botWorker) { botWorker.terminate(); botWorker = null; }
+  if (botGame) { botGame.thinking = false; botGame = null; }
+}
+function enterBot(b) {
+  stopLobby(); stopAdmin(); stopGame();
+  botGame = b; view = 'game'; gameCode = 'BOT';
+  snap = null; sig = ''; selected = null; legal = []; premove = null; arrows = []; marks = [];
+  viewPly = null; prevMoves = null; prevOver = false; prevCode = 'BOT'; pending = null; sending = false;
+  $('#over').classList.add('hidden'); document.title = baseTitle;
+  history.replaceState(null, '', '?bot=1');
+  show('game');
+  clockTimer = setInterval(drawClocks, 200);
+  botTimer = setInterval(botTick, 250);
+  botSave(); pushBot(); botThink();
+}
+function botRematch() { const b = botGame; if (b) enterBot(makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc)); }
+
+// ----- lobby: mode switch, difficulty, resume -----
+function setLobbyMode(m) {
+  lobbyMode = m;
+  $('#modeFriends').classList.toggle('on', m === 'friends'); $('#modeBot').classList.toggle('on', m === 'bot');
+  $('#friendOnly').classList.toggle('hidden', m === 'bot'); $('#botOnly').classList.toggle('hidden', m !== 'bot');
+  if (m === 'bot') paintBotResume();
+}
+function paintLevels() {
+  document.querySelectorAll('#levels button').forEach((b) => b.classList.toggle('on', +b.dataset.l === botLevel));
+  $('#levelDesc').textContent = BOT_LEVELS[botLevel].desc;
+}
+document.querySelectorAll('#levels button').forEach((b) => b.onclick = () => {
+  botLevel = +b.dataset.l; try { localStorage.setItem('chess:botLevel', botLevel); } catch {} paintLevels();
+});
+$('#modeFriends').onclick = () => setLobbyMode('friends');
+$('#modeBot').onclick = () => setLobbyMode('bot');
+$('#botStart').onclick = () => {
+  const you = pickColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : pickColor;
+  enterBot(makeBot(botLevel, you, tcOf()));
+};
+function paintBotResume() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem('chess:bot')); } catch {}
+  const ok = d && d.v === 1 && BOT_LEVELS[d.level] && Array.isArray(d.hist);
+  $('#botResume').classList.toggle('hidden', !ok);
+  if (ok) $('#botResumeText').textContent = `Game vs ${BOT_LEVELS[d.level].name} in progress · move ${Math.floor(d.hist.length / 2) + 1}`;
+}
+$('#botResumeBtn').onclick = () => { const b = botLoad(); if (b) enterBot(b); else { botClear(); paintBotResume(); } };
+$('#botDiscardBtn').onclick = () => { botClear(); paintBotResume(); };
+paintLevels();
 
 document.querySelectorAll('#tcgrid button').forEach((b) => b.onclick = () => {
   $('#tc').value = b.dataset.v;
