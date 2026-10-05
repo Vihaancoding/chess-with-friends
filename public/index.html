@@ -121,7 +121,7 @@
   /* ---------- board ---------- */
   #board, #preview { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; border-radius: 5px; overflow: hidden; user-select: none; touch-action: manipulation; box-shadow: 0 8px 24px -10px #0009; }
   #preview { pointer-events: none; }
-  .sq { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; container-type: size; }
+  .sq { position: relative; display: flex; align-items: center; justify-content: center; cursor: default; container-type: size; min-width: 0; -webkit-tap-highlight-color: transparent; }
   .sq.l { background: var(--light); } .sq.d { background: var(--dark); }
   .sq.last::before, .sq.sel::before { content: ""; position: absolute; inset: 0; background: rgba(255, 255, 0, .42); }
   .sq.check { background: radial-gradient(circle, #ff0000 0%, #e70000 25%, #a90000 89%, #9e0000 100%), var(--light); }
@@ -239,6 +239,13 @@
   #colorbar.w.myturn #cbTurn { color: #2e6a1d; } #colorbar.b.myturn #cbTurn { color: #95cf5b; }
   #colorbar.myturn { box-shadow: 0 0 0 3px #81b64c88, 0 8px 24px -8px #000c; }
   .banner button:disabled, #lb button:disabled, #livelist button:disabled { opacity: .55; }
+  .sq.mine { cursor: grab; }
+  .sq.hint { cursor: pointer; }
+  .sq.hint:hover { box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .55); }
+  .sq.hint::after { width: 30%; height: 30%; background: rgba(0, 0, 0, .18); }
+  .sq.hint.cap::after { width: 100%; height: 100%; background: radial-gradient(circle, transparent 57%, rgba(0, 0, 0, .18) 58%); }
+  .sq.hint.cap:hover { box-shadow: none; }
+  .sq.dragging img.piece { opacity: .35; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -818,6 +825,7 @@ function render() {
   const bd = $('#board'); bd.innerHTML = '';
   const inChk = live ? status.check : Chess.inCheck(state, state.turn);
   const kingSq = inChk ? state.board.indexOf(state.turn + 'K') : -1;
+  const canAct = live && !status.over && !!(players.w && players.b) && snap.state.turn === you && !drag;
   const targets = live ? new Map(legal.filter((m) => m.from === selected).map((m) => [m.to, m])) : new Map();
 
   for (let i = 0; i < 64; i++) {
@@ -832,6 +840,7 @@ function render() {
     if (sq === kingSq) el.classList.add('check');
     if (targets.has(sq)) { el.classList.add('hint'); if (state.board[sq] || targets.get(sq).enPassant) el.classList.add('cap'); }
     const p = state.board[sq];
+    if (p && canAct && p[0] === you) el.classList.add('mine');
     if (p) el.innerHTML = pieceHTML(p);
     if (i % 8 === 0) el.insertAdjacentHTML('beforeend', `<span class="coord r">${8 - (flip ? 7 - (i >> 3) : (i >> 3))}</span>`);
     if (i >= 56) el.insertAdjacentHTML('beforeend', `<span class="coord f">${'abcdefgh'[flip ? 7 - (i & 7) : (i & 7)]}</span>`);
@@ -926,8 +935,22 @@ function clickSquare(sq) {
   const p = state.board[sq];
   if (p && p[0] === you && sq !== selected) { selected = sq; legal = Chess.legalMoves(state); }
   else selected = null;
-  render();
+  paintSelection();
 }
+
+// Update selection / legal-move highlights in place: no DOM rebuild, so clicks never flicker or lag.
+function paintSelection() {
+  if (!snap) return;
+  const targets = viewPly === null && selected !== null ? new Map(legal.filter((m) => m.from === selected).map((m) => [m.to, m])) : new Map();
+  const bd = snap.state.board;
+  for (const el of $('#board').children) {
+    const sq = +el.dataset.sq, t = targets.get(sq);
+    el.classList.toggle('sel', sq === selected && viewPly === null);
+    el.classList.toggle('hint', !!t);
+    el.classList.toggle('cap', !!t && !!(bd[sq] || t.enPassant));
+  }
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && view === 'game' && selected !== null && !drag) { selected = null; legal = []; paintSelection(); } });
 
 // Play the move on screen immediately, confirm with the server in the background, roll back if it is refused.
 async function send(from, to, promo) {
@@ -1038,7 +1061,8 @@ window.addEventListener('pointermove', (e) => {
     g.className = 'dragghost'; g.style.width = g.style.height = drag.size * 1.1 + 'px';
     g.innerHTML = pieceHTML(drag.piece);
     document.body.appendChild(g); drag.ghost = g;
-    render();
+    paintSelection();
+    const o = board.querySelector(`.sq[data-sq="${drag.from}"]`); if (o) o.classList.add('dragging');
   }
   drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
 });
@@ -1047,12 +1071,13 @@ function endDrag(e, cancel) {
   const d = drag; drag = null;
   if (!d.moved) return;
   lastDragEnd = Date.now();
+  board.querySelectorAll('.dragging').forEach((x) => x.classList.remove('dragging'));
   if (d.ghost) d.ghost.remove();
   const el = !cancel && document.elementFromPoint(e.clientX, e.clientY);
   const tsq = el && el.closest ? el.closest('.sq') : null;
   const to = tsq ? +tsq.dataset.sq : null;
   if (to !== null && to !== d.from && legal.some((m) => m.from === d.from && m.to === to)) clickSquare(to);
-  else { selected = null; legal = []; render(); }
+  else { selected = null; legal = []; paintSelection(); }
 }
 window.addEventListener('pointerup', (e) => endDrag(e, false));
 window.addEventListener('pointercancel', (e) => endDrag(e, true));
