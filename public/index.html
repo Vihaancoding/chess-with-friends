@@ -224,6 +224,21 @@
   #odelta { font-size: 1.15rem; font-weight: 800; margin: 14px 0 4px; min-height: 1.4em; }
   #odelta.pos { color: var(--green); } #odelta.neg { color: var(--bad); }
   #over .oact { display: grid; gap: 10px; margin-top: 16px; }
+  #colorbar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 8; display: none; align-items: center; gap: 12px;
+    padding: 7px 20px 7px 10px; border-radius: 999px; font-weight: 800; border: 2px solid transparent; box-shadow: 0 8px 24px -8px #000c; max-width: calc(100vw - 20px); white-space: nowrap; }
+  body[data-view="game"] #colorbar { display: flex; }
+  body[data-view="game"] #game { padding-bottom: 86px; }
+  #colorbar.w { background: #f4f2dc; color: #262421; border-color: #fff; }
+  #colorbar.b { background: #1b1a18; color: #fff; border-color: #6b6966; }
+  #colorbar.s { background: var(--panel); color: #fff; border-color: var(--line); }
+  #colorbar img { width: 36px; height: 36px; flex: none; }
+  .cbmain { display: flex; flex-direction: column; line-height: 1.15; }
+  #cbText { font-size: 1.05rem; }
+  #cbTurn { font-size: .8rem; font-weight: 700; opacity: .7; }
+  #colorbar.myturn #cbTurn { opacity: 1; }
+  #colorbar.w.myturn #cbTurn { color: #2e6a1d; } #colorbar.b.myturn #cbTurn { color: #95cf5b; }
+  #colorbar.myturn { box-shadow: 0 0 0 3px #81b64c88, 0 8px 24px -8px #000c; }
+  .banner button:disabled, #lb button:disabled, #livelist button:disabled { opacity: .55; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -379,6 +394,8 @@
   <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oClose">Review game</button><button id="oLobby">Back to lobby</button></div>
 </div></div>
 
+<div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span></span></div>
+
 <div id="promo" class="hidden"><div class="box"></div></div>
 
 <script src="chess.js"></script>
@@ -402,6 +419,7 @@ let viewPly = null;                       // null = live position; otherwise ply
 let stCache = { hist: [], states: [Chess.initial()], caps: [null] };
 let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0;
+let pollGen = 0, sending = false, pending = null;
 
 async function api(route, body) {
   const headers = { 'Content-Type': 'application/json' };
@@ -478,20 +496,95 @@ $('#join').onclick = async () => {
   r.ok ? enterGame(r.code) : ($('#err').textContent = r.error);
 };
 $('#code').addEventListener('keydown', (e) => e.key === 'Enter' && $('#join').click());
+// ----- challenges: instant feedback, one at a time, no duplicate requests -----
+let curInbox = [], curOut = null, localOut = null, challengeSending = false, bannerSig = '';
+const busyIds = new Set(), goneIds = new Set(), hiddenOut = new Set();
+const baseTitle = 'Chess With Friends';
+
 async function challenge(name) {
+  name = String(name || '').trim();
+  if (!name || challengeSending || (curOut && curOut.status === 'pending')) return;   // ignore repeat clicks
+  challengeSending = true;
+  localOut = { to: name, ts: Date.now() };
+  $('#err').textContent = '';
+  syncChallenges(curInbox, null);                                                       // banner + disabled buttons right now
   const r = await api('challenge', { to: name, tc: tcOf() });
-  $('#err').textContent = r.ok ? '' : r.error;
-  pollLobby();
+  challengeSending = false;
+  if (!r.ok) { localOut = null; $('#err').textContent = r.error; syncChallenges(curInbox, null); return; }
+  if (localOut) localOut.id = r.id;
+  pollLobby(false);
 }
 $('#chBtn').onclick = () => challenge($('#chName').value);
 $('#chName').addEventListener('keydown', (e) => e.key === 'Enter' && $('#chBtn').click());
+$('#lb').addEventListener('click', (e) => { const b = e.target.closest('[data-ch]'); if (b && !b.disabled) challenge(b.dataset.ch); });
 
+function syncChallenges(inbox, outbox) {
+  curInbox = inbox.filter((c) => !goneIds.has(c.id));
+  let o = outbox;
+  if (o && o.status === 'accepted') { localOut = null; api('cancel'); return enterGame(o.code); }  // jump straight in
+  if (o && o.id && hiddenOut.has(o.id)) o = null;
+  if (o) { if (o.status !== 'pending' || !localOut || o.id === localOut.id || !localOut.id) localOut = null; }
+  if (!o && localOut) { if (Date.now() - localOut.ts < 6000) o = { status: 'pending', to: localOut.to, local: true }; else localOut = null; }
+  curOut = o;
+  document.title = curInbox.length ? `(${curInbox.length}) Challenge · Chess` : baseTitle;
+  renderBanners();
+  paintChallengeButtons();
+}
+function renderBanners() {
+  const o = curOut;
+  const sig = JSON.stringify([curInbox.map((c) => c.id), o && [o.status, o.to], [...busyIds]]);
+  if (sig === bannerSig) return;
+  bannerSig = sig;
+  let html = '';
+  for (const c of curInbox) {
+    const busy = busyIds.has(c.id);
+    html += `<div class="banner"><span><b>${esc(c.from)}</b> (${c.fromElo}) challenges you — ${tcLabel(c.tc)}</span>
+      <span><button class="primary small" data-a="accept" data-id="${c.id}" ${busy ? 'disabled' : ''}>${busy ? 'Joining…' : 'Accept'}</button>
+      <button class="small" data-a="decline" data-id="${c.id}" ${busy ? 'disabled' : ''}>Decline</button></span></div>`;
+  }
+  if (o && o.status === 'pending')
+    html += `<div class="banner"><span>Challenge sent — waiting for <b>${esc(o.to)}</b> to accept…</span><button class="small" data-a="cancel">Cancel</button></div>`;
+  if (o && o.status === 'declined')
+    html += `<div class="banner warn"><span><b>${esc(o.to)}</b> declined your challenge.</span><button class="small" data-a="dismiss">OK</button></div>`;
+  $('#banners').innerHTML = html;
+}
+function paintChallengeButtons() {
+  const pending = !!(curOut && curOut.status === 'pending');
+  $('#chBtn').disabled = pending;
+  $('#lb').querySelectorAll('[data-ch]').forEach((b) => {
+    const mine = pending && b.dataset.ch.toLowerCase() === curOut.to.toLowerCase();
+    b.disabled = pending; b.textContent = mine ? 'Sent' : 'Challenge';
+  });
+}
+$('#banners').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-a]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.a, id = b.dataset.id;
+  if (a === 'accept') {
+    if (busyIds.has(id)) return;
+    busyIds.add(id); renderBanners();                                  // instant "Joining…"
+    const res = await api('accept', { id });
+    busyIds.delete(id);
+    if (res.ok) return enterGame(res.code);
+    goneIds.add(id); $('#err').textContent = res.error; syncChallenges(curInbox, curOut); pollLobby(true);
+  } else if (a === 'decline') {
+    goneIds.add(id); syncChallenges(curInbox, curOut);                 // vanishes instantly
+    api('decline', { id });
+  } else {                                                             // cancel (my pending challenge) or dismiss (declined notice)
+    if (curOut && curOut.id) hiddenOut.add(curOut.id);
+    localOut = null; curOut = null; bannerSig = ''; renderBanners(); paintChallengeButtons();
+    api('cancel');
+  }
+});
+
+// ----- lobby polling: a 1s cheap "ping" for challenges, a full refresh every 3s, never overlapping -----
+let lobbyBusy = false, lobbyRerun = false, lobbyTick = 0;
 function enterLobby() {
-  stopGame(); stopAdmin(); gameCode = null; view = 'lobby';
+  stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
   show('lobby'); $('#err').textContent = ''; drawPreview();
-  pollLobby();
-  lobbyTimer = setInterval(pollLobby, 2500);
+  lobbyTick = 0; pollLobby(true);
+  lobbyTimer = setInterval(() => { lobbyTick++; pollLobby(lobbyTick % 3 === 0); }, 1000);
 }
 function drawPreview() {
   const st = Chess.initial(), pv = $('#preview');
@@ -503,55 +596,50 @@ function drawPreview() {
     pv.appendChild(el);
   }
 }
-function stopLobby() { clearInterval(lobbyTimer); lobbyTimer = null; }
+function stopLobby() { clearInterval(lobbyTimer); lobbyTimer = null; lobbyRerun = false; }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-async function pollLobby() {
+let lbSig = '', liveSig = '';
+async function pollLobby(full = true) {
   if (view !== 'lobby') return;
-  const r = await api('me');
-  if (view !== 'lobby') return;
-  if (r.status === 401) { localStorage.removeItem('chess:user'); return location.reload(); }
-  if (!r.ok) return;
-  $('#meName').textContent = r.user.name;
-  $('#meElo').textContent = r.user.elo;
-  $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
-  $('#navAdmin').classList.toggle('hidden', !r.user.admin);
-  document.title = r.inbox.length ? `(${r.inbox.length}) Challenge · Chess` : 'Chess With Friends';
-  $('#claimForm').classList.toggle('hidden', !(wantAdmin && !r.user.admin));
-  $('#announce').textContent = r.announce || '';
-  $('#announce').classList.toggle('hidden', !r.announce);
-  renderLive(r.live, r.user.name);
-  renderChat(r.chat, r.user.admin, r.user.muted);
-
-  let html = '';
-  for (const c of r.inbox)
-    html += `<div class="banner"><span><b>${esc(c.from)}</b> (${c.fromElo}) challenges you — ${tcLabel(c.tc)}</span>
-      <span><button class="primary small" data-a="accept" data-id="${c.id}">Accept</button>
-      <button class="small" data-a="decline" data-id="${c.id}">Decline</button></span></div>`;
-  const o = r.outbox;
-  if (o && o.status === 'pending')
-    html += `<div class="banner"><span>Waiting for <b>${esc(o.to)}</b> to accept…</span><button class="small" data-a="cancel">Cancel</button></div>`;
-  if (o && o.status === 'declined') {
-    html += `<div class="banner warn"><span><b>${esc(o.to)}</b> declined your challenge.</span><button class="small" data-a="cancel">OK</button></div>`;
+  if (lobbyBusy) { if (full) lobbyRerun = true; return; }
+  lobbyBusy = true;
+  try {
+    const r = await api(full ? 'me' : 'ping');
+    if (view !== 'lobby') return;
+    if (r.status === 401) { localStorage.removeItem('chess:user'); return location.reload(); }
+    if (!r.ok) return;
+    if (full) {
+      $('#meName').textContent = r.user.name;
+      $('#meElo').textContent = r.user.elo;
+      $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
+      $('#navAdmin').classList.toggle('hidden', !r.user.admin);
+      $('#claimForm').classList.toggle('hidden', !(wantAdmin && !r.user.admin));
+      $('#announce').textContent = r.announce || '';
+      $('#announce').classList.toggle('hidden', !r.announce);
+      renderLive(r.live, r.user.name);
+      renderChat(r.chat, r.user.admin, r.user.muted);
+      const ls = JSON.stringify([r.leaderboard, r.user.name]);
+      if (ls !== lbSig) {          // only rebuild the leaderboard when it really changed
+        lbSig = ls;
+        $('#lb').innerHTML = r.leaderboard.map((p, i) => `<tr class="${p.name === r.user.name ? 'you' : ''}">
+          <td>${i + 1}</td><td>${esc(p.name)}</td><td class="r">${p.elo}</td><td class="r muted">${p.w}-${p.l}-${p.d}</td>
+          <td class="r">${p.name === r.user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</td></tr>`).join('');
+      }
+    }
+    syncChallenges(r.inbox, r.outbox);
+  } finally {
+    lobbyBusy = false;
+    if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
   }
-  $('#banners').innerHTML = html;
-  $('#banners').querySelectorAll('button').forEach((b) => b.onclick = async () => {
-    const a = b.dataset.a;
-    const res = await api(a, { id: b.dataset.id });
-    if (a === 'accept') return res.ok ? enterGame(res.code) : ($('#err').textContent = res.error);
-    pollLobby();
-  });
-  if (o && o.status === 'accepted') { await api('cancel'); return enterGame(o.code); }
-
-  $('#lb').innerHTML = r.leaderboard.map((p, i) => `<tr class="${p.name === r.user.name ? 'you' : ''}">
-    <td>${i + 1}</td><td>${esc(p.name)}</td><td class="r">${p.elo}</td><td class="r muted">${p.w}-${p.l}-${p.d}</td>
-    <td class="r">${p.name === r.user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</td></tr>`).join('');
-  $('#lb').querySelectorAll('[data-ch]').forEach((b) => b.onclick = () => challenge(b.dataset.ch));
 }
 
 // ---------- live games, chat, admin ----------
 function renderLive(list, me) {
+  const sig = JSON.stringify([list, me]);
+  if (sig === liveSig) return;
+  liveSig = sig;
   const el = $('#livelist');
   if (!list.length) { el.innerHTML = '<div class="muted empty">No games in progress right now.</div>'; return; }
   el.innerHTML = list.map((g) => {
@@ -560,15 +648,20 @@ function renderLive(list, me) {
       <span class="muted lm">${tcLabel(g.tc)} · move ${Math.floor(g.moves / 2) + 1}</span>
       <button class="small ${mine ? 'primary' : ''}" data-watch="${g.code}">${mine ? 'Rejoin' : 'Watch'}</button></div>`;
   }).join('');
-  el.querySelectorAll('[data-watch]').forEach((b) => b.onclick = async () => {
-    const r = await api('join', { code: b.dataset.watch });
-    r.ok ? enterGame(r.code) : ($('#err').textContent = r.error);
-  });
 }
+$('#livelist').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-watch]');
+  if (!b || b.disabled) return;
+  b.disabled = true;
+  const r = await api('join', { code: b.dataset.watch });
+  if (r.ok) enterGame(r.code); else { b.disabled = false; $('#err').textContent = r.error; }
+});
 
 let chatSig = '';
 const hhmm = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-function renderChat(msgs, isAdmin, muted) {
+let curChat = [], curAdmin = false;
+function renderChat(msgs, isAdmin, muted, opt) {
+  if (!opt) { curChat = msgs; curAdmin = isAdmin; }
   $('#chatIn').placeholder = muted ? 'You are muted' : 'Say something…';
   $('#chatIn').disabled = !!muted;
   const sig = msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '') + ':' + isAdmin;
@@ -581,15 +674,19 @@ function renderChat(msgs, isAdmin, muted) {
     ? msgs.map((m) => `<div class="msg"><span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${esc(m.text)}</span>${isAdmin ? `<button class="x" data-del="${m.id}" title="Delete message">×</button>` : ''}</div>`).join('')
     : '<div class="muted empty">No messages yet. Say hi!</div>';
   if (first || near) log.scrollTop = log.scrollHeight;
-  log.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => { await api('admin_delete_msg', { id: b.dataset.del }); pollLobby(); });
+  log.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => { await api('admin_delete_msg', { id: b.dataset.del }); pollLobby(true); });
 }
 $('#chatForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = $('#chatIn').value;
   if (!text.trim()) return;
+  $('#chatIn').value = '';
+  const tmp = { id: 'tmp' + Date.now(), name: user.name, text: text.replace(/\s+/g, ' ').trim().slice(0, 200), ts: Date.now(), admin: curAdmin };
+  renderChat(curChat.concat([tmp]), curAdmin, false, true);          // show my message immediately
   const r = await api('chat_send', { text });
   $('#chatErr').textContent = r.ok ? '' : r.error;
-  if (r.ok) { $('#chatIn').value = ''; chatSig = ''; pollLobby(); }
+  if (!r.ok) { $('#chatIn').value = text; chatSig = ''; renderChat(curChat, curAdmin, false); }
+  else pollLobby(true);
 });
 
 $('#claimForm').addEventListener('submit', async (e) => {
@@ -646,35 +743,45 @@ $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); awai
 // ---------- game ----------
 function enterGame(code) {
   stopLobby(); stopAdmin(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
-  viewPly = null; prevMoves = null; prevOver = false; prevCode = code; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
+  viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
   history.replaceState(null, '', '?game=' + code);
   show('game');
   $('#gcode').textContent = code;
-  pollGame();
+  kick();
   clockTimer = setInterval(drawClocks, 200);
 }
-function stopGame() { clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; }
+function stopGame() { pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; }
 $('#leave').onclick = enterLobby;
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
 function copy(t, sel) { navigator.clipboard.writeText(t).then(() => { const b = $(sel), o = b.textContent; b.textContent = 'Copied!'; setTimeout(() => b.textContent = o, 1200); }); }
-$('#resign').onclick = async () => { if (confirm('Resign this game?')) { await api('resign', { code: gameCode }); pollGame(true); } };
-$('#rematch').onclick = async () => { await api('rematch', { code: gameCode }); pollGame(true); };
+$('#resign').onclick = async () => { if (confirm('Resign this game?')) { await api('resign', { code: gameCode }); kick(); } };
+$('#rematch').onclick = async () => { await api('rematch', { code: gameCode }); kick(); };
 
-async function pollGame(once) {
-  if (view !== 'game') return;
-  clearTimeout(gameTimer);
+const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer].join('|');
+
+// kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
+function kick() { pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
+async function pollGame(gen) {
+  if (view !== 'game' || gen !== pollGen) return;
   const r = await api('room', { code: gameCode });
-  if (view !== 'game') return;
+  if (view !== 'game' || gen !== pollGen) return;
+  let delay = 1500;
   if (r.ok) {
-    snap = r; snapAt = Date.now();
-    const s = [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer].join('|');
-    if (s !== sig) {
-      if (!sig || sig.split('|')[0] !== String(r.moves.length) || sig.split('|')[1] !== r.you) { selected = null; legal = []; }
-      sig = s; afterSnapshot(r); render();
-    }
+    if (pending && Date.now() - pending.t > 5000) pending = null;
+    if (pending && r.moves.length >= pending.expect) pending = null;
+    if (!(pending && r.moves.length < pending.expect)) applySnapshot(r);   // ignore a poll that predates my move
+    const mine = r.you === 'w' || r.you === 'b';
+    delay = r.status.over ? 2500 : mine && r.state.turn !== r.you ? 700 : mine ? 1200 : 1000;
   } else if (r.status === 404 || r.status === 401) { return enterLobby(); }
-  gameTimer = setTimeout(pollGame, 1000);
+  gameTimer = setTimeout(() => pollGame(gen), delay);
+}
+function applySnapshot(r) {
+  snap = r; snapAt = Date.now();
+  const s = sigOf(r);
+  if (s === sig) return;
+  if (!sig || sig.split('|')[0] !== String(r.moves.length) || sig.split('|')[1] !== r.you) { selected = null; legal = []; }
+  sig = s; afterSnapshot(r); render();
 }
 
 function fmt(ms) {
@@ -791,6 +898,15 @@ function render() {
   $('#drawtxt').textContent = 'Your opponent offers a draw';
   updateOver();
 
+  // permanent colour indicator (fixed to the bottom of the screen)
+  const cb = $('#colorbar');
+  cb.className = mine ? you : 's';
+  $('#cbIcon').innerHTML = mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '';
+  $('#cbText').textContent = mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating';
+  const liveTurn = snap.state.turn;
+  $('#cbTurn').textContent = status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : "Opponent's move") : `${liveTurn === 'w' ? 'White' : 'Black'} to move`;
+  cb.classList.toggle('myturn', mine && !status.over && bothIn && liveTurn === you);
+
   let html = '';
   const cell = (i) => (moves[i] ? `<span class="mv ${upto === i + 1 ? 'cur' : ''}" data-ply="${i + 1}">${moves[i]}</span>` : '<span></span>');
   for (let i = 0; i < moves.length; i += 2) html += `<span class="n">${i / 2 + 1}.</span>${cell(i)}${cell(i + 1)}`;
@@ -813,11 +929,42 @@ function clickSquare(sq) {
   render();
 }
 
+// Play the move on screen immediately, confirm with the server in the background, roll back if it is refused.
 async function send(from, to, promo) {
+  if (sending || !snap) return;
+  const m = Chess.legalMoves(snap.state).find((x) => x.from === from && x.to === to && (x.promo || undefined) === promo);
   selected = null; legal = [];
-  const r = await api('move', { code: gameCode, from, to, promo });
-  if (!r.ok) $('#sub').textContent = r.error;
-  pollGame();
+  if (!m) { render(); return; }
+  sending = true;
+  const base = snap, baseAt = snapAt, baseSig = sig;
+  applyOptimistic(m);
+  const r = await api('move', { code: gameCode, from, to, promo, ply: base.moves.length });
+  sending = false;
+  if (!r.ok) {
+    pending = null; snap = base; snapAt = baseAt; sig = baseSig; prevMoves = base.moves.length;
+    render(); $('#sub').textContent = r.error || 'Move failed.';
+  }
+  kick();                                       // confirm right away and start watching for the reply
+}
+function applyOptimistic(m) {
+  const s0 = snap, you = s0.you, opp = you === 'w' ? 'b' : 'w';
+  const note = Chess.notate(s0.state, m), ns = Chess.apply(s0.state, m), st = Chess.status(ns);
+  let clock = s0.clock;
+  if (clock) {
+    clock = { ...clock };
+    if (clock.running) clock[clock.running] = Math.max(0, clock[clock.running] - (Date.now() - snapAt));
+    if (s0.tc && s0.moves.length >= 2) clock[you] += s0.tc.inc * 1000;
+    clock.running = s0.tc && s0.moves.length + 1 >= 2 && !st.over ? opp : null;
+  }
+  const hm = m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to };
+  snap = { ...s0, state: ns, moves: [...s0.moves, note], hist: [...(s0.hist || []), hm], last: { from: m.from, to: m.to }, status: st, clock, drawOffer: s0.drawOffer === opp ? null : s0.drawOffer };
+  snapAt = Date.now();
+  pending = { expect: snap.moves.length, t: Date.now() };
+  prevMoves = snap.moves.length;
+  viewPly = null;
+  sfx(/[+#]$/.test(note) ? 'check' : note.includes('x') ? 'capture' : 'move');
+  sig = sigOf(snap);
+  render();
 }
 
 function askPromo(from, to) {
@@ -981,14 +1128,14 @@ function updateOver() {
   b.textContent = asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch';
   b.disabled = asked;
 }
-$('#oRematch').onclick = async () => { await api('rematch', { code: gameCode }); pollGame(true); };
+$('#oRematch').onclick = async () => { await api('rematch', { code: gameCode }); kick(); };
 $('#oClose').onclick = () => $('#over').classList.add('hidden');
 $('#oLobby').onclick = () => { $('#over').classList.add('hidden'); enterLobby(); };
 
 // ---------- draw offers ----------
-$('#drawBtn').onclick = async () => { const r = await api('draw_offer', { code: gameCode }); if (!r.ok) $('#sub').textContent = r.error; pollGame(true); };
-$('#drawYes').onclick = async () => { await api('draw_accept', { code: gameCode }); pollGame(true); };
-$('#drawNo').onclick = async () => { await api('draw_decline', { code: gameCode }); pollGame(true); };
+$('#drawBtn').onclick = async () => { const r = await api('draw_offer', { code: gameCode }); if (!r.ok) $('#sub').textContent = r.error; kick(); };
+$('#drawYes').onclick = async () => { await api('draw_accept', { code: gameCode }); kick(); };
+$('#drawNo').onclick = async () => { await api('draw_decline', { code: gameCode }); kick(); };
 
 // warn before closing the tab in the middle of a game
 window.addEventListener('beforeunload', (e) => {
