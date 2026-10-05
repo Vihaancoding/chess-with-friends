@@ -269,6 +269,72 @@
   .levels button:active { transform: none; }
   .levels button.on { border-color: var(--green); background: #3b4a2b; }
   #botResume { justify-content: space-between; }
+  /* skeletons: invisible for the first 120ms (so fast loads never flicker), then a soft shimmer */
+  .sk { display: inline-block; vertical-align: middle; height: 1em; border-radius: 6px; background: linear-gradient(90deg, #3a3835 0%, #4a4845 50%, #3a3835 100%); background-size: 200% 100%;
+    animation: skin .2s ease-out .12s both, shim 1.5s ease-in-out .12s infinite; }
+  .sk.block { display: block; }
+  .skbg { color: transparent !important; background: linear-gradient(90deg, #3a3835 0%, #4a4845 50%, #3a3835 100%) !important; background-size: 200% 100% !important; animation: skin .2s ease-out .12s both, shim 1.5s ease-in-out .12s infinite; }
+  @keyframes skin { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes shim { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+  .sk-row td { padding: 12px 10px; }
+  .lbtabs { display: inline-flex; gap: 4px; background: #1f1e1b; border-radius: 8px; padding: 3px; }
+  .lbtabs button { min-height: 30px; padding: 3px 10px; font-size: .8rem; box-shadow: none; background: none; color: var(--muted); border-radius: 6px; }
+  .lbtabs button:active { transform: none; }
+  .lbtabs button.on { background: #3b4a2b; color: #fff; }
+  #lbcard .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  #lbcard .head h2 { margin: 0; }
+  .plink { cursor: pointer; } .plink:hover { text-decoration: underline; }
+  .prov { color: var(--muted); font-weight: 600; }
+  .userbox .nm { cursor: pointer; }
+
+  /* profile */
+  #profile { max-width: 1060px; margin: 0 auto; padding: 22px 18px 60px; }
+  .phead { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+  .phead .avatar { width: 64px; height: 64px; font-size: 1.8rem; border-radius: 10px; }
+  .phead .ptitle { margin: 0; }
+  .phead #pfChallenge { margin-left: auto; }
+  .rcards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 760px) { .rcards { grid-template-columns: repeat(2, 1fr); } }
+  .rcard { background: var(--panel); border-radius: 10px; padding: 14px 16px; cursor: pointer; border: 2px solid transparent; min-height: 104px; }
+  .rcard.on { border-color: var(--green); }
+  .rcard .rc-l { color: var(--muted); font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+  .rcard .rc-r { font-size: 1.9rem; font-weight: 800; line-height: 1.2; margin: 2px 0; }
+  .rcard .rc-s { color: var(--muted); font-size: .8rem; font-weight: 600; }
+  #pfGraph { height: 220px; position: relative; }
+  #pfGraph svg { width: 100%; height: 100%; display: block; }
+  #pfGraph .empty { display: flex; height: 100%; align-items: center; justify-content: center; }
+  .gtip { position: absolute; pointer-events: none; background: #1f1e1b; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: .8rem; font-weight: 700; white-space: nowrap; transform: translate(-50%, -130%); }
+  .grow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 6px; border-top: 1px solid var(--line); }
+  .grow:first-child { border-top: 0; }
+  .gres { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; font-weight: 800; font-size: .85rem; }
+  .gres.win { background: #3b4a2b; color: var(--green); } .gres.loss { background: #4a2b2b; color: var(--bad); } .gres.draw { background: #3a3936; color: #c3c2c1; }
+  .gopp { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .gmeta { color: var(--muted); font-size: .78rem; font-weight: 600; }
+  .grat { text-align: right; font-weight: 800; white-space: nowrap; }
+  .pos { color: var(--green); } .neg { color: var(--bad); }
+
+  /* result card */
+  #over .box { width: min(100%, 420px); }
+  #otitle.win { color: var(--green); } #otitle.loss { color: var(--bad); }
+  .ovs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin: 18px 0 6px; }
+  .oside { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  .oside .avatar { width: 52px; height: 52px; font-size: 1.4rem; }
+  .oside .on { font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .oside .or { color: var(--muted); font-size: .85rem; font-weight: 700; }
+  .ovsmid { color: var(--muted); font-weight: 800; font-size: .8rem; }
+  #orating { margin: 14px 0 4px; min-height: 58px; }
+  .ornum { font-size: 1.5rem; font-weight: 800; display: flex; align-items: baseline; justify-content: center; gap: 10px; font-variant-numeric: tabular-nums; }
+  .ornum .ob { color: var(--muted); }
+  .ornum .od { font-size: 1.1rem; animation: dpop .5s ease-out .55s both; }
+  @keyframes dpop { from { opacity: 0; transform: translateY(6px) scale(.9); } to { opacity: 1; transform: none; } }
+  .olbl { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+  .onote { color: var(--muted); font-weight: 600; font-size: .9rem; padding-top: 10px; }
+  .ostats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .ostats div { background: #1f1e1b; border-radius: 8px; padding: 8px 4px; }
+  .ostats b { display: block; font-size: 1.05rem; }
+  .ostats span { color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .rtdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #706f6d; margin-left: 6px; vertical-align: 2px; }
+  .rtdot.on { background: var(--green); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -280,10 +346,11 @@
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
+    <button id="navProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile</button>
     <button id="navAdmin" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg> Admin</button>
   </div>
   <div class="userbox">
-    <div><div class="nm" id="meName"></div><div><span class="elo" id="meElo"></span> <span class="rec" id="meRec"></span></div></div>
+    <div><div class="nm" id="meName" title="Your profile"><span class="sk" style="width:90px"></span></div><div><span class="elo" id="meElo"><span class="sk" style="width:70px;height:.9em"></span></span> <span class="rec" id="meRec"></span></div></div>
     <button class="small" id="signout">Sign out</button>
   </div>
 </nav>
@@ -323,10 +390,10 @@
   <div class="lobby-grid">
     <div class="leftcol">
       <div id="previewwrap"><div id="preview"></div></div>
-      <div class="panel" id="livecard"><h2 class="ph">Live games</h2><div id="livelist"></div></div>
+      <div class="panel" id="livecard"><h2 class="ph"><span>Live games<span class="rtdot" id="rtDot" title="Live updates"></span></span></h2><div id="livelist"><div class="liverow"><span class="lv"><span class="sk" style="width:220px"></span></span></div></div></div>
       <div class="panel" id="chatcard">
         <h2 class="ph">Lobby chat</h2>
-        <div id="chatlog"></div>
+        <div id="chatlog"><div class="msg"><span class="sk" style="width:200px;height:.85em"></span></div><div class="msg"><span class="sk" style="width:140px;height:.85em"></span></div><div class="msg"><span class="sk" style="width:240px;height:.85em"></span></div><div class="msg"><span class="sk" style="width:170px;height:.85em"></span></div></div>
         <form id="chatForm" class="row"><input id="chatIn" maxlength="200" placeholder="Say something…" autocomplete="off"><button class="primary" type="submit">Send</button></form>
         <div id="chatErr" role="alert"></div>
       </div>
@@ -369,10 +436,19 @@
     </div>
   </div>
   <div id="lbcard" class="panel">
-    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</h2>
-    <table><thead><tr><th>#</th><th>Player</th><th class="r">Rating</th><th class="r">W / L / D</th><th></th></tr></thead>
-    <tbody id="lb"></tbody></table>
+    <div class="head"><h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</h2>
+      <div class="lbtabs" id="lbtabs"><button data-cat="bullet">Bullet</button><button data-cat="blitz" class="on">Blitz</button><button data-cat="rapid">Rapid</button><button data-cat="classical">Classical</button></div></div>
+    <table><thead><tr><th>#</th><th>Player</th><th class="r">Rating</th><th class="r">Games</th><th></th></tr></thead>
+    <tbody id="lb"><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:110px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:80px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:130px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr></tbody></table>
   </div>
+</div>
+
+<!-- profile -->
+<div id="profile" class="hidden">
+  <div class="phead"><div class="avatar w" id="pfAvatar"></div><div><h1 class="ptitle" id="pfName"></h1><div class="muted" id="pfSub" style="font-weight:600"></div></div><button class="primary" id="pfChallenge">Challenge</button></div>
+  <div class="rcards" id="pfCards"></div>
+  <div class="panel" style="margin-bottom:16px"><h2 class="ph"><span>Rating history · <span id="pfCatName"></span></span></h2><div id="pfGraph"></div></div>
+  <div class="panel"><h2 class="ph">Recent games</h2><div id="pfGames"></div></div>
 </div>
 
 <!-- admin -->
@@ -431,8 +507,11 @@
 </div>
 
 <div id="over" class="hidden"><div class="box">
-  <div id="otitle"></div><div id="osub"></div><div id="odelta"></div>
-  <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oClose">Review game</button><button id="oLobby">Back to lobby</button></div>
+  <div id="otitle"></div><div id="osub"></div>
+  <div class="ovs"><div class="oside" id="oMe"></div><div class="ovsmid">VS</div><div class="oside" id="oOpp"></div></div>
+  <div id="orating"></div>
+  <div class="ostats"><div><b id="oMoves"></b><span>Moves</span></div><div><b id="oDur"></b><span>Duration</span></div><div><b id="oCat"></b><span>Time control</span></div></div>
+  <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oClose">Review game</button><button id="oLobby">Back to home</button></div>
 </div></div>
 
 <div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span></span></div>
@@ -448,7 +527,7 @@ function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
   return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
 }
-const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -459,7 +538,7 @@ let selected = null, legal = [];
 let viewPly = null;                       // null = live position; otherwise ply index being reviewed
 let stCache = { hist: [], states: [Chess.initial()], caps: [null] };
 let prevMoves = null, prevOver = false, prevCode = null;
-let drag = null, lastDragEnd = 0, myElo = 1200;
+let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null;
 
 async function api(route, body) {
@@ -474,9 +553,67 @@ async function api(route, body) {
 const tcOf = () => { const [base, inc] = $('#tc').value.split(',').map(Number); return base ? { base, inc } : null; };
 const tcLabel = (tc) => (tc ? `${tc.base / 60} + ${tc.inc}` : 'No clock');
 
+
+// ---------- live updates: pushed events (Supabase Realtime in production, SSE locally), polling as a fallback ----------
+const RTC = { mode: 'none', sb: null, ready: null };
+const loadScript = (src) => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = no; document.head.appendChild(el); });
+function rtInit() {
+  if (RTC.ready) return RTC.ready;
+  RTC.ready = (async () => {
+    const c = await api('config');
+    RTC.mode = c.ok ? c.rt : 'none';
+    if (RTC.mode === 'supabase') {
+      try {
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js');
+        RTC.sb = window.supabase.createClient(c.url, c.anon, { auth: { persistSession: false, autoRefreshToken: false } });
+      } catch { RTC.mode = 'none'; }
+    }
+  })();
+  return RTC.ready;
+}
+// subscribe to a topic; handlers = { event: fn(payload) }; onState(connected) fires on every (re)connect/disconnect
+function rtSubscribe(topic, handlers, onState) {
+  let closed = false, es = null, ch = null;
+  const state = (ok) => { if (!closed && onState) onState(ok); };
+  rtInit().then(() => {
+    if (closed) return;
+    if (RTC.mode === 'sse') {
+      es = new EventSource('/api/events?topic=' + encodeURIComponent(topic));
+      for (const [ev, fn] of Object.entries(handlers)) es.addEventListener(ev, (e) => { try { fn(JSON.parse(e.data)); } catch {} });
+      es.onopen = () => state(true);
+      es.onerror = () => state(false);            // EventSource reconnects by itself; onopen fires again
+    } else if (RTC.mode === 'supabase' && RTC.sb) {
+      ch = RTC.sb.channel(topic, { config: { broadcast: { self: false } } });
+      for (const [ev, fn] of Object.entries(handlers)) ch.on('broadcast', { event: ev }, (m) => fn(m.payload || {}));
+      ch.subscribe((st) => state(st === 'SUBSCRIBED'));   // supabase-js rejoins automatically after drops
+    } else state(false);
+  });
+  return () => { closed = true; if (es) es.close(); if (ch && RTC.sb) RTC.sb.removeChannel(ch); };
+}
+let rtRoomOff = null, rtRoomLive = false, rtUserOff = null, rtLobbyOff = null, rtLobbyLive = false;
+function paintRtDot() { const d = $('#rtDot'); if (d) { d.classList.toggle('on', rtLobbyLive); d.title = rtLobbyLive ? 'Live updates on' : 'Live updates off (polling)'; } }
+
+// A move pushed by the server: apply it straight away (validated by the local engine), then confirm with the server.
+function onRtMove(ev) {
+  if (view !== 'game' || isBot() || !snap) return;
+  const n = snap.moves.length;
+  if (ev.ply < n) return;                               // already on the board (e.g. my own optimistic move)
+  if (ev.ply > n || pending) { kick(); return; }        // we missed something: resync from the server
+  const m = Chess.legalMoves(snap.state).find((x) => x.from === ev.from && x.to === ev.to && (x.promo || null) === (ev.promo || null));
+  if (!m) { kick(); return; }
+  const ns = Chess.apply(snap.state, m);
+  applySnapshot({
+    ...snap, state: ns, moves: [...snap.moves, Chess.notate(snap.state, m)],
+    hist: [...(snap.hist || []), m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to }],
+    last: { from: m.from, to: m.to }, status: Chess.status(ns), clock: ev.clock || snap.clock, drawOffer: ev.drawOffer || null,
+  });
+  kick();                                               // authoritative confirmation (and ratings, if the game just ended)
+}
+
 // ---------- sign in ----------
 function finishAuth(r) {
-  user = { name: r.name, token: r.token };
+  user = { name: r.name, token: r.token, topic: r.topic };
+  if (r.ratings) myRatings = r.ratings;
   localStorage.setItem('chess:user', JSON.stringify(user));
 }
 async function login(name, token) {
@@ -626,7 +763,15 @@ function enterLobby() {
   history.replaceState(null, '', '/');
   show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume();
   lobbyTick = 0; pollLobby(true);
-  lobbyTimer = setInterval(() => { if (document.hidden) return; lobbyTick++; pollLobby(lobbyTick % 3 === 0); }, 1000);
+  if (!rtUserOff && user.topic) rtUserOff = rtSubscribe(user.topic, { ping: (d) => { if (d.why === 'accepted' && d.code && curOut && curOut.status === 'pending') { localOut = null; api('cancel'); return enterGame(d.code); } pollLobby(false); } }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok) pollLobby(false); });
+  if (!rtLobbyOff) rtLobbyOff = rtSubscribe('lobby', { chat: onRtChat }, () => {});
+  // with live updates on, polling is only a safety net
+  lobbyTimer = setInterval(() => {
+    if (document.hidden) return;
+    lobbyTick++;
+    const fullEvery = rtLobbyLive ? 10 : 3, pingEvery = rtLobbyLive ? 5 : 1;
+    if (lobbyTick % fullEvery === 0) pollLobby(true); else if (lobbyTick % pingEvery === 0) pollLobby(false);
+  }, 1000);
 }
 function drawPreview() {
   const st = Chess.initial(), pv = $('#preview');
@@ -638,7 +783,10 @@ function drawPreview() {
     pv.appendChild(el);
   }
 }
-function stopLobby() { clearInterval(lobbyTimer); lobbyTimer = null; lobbyRerun = false; }
+function stopLobby() {
+  clearInterval(lobbyTimer); lobbyTimer = null; lobbyRerun = false;
+  if (rtUserOff) { rtUserOff(); rtUserOff = null; } if (rtLobbyOff) { rtLobbyOff(); rtLobbyOff = null; } rtLobbyLive = false;
+}
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -654,27 +802,57 @@ async function pollLobby(full = true) {
     if (!r.ok) return;
     if (full) {
       $('#meName').textContent = r.user.name;
-      $('#meElo').textContent = r.user.elo; myElo = r.user.elo;
+      myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
       $('#navAdmin').classList.toggle('hidden', !r.user.admin);
       $('#claimForm').classList.toggle('hidden', !(wantAdmin && !r.user.admin));
       $('#announce').textContent = r.announce || '';
       $('#announce').classList.toggle('hidden', !r.announce);
       renderLive(r.live, r.user.name);
+      curMuted = !!r.user.muted; lastBoards = r.leaderboards || lastBoards;
       renderChat(r.chat, r.user.admin, r.user.muted);
-      const ls = JSON.stringify([r.leaderboard, r.user.name]);
-      if (ls !== lbSig) {          // only rebuild the leaderboard when it really changed
-        lbSig = ls;
-        $('#lb').innerHTML = r.leaderboard.map((p, i) => `<tr class="${p.name === r.user.name ? 'you' : ''}">
-          <td>${i + 1}</td><td>${esc(p.name)}</td><td class="r">${p.elo}</td><td class="r muted">${p.w}-${p.l}-${p.d}</td>
-          <td class="r">${p.name === r.user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</td></tr>`).join('');
-      }
+      renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
   } finally {
     lobbyBusy = false;
     if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
   }
+}
+
+
+// ----- leaderboard per time control, sidebar rating, chat push -----
+let lastBoards = null;
+const CAT_NAME = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', classical: 'Classical' };
+const catOfTc = (tc) => { if (!tc) return 'classical'; const e = tc.base + 40 * tc.inc; return e < 180 ? 'bullet' : e < 480 ? 'blitz' : e < 1500 ? 'rapid' : 'classical'; };
+const ratingTxt = (r, prov) => `${r}${prov ? '<span class="prov">?</span>' : ''}`;
+function renderBoardTable() {
+  if (!lastBoards) return;
+  const rows = lastBoards[lbCat] || [];
+  const ls = JSON.stringify([rows, lbCat, user.name]);
+  if (ls === lbSig) return;
+  lbSig = ls;
+  $('#lb').innerHTML = rows.length ? rows.map((p, i) => `<tr class="${p.name === user.name ? 'you' : ''}">
+      <td>${i + 1}</td><td><span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span></td><td class="r">${ratingTxt(p.r, p.prov)}</td><td class="r muted">${p.n}</td>
+      <td class="r">${p.name === user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</td></tr>`).join('')
+    : `<tr><td colspan="5" class="muted" style="padding:16px 10px">No rated ${CAT_NAME[lbCat].toLowerCase()} games yet.</td></tr>`;
+  paintChallengeButtons();
+}
+$('#lbtabs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cat]'); if (!b) return;
+  lbCat = b.dataset.cat;
+  document.querySelectorAll('#lbtabs button').forEach((x) => x.classList.toggle('on', x === b));
+  renderBoardTable();
+});
+$('#lb').addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n) enterProfile(n.dataset.name); });
+function paintMyRating() {
+  if (!myRatings) return;
+  const cat = catOfTc(tcOf()), x = myRatings[cat];
+  $('#meElo').innerHTML = `${CAT_NAME[cat]} ${ratingTxt(x.r, x.prov)}`;
+}
+function onRtChat(m) {
+  if (!m || !m.id || curChat.some((x) => x.id === m.id)) return;
+  renderChat(curChat.concat([m]).slice(-60), curAdmin, curMuted);
 }
 
 // ---------- live games, chat, admin ----------
@@ -728,7 +906,7 @@ $('#chatForm').addEventListener('submit', async (e) => {
   const r = await api('chat_send', { text });
   $('#chatErr').textContent = r.ok ? '' : r.error;
   if (!r.ok) { $('#chatIn').value = text; chatSig = ''; renderChat(curChat, curAdmin, false); }
-  else pollLobby(true);
+  else if (r.msg) onRtChat(r.msg);
 });
 
 $('#claimForm').addEventListener('submit', async (e) => {
@@ -789,11 +967,31 @@ function enterGame(code) {
   history.replaceState(null, '', '?game=' + code);
   show('game');
   $('#gcode').textContent = code;
+  gameSkeleton();
+  if (rtRoomOff) rtRoomOff();
+  rtRoomLive = false;
+  rtRoomOff = rtSubscribe('room:' + code, { move: onRtMove, sync: () => kick() }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) kick(); });
   kick();
   clockTimer = setInterval(drawClocks, 200);
 }
-function stopGame() { pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave(); }
+
+// The board shows immediately; only the player/game details wait for the server.
+function gameSkeleton() {
+  const barSk = '<span class="avatar w" style="background:#3a3835"></span><span class="pcol"><span class="pinfo"><span class="pname"><span class="sk" style="width:120px;height:.9em;vertical-align:-1px"></span></span></span><span class="capt"></span></span><span class="clock skbg">0:00</span>';
+  $('#top').innerHTML = barSk; $('#bottom').innerHTML = barSk;
+  $('#status').innerHTML = '<span class="sk" style="width:150px;height:1.1em"></span>';
+  $('#sub').innerHTML = '<span class="sk" style="width:110px;height:.8em"></span>';
+  $('#moves').innerHTML = '';
+  ['#invite', '#drawBtn', '#resign', '#rematch', '#drawbox'].forEach((x) => $(x).classList.add('hidden'));
+  boardFlip = null; buildBoard(false);                  // empty squares right away
+  $('#arrows').innerHTML = '';
+}
+function stopGame() {
+  pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
+  if (rtRoomOff) { rtRoomOff(); rtRoomOff = null; } rtRoomLive = false;
+}
 $('#leave').onclick = enterLobby;
+['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
 function copy(t, sel) { navigator.clipboard.writeText(t).then(() => { const b = $(sel), o = b.textContent; b.textContent = 'Copied!'; setTimeout(() => b.textContent = o, 1200); }); }
@@ -814,7 +1012,8 @@ async function pollGame(gen) {
     if (pending && r.moves.length >= pending.expect) pending = null;
     if (!(pending && r.moves.length < pending.expect)) applySnapshot(r);   // ignore a poll that predates my move
     const mine = r.you === 'w' || r.you === 'b';
-    delay = r.status.over ? 2500 : mine && r.state.turn !== r.you ? 500 : mine ? 1200 : 900;
+    delay = rtRoomLive ? (r.status.over ? 6000 : mine && r.state.turn !== r.you ? 2000 : 4000)                   // pushed events do the work; this is a safety net
+      : r.status.over ? 2500 : mine && r.state.turn !== r.you ? 500 : mine ? 1200 : 900;
     if (document.hidden) delay = Math.max(delay, 2500);
   } else if (r.status === 404 || r.status === 401) { return enterLobby(); }
   gameTimer = setTimeout(() => pollGame(gen), delay);
@@ -882,7 +1081,7 @@ function render() {
     const lead = mat[c] - mat[c === 'w' ? 'b' : 'w'];
     const capt = takenBy[c].map((pc) => `<img src="${PIECE_CDN}${pc}.svg" alt="" onerror="this.remove()">`).join('') + (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
     return `<span class="avatar ${c}">${p ? esc(p.name[0].toUpperCase()) : '?'}<span class="dot ${present[c] ? 'on' : ''}" title="${present[c] ? 'online' : 'offline'}"></span></span>
-      <span class="pcol"><span class="pinfo"><span class="pname">${name}</span>${p ? ` <span class="prating">(${p.elo})</span>` : ''}${you}${dtxt}</span><span class="capt">${capt}</span></span>${clock}`;
+      <span class="pcol"><span class="pinfo"><span class="pname ${p && p.name !== 'Computer' ? 'plink' : ''}" data-name="${p ? esc(p.name) : ''}">${name}</span>${p ? ` <span class="prating">(${p.elo}${p.prov ? '?' : ''})</span>` : ''}${you}${dtxt}</span><span class="capt">${capt}</span></span>${clock}`;
   };
   $('#top').innerHTML = bar(flip ? 'w' : 'b');
   $('#bottom').innerHTML = bar(flip ? 'b' : 'w');
@@ -1273,20 +1472,49 @@ function afterSnapshot(r) {
   document.title = myTurn ? '● Your move · Chess' : 'Chess With Friends';
 }
 function showOver(r) {
-  const mine = r.you === 'w' || r.you === 'b', res = r.status.result;
-  let title = res === 'draw' ? 'Draw' : mine ? (res === r.you ? 'You won!' : 'You lost') : `${res === 'w' ? 'White' : 'Black'} won`;
-  $('#otitle').textContent = title;
-  $('#osub').textContent = r.status.reason;
-  const dl = mine && r.delta ? r.delta[r.you] : null;
-  const od = $('#odelta');
-  od.className = dl == null ? '' : dl >= 0 ? 'pos' : 'neg';
-  od.textContent = dl == null ? '' : `Rating ${dl >= 0 ? '+' : ''}${dl}  →  ${r.players[r.you].elo + dl}`;
-  $('#oRematch').classList.toggle('hidden', !mine);
   $('#over').classList.remove('hidden');
+  overAnimated = false;
+  paintOver(r);
   updateOver();
 }
+let overAnimated = false;
+const fmtDur = (ms) => { if (!ms || ms < 0) return '—'; const s = Math.round(ms / 1000); return s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function paintOver(r) {
+  const mine = r.you === 'w' || r.you === 'b', res = r.status.result, me = mine ? r.you : 'w', opp = me === 'w' ? 'b' : 'w';
+  const kind = res === 'draw' ? 'draw' : mine ? (res === r.you ? 'win' : 'loss') : '';
+  $('#otitle').textContent = res === 'draw' ? 'Draw' : mine ? (kind === 'win' ? 'You won' : 'You lost') : `${res === 'w' ? 'White' : 'Black'} won`;
+  $('#otitle').className = kind;
+  $('#osub').textContent = 'by ' + r.status.reason;
+  const side = (c) => {
+    const p = r.players[c] || { name: '?' };
+    return `<span class="avatar ${c}">${esc(p.name[0].toUpperCase())}</span><span class="on ${p.name !== 'Computer' && p.name !== user.name ? 'plink' : ''}" data-name="${esc(p.name)}">${esc(p.name)}</span><span class="or">${p.elo}${p.prov ? '?' : ''}</span>`;
+  };
+  $('#oMe').innerHTML = side(me); $('#oOpp').innerHTML = side(opp);
+  $('#oMoves').textContent = Math.ceil(r.moves.length / 2);
+  $('#oDur').textContent = fmtDur(r.endedAt && r.startedAt ? r.endedAt - r.startedAt : 0);
+  $('#oCat').textContent = (isBot() ? 'Practice' : CAT_NAME[r.cat || catOfTc(r.tc)] || '') + ' · ' + tcLabel(r.tc);
+  $('#oRematch').classList.toggle('hidden', !mine);
+  // rating line: before -> after (+X), counted up once; skeleton while the server is still settling
+  const el = $('#orating');
+  if (isBot()) el.innerHTML = '<div class="onote">Practice game · not rated</div>';
+  else if (!mine) el.innerHTML = '';
+  else if (r.unrated) el.innerHTML = '<div class="onote">Not rated · the game ended before both players moved</div>';
+  else if (r.status.reason === 'ended by an admin') el.innerHTML = '<div class="onote">Ended by an admin · not rated</div>';
+  else if (!r.ratings) el.innerHTML = '<div class="ornum"><span class="sk" style="width:190px;height:1.2em"></span></div><div class="olbl"><span class="sk" style="width:90px;height:.8em"></span></div>';
+  else if (!overAnimated) {
+    overAnimated = true;
+    const x = r.ratings[me], d = x.delta;
+    el.innerHTML = `<div class="ornum"><span class="ob">${x.before}</span><span class="ob">→</span><span class="oa">${x.before}</span><span class="od ${d >= 0 ? 'pos' : 'neg'}">(${d >= 0 ? '+' : '−'}${Math.abs(d)})</span></div><div class="olbl">${CAT_NAME[r.cat] || ''} rating${x.prov ? ' · provisional' : ''}</div>`;
+    const oa = el.querySelector('.oa'), t0 = performance.now(), dur = 700;
+    const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); oa.textContent = Math.round(x.before + (x.after - x.before) * e) + (x.prov ? '?' : ''); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+    setTimeout(() => { oa.textContent = x.after + (x.prov ? '?' : ''); }, dur + 80);   // final value even if animation frames are paused (background tab)
+  }
+}
+$('#over').addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n) { $('#over').classList.add('hidden'); enterProfile(n.dataset.name); } });
 function updateOver() {
   if (!snap || $('#over').classList.contains('hidden')) return;
+  if (snap.status.over) paintOver(snap);
   const b = $('#oRematch'), asked = snap.rematch.includes(snap.you);
   b.textContent = asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch';
   b.disabled = asked;
@@ -1331,6 +1559,7 @@ function botStatusOf(b) {
 function applyBotMove(b, m, timed) {
   const mover = b.state.turn, now = Date.now();
   if (b.tc && timed) { if (b.moves.length >= 2) b.clock[mover] += b.tc.inc * 1000 - (now - b.clock.ts); b.clock.ts = now; }
+  if (!b.startedAt) b.startedAt = now;
   b.moves.push(Chess.notate(b.state, m));
   b.hist.push(m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to });
   b.state = Chess.apply(b.state, m);
@@ -1349,6 +1578,7 @@ function botSnap() {
     players: b.you === 'w' ? { w: me, b: cpu } : { w: cpu, b: me }, present: { w: true, b: true },
     tc: b.tc, clock: b.clock ? { w: left('w'), b: left('b'), running: run } : null,
     delta: null, rematch: [], hist: b.hist, drawOffer: null, watching: 0,
+    startedAt: b.startedAt || null, endedAt: st.over ? (b.endedAt = b.endedAt || now) : null, cat: null, ratings: null,
   };
 }
 function pushBot() { const sn = botSnap(); applySnapshot(sn); if (sn.status.over) botClear(); }
@@ -1473,8 +1703,88 @@ $('#botResumeBtn').onclick = () => { const b = botLoad(); if (b) enterBot(b); el
 $('#botDiscardBtn').onclick = () => { botClear(); paintBotResume(); };
 paintLevels();
 
+
+// ---------- player profile: ratings per time control, history graph, recent games ----------
+let pfData = null, pfCat = 'blitz', pfReq = 0;
+function enterProfile(name) {
+  stopLobby(); stopGame(); stopAdmin();
+  view = 'profile'; gameCode = null;
+  history.replaceState(null, '', '/');
+  show('profile');
+  pfData = null;
+  const id = ++pfReq;
+  // skeleton that matches the final layout
+  $('#pfAvatar').textContent = (name[0] || '?').toUpperCase();
+  $('#pfName').textContent = name;
+  $('#pfSub').innerHTML = '<span class="sk" style="width:160px;height:.85em"></span>';
+  $('#pfChallenge').classList.toggle('hidden', name === user.name);
+  $('#pfChallenge').disabled = false; $('#pfChallenge').textContent = 'Challenge';
+  $('#pfCards').innerHTML = ['Bullet', 'Blitz', 'Rapid', 'Classical'].map((c) => `<div class="rcard"><div class="rc-l">${c}</div><div class="rc-r"><span class="sk" style="width:70px;height:.9em"></span></div><div class="rc-s"><span class="sk" style="width:90px;height:.8em"></span></div></div>`).join('');
+  $('#pfCatName').textContent = CAT_NAME[pfCat];
+  $('#pfGraph').innerHTML = '<span class="sk block" style="height:100%;border-radius:8px"></span>';
+  $('#pfGames').innerHTML = [0, 1, 2, 3].map(() => '<div class="grow"><span class="sk" style="width:30px;height:30px"></span><span><span class="sk" style="width:140px"></span><br><span class="sk" style="width:90px;height:.75em;margin-top:6px"></span></span><span></span><span class="sk" style="width:60px"></span></div>').join('');
+  api('profile', { name }).then((r) => {
+    if (id !== pfReq || view !== 'profile') return;
+    if (!r.ok) { $('#pfSub').textContent = r.error || 'Could not load this profile.'; $('#pfCards').innerHTML = ''; $('#pfGraph').innerHTML = ''; $('#pfGames').innerHTML = ''; return; }
+    pfData = r;
+    const most = Object.entries(r.ratings).sort((a, b) => b[1].n - a[1].n)[0];
+    if (most && most[1].n) pfCat = most[0];
+    paintProfile();
+  });
+}
+function paintProfile() {
+  const r = pfData; if (!r) return;
+  $('#pfName').textContent = r.name;
+  const total = r.w + r.l + r.d;
+  $('#pfSub').textContent = `${total} game${total === 1 ? '' : 's'} · ${r.w}W ${r.l}L ${r.d}D` + (r.joined ? ` · joined ${new Date(r.joined).toLocaleDateString()}` : '');
+  $('#pfCards').innerHTML = ['bullet', 'blitz', 'rapid', 'classical'].map((c) => {
+    const x = r.ratings[c];
+    return `<div class="rcard ${c === pfCat ? 'on' : ''}" data-cat="${c}"><div class="rc-l">${CAT_NAME[c]}</div><div class="rc-r">${ratingTxt(x.r, x.prov)}</div><div class="rc-s">${x.n ? `${x.n} game${x.n === 1 ? '' : 's'} · best ${x.peak}` : 'No rated games'}</div></div>`;
+  }).join('');
+  $('#pfCatName').textContent = CAT_NAME[pfCat];
+  drawGraph(r.ratings[pfCat].hist || []);
+  $('#pfGames').innerHTML = r.games.length ? r.games.map((g) => {
+    const ago = timeAgo(g.at), res = g.result;
+    return `<div class="grow"><span class="gres ${res}">${res === 'win' ? 'W' : res === 'loss' ? 'L' : 'D'}</span>
+      <span style="min-width:0"><div class="gopp">vs <span class="plink" data-name="${esc(g.opp)}">${esc(g.opp)}</span> <span class="muted">(${g.oppRating})</span></div>
+      <div class="gmeta">${CAT_NAME[g.cat]} · ${tcLabel(g.tc)} · ${g.reason} · ${Math.ceil(g.moves / 2)} moves · ${ago}</div></span>
+      <span></span><span class="grat">${g.after} <span class="${g.delta >= 0 ? 'pos' : 'neg'}">${g.delta >= 0 ? '+' : '−'}${Math.abs(g.delta)}</span></span></div>`;
+  }).join('') : '<div class="muted empty">No rated games yet.</div>';
+}
+const timeAgo = (t) => { const s = (Date.now() - t) / 1000; return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : `${Math.floor(s / 86400)}d ago`; };
+function drawGraph(hist) {
+  const box = $('#pfGraph');
+  if (hist.length < 2) { box.innerHTML = '<div class="muted empty">Play a couple of rated games in this time control to see a graph.</div>'; return; }
+  const W = 640, H = 220, P = { l: 44, r: 14, t: 14, b: 24 };
+  const ys = hist.map((h) => h[1]), lo = Math.min(...ys), hi = Math.max(...ys), pad = Math.max(20, (hi - lo) * 0.15);
+  const y0 = Math.floor((lo - pad) / 10) * 10, y1 = Math.ceil((hi + pad) / 10) * 10;
+  const X = (i) => P.l + (i / (hist.length - 1)) * (W - P.l - P.r), Y = (v) => P.t + (1 - (v - y0) / (y1 - y0)) * (H - P.t - P.b);
+  const pts = hist.map((h, i) => `${X(i).toFixed(1)},${Y(h[1]).toFixed(1)}`).join(' ');
+  const ticks = [y0, Math.round((y0 + y1) / 2), y1];
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${ticks.map((t) => `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="#ffffff14"/><text x="${P.l - 8}" y="${Y(t) + 4}" fill="#a09f9d" font-size="11" text-anchor="end">${t}</text>`).join('')}
+    <polygon points="${X(0)},${H - P.b} ${pts} ${X(hist.length - 1)},${H - P.b}" fill="#81b64c22"/>
+    <polyline points="${pts}" fill="none" stroke="#81b64c" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <circle id="gdot" r="4.5" fill="#81b64c" cx="${X(hist.length - 1)}" cy="${Y(ys[ys.length - 1])}"/>
+  </svg><div class="gtip hidden" id="gtip"></div>`;
+  const svg = box.querySelector('svg'), dot = box.querySelector('#gdot'), tip = box.querySelector('#gtip');
+  svg.addEventListener('mousemove', (e) => {
+    const rc = svg.getBoundingClientRect(), fx = ((e.clientX - rc.left) / rc.width) * W;
+    const i = Math.max(0, Math.min(hist.length - 1, Math.round(((fx - P.l) / (W - P.l - P.r)) * (hist.length - 1))));
+    dot.setAttribute('cx', X(i)); dot.setAttribute('cy', Y(hist[i][1]));
+    tip.classList.remove('hidden');
+    tip.style.left = (X(i) / W) * rc.width + 'px'; tip.style.top = (Y(hist[i][1]) / H) * rc.height + 'px';
+    tip.textContent = `${hist[i][1]} · ${new Date(hist[i][0]).toLocaleDateString()}`;
+  });
+  svg.addEventListener('mouseleave', () => tip.classList.add('hidden'));
+}
+$('#pfCards').addEventListener('click', (e) => { const c = e.target.closest('[data-cat]'); if (c && pfData) { pfCat = c.dataset.cat; paintProfile(); } });
+$('#pfGames').addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n) enterProfile(n.dataset.name); });
+$('#pfChallenge').onclick = () => { const name = pfData ? pfData.name : $('#pfName').textContent; enterLobby(); challenge(name); };
+$('#navProfile').onclick = () => enterProfile(user.name);
+$('#meName').onclick = () => enterProfile(user.name);
 document.querySelectorAll('#tcgrid button').forEach((b) => b.onclick = () => {
-  $('#tc').value = b.dataset.v;
+  $('#tc').value = b.dataset.v; paintMyRating();
   document.querySelectorAll('#tcgrid button').forEach((x) => x.classList.toggle('on', x === b));
 });
 $('#navPlay').onclick = () => (view === 'lobby' ? window.scrollTo({ top: 0, behavior: 'smooth' }) : enterLobby());
