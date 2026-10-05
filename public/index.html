@@ -79,7 +79,13 @@
   #welcome { max-width: 420px; margin: 0 auto; padding: 12vh 16px 40px; text-align: center; }
   #welcome .brand { justify-content: center; font-size: 2.4rem; padding-bottom: 6px; } #welcome .brand img { width: 56px; height: 56px; }
   #welcome .panel { margin-top: 22px; text-align: left; }
-  #welcome .row { margin-bottom: 4px; }
+  #welcome .label { display: block; margin: 14px 0 6px; }
+  #welcome input { text-align: left; display: block; width: 100%; }
+  .authtabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+  .authtabs button { box-shadow: none; background: #1f1e1b; min-height: 40px; color: var(--muted); }
+  .authtabs button:active { transform: none; }
+  .authtabs button.on { background: #3b4a2b; color: #fff; box-shadow: inset 0 -3px 0 var(--green); }
+  #welcome #go { margin-top: 6px; }
 
   /* ---------- lobby ---------- */
   #lobby { max-width: 1060px; margin: 0 auto; padding: 22px 18px 50px; }
@@ -187,10 +193,19 @@
   <div class="brand"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="muted" style="font-weight:600">Play your friends. Climb the leaderboard.</div>
   <div class="panel">
-    <div class="label" style="margin-top:0">Choose a username</div>
-    <div class="row"><input id="nameIn" maxlength="16" placeholder="Username" autocomplete="off"></div>
-    <div id="werr"></div>
-    <button class="primary big" id="go">Play</button>
+    <div class="authtabs"><button id="tabUp" class="on">Sign up</button><button id="tabIn">Log in</button></div>
+    <form id="authForm" novalidate>
+      <div id="nameRow">
+        <label class="label" for="nameIn">Username</label>
+        <input id="nameIn" maxlength="16" placeholder="Shown to other players" autocomplete="username">
+      </div>
+      <label class="label" for="emailIn">Email</label>
+      <input id="emailIn" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+      <label class="label" for="passIn">Password</label>
+      <input id="passIn" type="password" placeholder="At least 8 characters" autocomplete="new-password">
+      <div id="werr" role="alert"></div>
+      <button class="primary big" id="go" type="submit">Sign up</button>
+    </form>
   </div>
 </div>
 
@@ -291,19 +306,38 @@ const tcOf = () => { const [base, inc] = $('#tc').value.split(',').map(Number); 
 const tcLabel = (tc) => (tc ? `${tc.base / 60} + ${tc.inc}` : 'No clock');
 
 // ---------- sign in ----------
-async function login(name, token) {
-  const r = await api('register', { name, token });
-  if (!r.ok) return r;
+function finishAuth(r) {
   user = { name: r.name, token: r.token };
   localStorage.setItem('chess:user', JSON.stringify(user));
+}
+async function login(name, token) {
+  const r = await api('resume', { name, token });
+  if (r.ok) finishAuth(r);
   return r;
 }
-$('#go').onclick = async () => {
-  const r = await login($('#nameIn').value, null);
+let authMode = 'up';
+function setMode(m) {
+  authMode = m;
+  $('#tabUp').classList.toggle('on', m === 'up'); $('#tabIn').classList.toggle('on', m === 'in');
+  $('#nameRow').classList.toggle('hidden', m !== 'up');
+  $('#passIn').autocomplete = m === 'up' ? 'new-password' : 'current-password';
+  $('#go').textContent = m === 'up' ? 'Sign up' : 'Log in';
+  $('#werr').textContent = '';
+}
+$('#tabUp').onclick = () => setMode('up');
+$('#tabIn').onclick = () => setMode('in');
+$('#authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = { email: $('#emailIn').value, password: $('#passIn').value };
+  if (authMode === 'up') body.username = $('#nameIn').value;
+  $('#go').disabled = true;
+  const r = await api(authMode === 'up' ? 'signup' : 'login', body);
+  $('#go').disabled = false;
   if (!r.ok) return ($('#werr').textContent = r.error);
+  $('#passIn').value = '';
+  finishAuth(r);
   start();
-};
-$('#nameIn').addEventListener('keydown', (e) => e.key === 'Enter' && $('#go').click());
+});
 $('#signout').onclick = () => { localStorage.removeItem('chess:user'); location.href = '/'; };
 
 async function boot() {
