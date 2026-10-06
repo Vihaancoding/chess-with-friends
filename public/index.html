@@ -193,6 +193,7 @@
   .msg .mt { color: #6d6c6a; font-size: .72rem; margin-right: 4px; }
   .msg .mn { color: #8fc1ff; } .msg .mn.adm { color: var(--gold); }
   .msg .mx { color: #e8e8e6; }
+  .msg.pending { opacity: .55; }
   .admtag { background: var(--gold); color: #302e2b; font-size: .6rem; font-weight: 800; text-transform: uppercase; border-radius: 3px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
   .msg .x { position: absolute; right: 0; top: 0; min-height: 20px; padding: 0 6px; background: none; box-shadow: none; color: var(--bad); font-size: 1rem; }
   #chatErr { color: var(--bad); font-size: .82rem; min-height: 1.1em; margin-top: 6px; font-weight: 600; }
@@ -811,7 +812,7 @@ function sseEnsure() {
     for (const t of SSE.topics.values()) t.onState && t.onState(false);
     if (es.readyState === 2) setTimeout(sseEnsure, 1000);               // closed for good: reopen
   };
-  for (const ev of ['m', 's', 'c', 'r', 'ping', 'chat']) es.addEventListener(ev, (e) => {
+  for (const ev of ['m', 's', 'c', 'r', 'ping', 'chat', 'chatdel']) es.addEventListener(ev, (e) => {
     let d; try { d = JSON.parse(e.data); } catch { return; }
     for (const t of SSE.topics.values()) if (t.handlers[ev]) t.handlers[ev](d);
   });
@@ -853,7 +854,7 @@ function ensureSessionSubs() {
   if (rtSession || !user || !user.topic) return;
   rtSession = true;
   rtSubscribe(user.topic, { ping: onUserPing }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok && view === 'lobby') pollLobby(false); });
-  rtSubscribe('lobby', { chat: onRtChat }, () => {});
+  rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
 }
 function onUserPing(d) {
   if (d.why === 'challenge' && d.ch && !curInbox.some((c) => c.id === d.ch.id)) syncChallenges(curInbox.concat([d.ch]), curOut);   // banner straight from the push
@@ -1175,7 +1176,12 @@ function paintMyRating() {
 }
 function onRtChat(m) {
   if (!m || !m.id || curChat.some((x) => x.id === m.id)) return;
-  renderChat(curChat.concat([m]).slice(-60), curAdmin, curMuted);
+  renderChat(curChat.concat([m]).slice(-50), curAdmin, curMuted);
+}
+function onRtChatDel(d) {
+  if (!d) return;
+  if (d.id) chatGone.add(d.id);
+  renderChat(d.all ? [] : curChat.filter((m) => m.id !== d.id), curAdmin, curMuted);
 }
 
 // ---------- live games, chat, admin ----------
@@ -1200,41 +1206,75 @@ $('#livelist').addEventListener('click', async (e) => {
   if (r.ok) enterGame(r.code, r.snap); else { b.disabled = false; $('#err').textContent = r.error; }
 });
 
-let chatSig = '';
 const hhmm = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-let curChat = [], curAdmin = false;
-function renderChat(msgs, isAdmin, muted, opt) {
-  if (!opt) { curChat = msgs; curAdmin = isAdmin; }
+// curChat = what the server has; chatPending = my messages still on their way (shown faded at the end)
+let curChat = [], curAdmin = false, chatPending = [], chatDrawn = false, chatGone = new Set();
+function renderChat(msgs, isAdmin, muted) {
+  // a poll can be older than a message pushed a moment ago: keep pushed messages newer than the poll's last one
+  if (msgs !== curChat && curChat.length && msgs.length) {
+    const lastTs = msgs[msgs.length - 1].ts, have = new Set(msgs.map((m) => m.id));
+    const extra = curChat.filter((m) => !have.has(m.id) && !chatGone.has(m.id) && m.ts > lastTs && Date.now() - m.ts < 15000);
+    if (extra.length) msgs = msgs.concat(extra).slice(-50);
+  }
+  curChat = msgs; curAdmin = isAdmin; curMuted = !!muted;
   $('#chatIn').placeholder = muted ? 'You are muted' : 'Say something…';
   $('#chatIn').disabled = !!muted;
-  const sig = msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '') + ':' + isAdmin;
-  if (sig === chatSig) return;
-  const first = chatSig === '';
-  chatSig = sig;
-  const log = $('#chatlog');
-  const near = log.scrollHeight - log.scrollTop - log.clientHeight < 50;
-  const row = (m) => `<div class="msg"><span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${esc(m.text)}</span>${isAdmin ? `<button class="x" data-del="${m.id}" title="Delete message">×</button>` : ''}</div>`;
-  const ids = msgs.map((m) => m.id);
-  let prefix = chatShown.admin === isAdmin && chatShown.ids.length && chatShown.ids.length <= ids.length;
-  for (let i = 0; prefix && i < chatShown.ids.length; i++) if (chatShown.ids[i] !== ids[i]) prefix = false;
-  if (prefix) log.insertAdjacentHTML('beforeend', msgs.slice(chatShown.ids.length).map(row).join(''));   // just the new lines
-  else log.innerHTML = msgs.length ? msgs.map(row).join('') : '<div class="muted empty">No messages yet. Say hi!</div>';
-  chatShown = { ids: msgs.length ? ids : [], admin: isAdmin };
-  if (first || near) log.scrollTop = log.scrollHeight;
+  drawChat();
 }
-let chatShown = { ids: [], admin: false };
-$('#chatlog').addEventListener('click', async (e) => { const b = e.target.closest('[data-del]'); if (b) { await api('admin_delete_msg', { id: b.dataset.del }); pollLobby(true); } });
+function drawChat() {
+  const log = $('#chatlog');
+  const near = !chatDrawn || log.scrollHeight - log.scrollTop - log.clientHeight < 50;
+  const all = curChat.concat(chatPending.filter((p) => !curChat.some((m) => m.id === p.realId)));
+  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${esc(m.text)}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
+  // reuse the rows already on screen so nothing flickers; only new rows are built
+  const old = new Map();
+  for (const el of log.children) if (el.dataset.id) old.set(el.dataset.id, el);
+  let lostAbove = 0, seenKept = false;
+  const keep = new Set(all.map((m) => m.id));
+  for (const [id, el] of old) { if (keep.has(id)) seenKept = true; else if (!seenKept) lostAbove += el.offsetHeight; }
+  const nodes = all.map((m) => {
+    const key = m.id + (curAdmin ? ':a' : '') + (m.pending ? ':p' : '');
+    let el = old.get(m.id);
+    if (!el || el.dataset.key !== key) {
+      el = document.createElement('div'); el.className = 'msg' + (m.pending ? ' pending' : '');
+      el.dataset.id = m.id; el.dataset.key = key; el.innerHTML = html(m);
+    }
+    return el;
+  });
+  if (!nodes.length) log.innerHTML = '<div class="muted empty">No messages yet. Say hi!</div>';
+  else if (nodes.length !== log.children.length || nodes.some((n, i) => log.children[i] !== n)) {
+    const top = log.scrollTop;
+    log.replaceChildren(...nodes);
+    if (!near) log.scrollTop = Math.max(0, top - lostAbove);           // reading older messages: stay put
+  }
+  if (near) log.scrollTop = log.scrollHeight;
+  chatDrawn = true;
+}
+$('#chatlog').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  const id = b.dataset.del;
+  chatGone.add(id);
+  curChat = curChat.filter((m) => m.id !== id); drawChat();
+  const r = await api('admin_delete_msg', { id });
+  if (!r.ok) $('#chatErr').textContent = r.error || 'Could not delete.';
+  pollLobby(true);
+});
 $('#chatForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const text = $('#chatIn').value;
-  if (!text.trim()) return;
-  $('#chatIn').value = '';
-  const tmp = { id: 'tmp' + Date.now(), name: user.name, text: text.replace(/\s+/g, ' ').trim().slice(0, 200), ts: Date.now(), admin: curAdmin };
-  renderChat(curChat.concat([tmp]), curAdmin, false, true);          // show my message immediately
+  const input = $('#chatIn'), text = input.value;
+  if (!text.trim() || input.disabled) return;
+  input.value = ''; $('#chatErr').textContent = '';
+  const tmp = { id: 'tmp' + Date.now() + Math.random().toString(36).slice(2, 6), name: user.name, text: text.replace(/\s+/g, ' ').trim().slice(0, 200), ts: Date.now(), admin: curAdmin, pending: true };
+  chatPending.push(tmp); drawChat();                                  // show my message immediately
   const r = await api('chat_send', { text });
-  $('#chatErr').textContent = r.ok ? '' : r.error;
-  if (!r.ok) { $('#chatIn').value = text; chatSig = ''; renderChat(curChat, curAdmin, false); }
-  else if (r.msg) onRtChat(r.msg);
+  chatPending = chatPending.filter((p) => p !== tmp);
+  if (r.ok && r.msg) { if (!curChat.some((m) => m.id === r.msg.id)) curChat = curChat.concat([r.msg]).slice(-50); }
+  else {
+    $('#chatErr').textContent = r.error || 'Message not sent.';
+    if (r.status === 403) { curMuted = true; renderChat(curChat, curAdmin, true); }
+    if (!input.value) input.value = text;                              // give the text back to retry
+  }
+  drawChat();
 });
 
 $('#claimForm').addEventListener('submit', async (e) => {
@@ -1300,7 +1340,7 @@ function enterGame(code, seed) {
   openGameChat(code);
   if (rtRoomOff) rtRoomOff();
   rtRoomLive = false;
-  rtRoomOff = rtSubscribe('room:' + code, { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); } });
+  rtRoomOff = rtSubscribe('room:' + code, { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } });
   kick();
   clockTimer = setInterval(drawClocks, 200);
 }
@@ -1352,6 +1392,7 @@ async function pollGame(gen) {
     delay = rtRoomLive ? (s0 && s0.status.over ? 8000 : 4000)                   // push is healthy: light heartbeat only
       : !s0 || s0.status.over ? 2500 : mine && s0.state.turn !== s0.you ? 500 : 1000;   // push is down: recover fast
     if (document.hidden) delay = Math.max(delay, 2500);
+    if (!rtRoomLive && !document.hidden && Date.now() - gchatLoad > 3000) loadGameChat(gameCode);   // no push: poll chat too
   } else if (r.status === 404 || r.status === 401) { return enterLobby(); }
   gameTimer = setTimeout(() => pollGame(gen), delay);
 }
@@ -1719,37 +1760,52 @@ function askPromo(from, to) {
 
 
 // ---------- in-game chat ----------
-let gchatIds = new Set();
+let gchatIds = new Set(), gchatLoad = 0, gchatSending = false;
 function openGameChat(code) {
   gchatIds = new Set(); VC.roster.clear(); VC.early.clear();
   $('#gclog').innerHTML = '';
   $('#gchat').classList.remove('hidden');
   paintCall();
-  api('game_chat', { code }).then((r) => { if (r.ok && gameCode === code) r.msgs.forEach(addGameMsg); });
+  loadGameChat(code);
+}
+// fetch the saved messages; also used to catch up when live updates are off or just came back
+function loadGameChat(code) {
+  gchatLoad = Date.now();
+  api('game_chat', { code }).then((r) => { if (r.ok && gameCode === code && view === 'game') r.msgs.forEach(addGameMsg); });
 }
 function addGameMsg(m) {
-  if (!m || gchatIds.has(m.id)) return;
+  if (!m || !m.id || gchatIds.has(m.id)) return false;
   gchatIds.add(m.id);
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-  log.insertAdjacentHTML('beforeend', `<div class="gm"><b class="${m.s}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${esc(m.t)}</div>`);
+  const el = document.createElement('div');
+  el.className = 'gm'; el.dataset.ts = m.ts || Date.now();
+  el.innerHTML = `<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${esc(m.t)}`;
+  // keep time order even when the saved history arrives after a live message
+  const after = [...log.children].find((x) => +x.dataset.ts > +el.dataset.ts);
+  log.insertBefore(el, after || null);
   if (near) log.scrollTop = log.scrollHeight;
+  return true;
 }
 function sysGameMsg(text) {
-  const log = $('#gclog'); log.insertAdjacentHTML('beforeend', `<div class="gm sys">${esc(text)}</div>`); log.scrollTop = log.scrollHeight;
+  const log = $('#gclog'), el = document.createElement('div');
+  el.className = 'gm sys'; el.dataset.ts = Date.now(); el.textContent = text;
+  log.appendChild(el); log.scrollTop = log.scrollHeight;
 }
 function onGameChat(m) {
   if (view !== 'game' || isBot()) return;
-  const isNew = !gchatIds.has(m.id);
-  addGameMsg(m);
-  if (isNew && snap && m.s !== snap.you) sfx('move');
+  if (addGameMsg(m) && snap && m.n !== user.name) sfx('move');
 }
 $('#gcForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const text = $('#gcIn').value.trim();
-  if (!text || !gameCode) return;
-  $('#gcIn').value = '';
-  const r = await api('game_chat_send', { code: gameCode, text });
-  if (r.ok) addGameMsg(r.msg); else { sysGameMsg(r.error || 'Message not sent.'); $('#gcIn').value = text; }
+  const input = $('#gcIn'), text = input.value.trim(), code = gameCode;
+  if (!text || !code || gchatSending) return;
+  gchatSending = true; input.value = '';
+  try {
+    const r = await api('game_chat_send', { code, text });
+    if (gameCode !== code) return;
+    if (r.ok) addGameMsg(r.msg);
+    else { sysGameMsg(r.error || 'Message not sent.'); if (!input.value) input.value = text; }
+  } finally { gchatSending = false; }
 });
 
 // ---------- voice chat room: players and spectators. Audio goes browser-to-browser; the server only relays the handshake. ----------
