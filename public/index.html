@@ -441,6 +441,15 @@
   .mini i { display: block; }
   .pieceset { display: flex; gap: 0; height: 36px; align-items: center; justify-content: center; }
   .pieceset img { width: 30px; height: 30px; }
+  /* live move badges */
+  .mbadge { position: absolute; z-index: 7; width: 5.4%; aspect-ratio: 1; min-width: 20px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+    font-weight: 900; font-size: clamp(.6rem, 1.6vw, .85rem); box-shadow: 0 2px 6px #0007; border: 2px solid #fff; transform: translate(-60%, -40%); pointer-events: none; animation: bpop .35s cubic-bezier(.2, 1.6, .4, 1); }
+  .mtoast { position: absolute; z-index: 7; left: 50%; top: 10px; transform: translateX(-50%); padding: 5px 14px; border-radius: 999px; color: #fff; font-weight: 800; font-size: .9rem;
+    box-shadow: 0 6px 16px -4px #000a; pointer-events: none; animation: tpop 2.2s ease forwards; white-space: nowrap; }
+  @keyframes bpop { from { transform: translate(-60%, -40%) scale(0); } to { transform: translate(-60%, -40%) scale(1); } }
+  @keyframes tpop { 0% { opacity: 0; transform: translate(-50%, -6px); } 10%, 75% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+  .sktoggle { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 700; cursor: pointer; }
+  .sktoggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--green); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -671,6 +680,7 @@
     <div>
       <div class="label" style="margin-top:0">Board</div><div class="swatches" id="boardSwatches"></div>
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
+      <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges during games (Brilliant, Best, …)</label>
     </div>
   </div>
 </div></div>
@@ -1061,7 +1071,7 @@ function paintSkinModal() {
   for (let sq = 0; sq < 64; sq++) h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}">${st.board[sq] ? pieceHTML(st.board[sq]) : ''}</div>`;
   setHTML($('#skinPreview'), h);
 }
-function openSkins() { $('#skinModal').classList.remove('hidden'); paintSkinModal(); }
+function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; paintSkinModal(); }
 $('#navSkin').onclick = openSkins;
 $('#skinBtn').onclick = openSkins;
 $('#skinDone').onclick = () => $('#skinModal').classList.add('hidden');
@@ -1465,6 +1475,7 @@ function render() {
   renderMoves(moves, upto, live);
   paintPendingMove();
   paintAnnotations(); paintReviewComment(upto);
+  paintBadge(false);
   if (!isBot()) paintCall();
 }
 function paintPendingMove() {
@@ -1640,6 +1651,7 @@ async function send(from, to, promo) {
   sending = true;
   const base = snap, baseAt = snapAt, baseSig = sig;
   applyOptimistic(m);
+  liveBadge(base.state, m, base.moves.length, true);
   // in the background: the board already moved. Network blips are retried (the server's ply check makes retries safe).
   let r, tries = 0;
   for (;;) {
@@ -2072,8 +2084,8 @@ function isSacrifice(st, m) {
   const takers = Chess.legalMoves(after).filter((x) => x.to === m.to).map((x) => V[after.board[x.from][1]]);
   return takers.length > 0 && Math.min(...takers) < V[piece] && V[piece] - got >= 2;
 }
-function classify(i) {
-  const r = AN.res[i], st = AN.states[i], h = AN.hist[i];
+function classify(i) { return classifyMove(AN.res[i], AN.states[i], AN.hist[i]); }
+function classifyMove(r, st, h) {
   if (r.legal <= 1) return 'forced';
   if (r.played == null) return 'good';
   const wb = WP(r.bestScore), wp = WP(r.played), loss = Math.max(0, wb - wp);
@@ -2158,6 +2170,52 @@ $('#anGraph').addEventListener('click', (e) => {
 });
 $('#anBtn').onclick = startAnalysis;
 $('#oAnalyze').onclick = () => { $('#over').classList.add('hidden'); if (snap && snap.status.over) { startAnalysis(); goPly(0); } };
+
+
+// ---------- live move badges: each move is checked in a background worker right after it is played ----------
+// Fair play: in games against people only your OWN moves get badges, and only good ones (Brilliant/Great/Best/Excellent/Good);
+// in computer games every move gets one.
+if (SKIN.badges === undefined) SKIN.badges = true;
+const POSITIVE = new Set(['brilliant', 'great', 'best', 'excellent', 'good']);
+const LB = { worker: null, id: 0, cur: null, queue: [], shown: null };
+function liveBadge(before, move, ply, mine) {
+  if (!SKIN.badges || !window.Worker) return;
+  const h = move.promo ? { from: move.from, to: move.to, promo: move.promo } : { from: move.from, to: move.to };
+  LB.queue.push({ before, h, ply, mine, game: gameCode });
+  if (!LB.cur) nextBadgeJob();
+}
+function nextBadgeJob() {
+  LB.cur = LB.queue.shift() || null;
+  if (!LB.cur) return;
+  if (!LB.worker) { try { LB.worker = new Worker('bot.js'); LB.worker.onmessage = onBadge; LB.worker.onerror = (ev) => { ev.preventDefault(); LB.worker = null; nextBadgeJob(); }; } catch { LB.cur = null; return; } }
+  LB.worker.postMessage({ type: 'analyze', id: ++LB.id, states: [LB.cur.before], hist: [LB.cur.h], ms: 220, skipFinal: true });
+}
+function onBadge(e) {
+  const d = e.data;
+  if (d.id !== LB.id || d.done || d.i !== 0 || !LB.cur) { if (d.done) nextBadgeJob(); return; }
+  const job = LB.cur;
+  const c = classifyMove(d, job.before, job.h);
+  const allow = isBot() ? c !== 'forced' : job.mine && POSITIVE.has(c);
+  if (allow && job.game === gameCode && snap && snap.moves.length === job.ply + 1) {
+    LB.shown = { ply: job.ply, sq: job.h.to, c };
+    paintBadge(true);
+  }
+}
+function paintBadge(fresh) {
+  const wrap = $('#boardwrap');
+  wrap.querySelectorAll('.mbadge' + (fresh ? ', .mtoast' : '')).forEach((x) => x.remove());
+  const b = LB.shown;
+  if (!b || !snap || viewPly !== null || snap.moves.length !== b.ply + 1) return;   // only on the move it belongs to
+  const i = snap.you === 'b' ? 63 - b.sq : b.sq, col = i & 7, row = i >> 3, k = CLS[b.c];
+  wrap.insertAdjacentHTML('beforeend', `<div class="mbadge" style="left:${(col + 1) * 12.5}%;top:${row * 12.5}%;background:${k.c}" title="${k.label}">${k.sym}</div>`);
+  if (fresh) wrap.insertAdjacentHTML('beforeend', `<div class="mtoast" style="background:${k.c}">${k.sym} ${k.label}${b.c === 'brilliant' ? '!' : ''}</div>`);
+  if (fresh && (b.c === 'brilliant' || b.c === 'great')) { tone(784, 0.12, { vol: 0.08 }); tone(1046, 0.18, { vol: 0.08, delay: 0.1 }); }
+}
+$('#badgeToggle').addEventListener('change', (e) => {
+  SKIN.badges = e.target.checked;
+  try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
+  if (!SKIN.badges) { LB.shown = null; paintBadge(true); }
+});
 
 // ---------- move history / review ----------
 function buildStates(hist) {
@@ -2444,7 +2502,9 @@ function botThink() {
     if (botStatusOf(b).over) return;
     const all = Chess.legalMoves(b.state);
     const m = (mv && all.find((x) => x.from === mv.from && x.to === mv.to && (x.promo || undefined) === mv.promo)) || all[Math.floor(Math.random() * all.length)];
+    const before = b.state, ply = b.moves.length;
     applyBotMove(b, m, true); botSave(); pushBot();
+    liveBadge(before, m, ply, false);
   }, Math.max(0, 350 - (Date.now() - t0)));          // never answer instantly: it feels like a person
   const w = botWorkerGet();
   if (!w) return finish(null);
@@ -2458,7 +2518,8 @@ function botHumanMove(from, to, promo) {
   selected = null; legal = [];
   if (!m) { paintBoard(); return; }
   viewPly = null; premove = null;
-  applyBotMove(b, m, true); botSave(); pushBot(); botThink();
+  const before = b.state, ply = b.moves.length;
+  applyBotMove(b, m, true); botSave(); pushBot(); liveBadge(before, m, ply, true); botThink();
 }
 function botEnd(result, reason) {
   const b = botGame; if (!b) return;

@@ -171,8 +171,8 @@ var anT0 = 0;
 if (typeof importScripts === 'function') {
   self.onmessage = (e) => {
     if (e.data.type === 'analyze') {
-      const { id, states, hist, ms } = e.data;
-      for (let i = 0; i <= hist.length; i++) {
+      const { id, states, hist, ms, skipFinal } = e.data;
+      for (let i = 0; i <= hist.length - (skipFinal ? 1 : 0); i++) {
         anT0 = now();
         const r = analyzePosition(states[i], ms);
         const h = hist[i];
