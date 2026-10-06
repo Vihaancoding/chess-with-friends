@@ -26,7 +26,8 @@ Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (s
    | `SUPABASE_URL` | Project URL (Supabase → Project Settings → API) |
    | `SUPABASE_SERVICE_KEY` | The `service_role` / secret key. **Server-only, never commit it** |
    | `ADMIN_KEY` | A long passphrase of your choice (enables the admin panel) |
-   | `TURN_URL`, `TURN_USER`, `TURN_PASS` | Optional: a TURN relay for voice calls on networks that block direct connections |
+   | `CF_TURN_KEY_ID`, `CF_TURN_API_TOKEN` | Optional: a Cloudflare TURN key (Cloudflare dashboard → Realtime → TURN, free up to 1,000 GB/month) so voice calls work on networks that block direct connections |
+| `TURN_URL`, `TURN_USER`, `TURN_PASS` | Optional: any other TURN relay, used when Cloudflare TURN is not set |
    | `SUPABASE_ANON_KEY` | Optional: the *publishable / anon* key (Project Settings → API). Turns on instant live updates; without it the app polls |
 
 3. Deploy. Pushing to `main` redeploys automatically.

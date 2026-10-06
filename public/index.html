@@ -840,6 +840,7 @@ function rtInit() {
     const c = await api('config');
     RTC.mode = c.ok ? c.rt : 'none';
     RTC.ice = (c.ok && c.ice) || [{ urls: 'stun:stun.l.google.com:19302' }];
+    RTC.turn = !!(c.ok && c.turn);
     if (RTC.mode === 'supabase') {
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js');
@@ -1921,6 +1922,8 @@ function paintCall() {
 async function vcJoin() {
   if (VC.on || VC.joining || !gameCode || isBot()) return;
   if (!navigator.mediaDevices || !window.RTCPeerConnection || !window.isSecureContext) return sysGameMsg('Voice chat is not supported in this browser.');
+  await rtInit();
+  if (RTC.mode === 'none') return sysGameMsg('Voice chat is not set up on this server yet (live updates are off).');
   unlockAudio();
   VC.joining = true; paintCall();
   try { VC.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }); }
@@ -1964,7 +1967,7 @@ function makePeer(name) {
     if (p.st === 'bad' || VC.peers.get(name) !== p) return;
     p.st = 'bad'; paintCall();
     const relay = p.mine.has('relay') || p.theirs.has('relay');
-    sysGameMsg(`Couldn't connect voice with ${name} (your routes: ${[...p.mine].join(', ') || 'none'}; theirs: ${[...p.theirs].join(', ') || 'none'}). ${relay ? 'Even the relay could not get through: try another network.' : 'No relay route was found: one of your networks blocks direct calls.'}`);
+    sysGameMsg(`Couldn't connect voice with ${name} (your routes: ${[...p.mine].join(', ') || 'none'}; theirs: ${[...p.theirs].join(', ') || 'none'}). ${relay ? 'Even the relay could not get through: try another network.' : RTC.turn ? 'No relay route was found: one of your networks blocks direct calls.' : 'One of your networks blocks direct calls, and this server has no voice relay (TURN) set up.'}`);
   };
   const onState = () => {
     const st = pc.connectionState || ({ connected: 'connected', completed: 'connected', failed: 'failed' }[pc.iceConnectionState] || pc.iceConnectionState);
