@@ -449,6 +449,15 @@
   @keyframes bpop { from { transform: translate(-60%, -40%) scale(0); } to { transform: translate(-60%, -40%) scale(1); } }
   @keyframes tpop { 0% { opacity: 0; transform: translate(-50%, -6px); } 10%, 75% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
   .sktoggle { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 700; cursor: pointer; }
+  #sndPacks button { min-height: 40px; }
+  .sndvol { display: flex; align-items: center; gap: 12px; margin: 12px 0 6px; font-weight: 700; }
+  .sndvol input { flex: 1; min-height: 0; accent-color: var(--green); }
+  .sndrow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ffffff10; }
+  .sndrow b { width: 88px; flex: none; white-space: nowrap; }
+  .sndrow .sndsrc { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .82rem; font-weight: 600; }
+  .sndrow .sndsrc.mine { color: var(--green); }
+  .sndnote { font-size: .78rem; font-weight: 600; margin-top: 8px; }
+  #sndMsg { font-size: .82rem; font-weight: 700; margin-top: 4px; min-height: 1.2em; }
   .sktoggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--green); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -673,7 +682,7 @@
 </div></div>
 
 <div id="skinModal" class="hidden"><div class="box">
-  <div class="skhead"><h2 class="ptitle">Board &amp; pieces</h2><button class="primary" id="skinDone">Done</button></div>
+  <div class="skhead"><h2 class="ptitle">Board, pieces &amp; sounds</h2><button class="primary" id="skinDone">Done</button></div>
   <div class="muted" style="font-weight:600;margin-bottom:14px">Changes apply instantly and are saved on this device.</div>
   <div class="skgrid">
     <div><div id="skinPreview"></div></div>
@@ -681,6 +690,12 @@
       <div class="label" style="margin-top:0">Board</div><div class="swatches" id="boardSwatches"></div>
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges during games (Brilliant, Best, …)</label>
+      <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
+      <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
+      <div id="sndRows"></div>
+      <div class="muted sndnote">Upload your own sound for any event (MP3, WAV, OGG, M4A · up to 2 MB). Saved on this device.</div>
+      <div id="sndMsg" role="status"></div>
+      <input type="file" id="sndFile" accept="audio/*" hidden>
     </div>
   </div>
 </div></div>
@@ -1071,7 +1086,7 @@ function paintSkinModal() {
   for (let sq = 0; sq < 64; sq++) h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}">${st.board[sq] ? pieceHTML(st.board[sq]) : ''}</div>`;
   setHTML($('#skinPreview'), h);
 }
-function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; paintSkinModal(); }
+function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; paintSkinModal(); paintSounds(); }
 $('#navSkin').onclick = openSkins;
 $('#skinBtn').onclick = openSkins;
 $('#skinDone').onclick = () => $('#skinModal').classList.add('hidden');
@@ -2311,40 +2326,164 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- sound ----------
-let actx = null, soundOn = (() => { try { return localStorage.getItem('chess:sound') !== '0'; } catch { return true; } })();
+// Built-in packs are synthesized; any event can be swapped for an uploaded clip (kept in IndexedDB on this device).
+let actx = null, master = null, sndForce = false, soundOn = (() => { try { return localStorage.getItem('chess:sound') !== '0'; } catch { return true; } })();
+const SND_EVENTS = [['move', 'Move'], ['capture', 'Capture'], ['check', 'Check'], ['end', 'Game over']];
+let SND = (() => { try { return { pack: 'classic', vol: 1, ...(JSON.parse(localStorage.getItem('chess:sounds')) || {}) }; } catch { return { pack: 'classic', vol: 1 }; } })();
+const saveSnd = () => { try { localStorage.setItem('chess:sounds', JSON.stringify(SND)); } catch {} };
 const SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
 const SPK_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>';
 function paintSound() { $('#sndBtn').innerHTML = soundOn ? SPK : SPK_OFF; $('#sndBtn').title = soundOn ? 'Sound on' : 'Sound off'; }
 paintSound();
 $('#sndBtn').onclick = () => { soundOn = !soundOn; try { localStorage.setItem('chess:sound', soundOn ? '1' : '0'); } catch {} paintSound(); if (soundOn) sfx('move'); };
-function ac() {
-  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
-  if (actx.state === 'suspended') actx.resume();
+function ac(resume = true) {
+  if (!actx) {
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
+    master = actx.createGain(); master.gain.value = SND.vol; master.connect(actx.destination);
+  }
+  if (resume && actx.state === 'suspended') actx.resume();
   return actx;
 }
+const audible = () => soundOn || sndForce;
 function tone(freq, dur, { type = 'sine', vol = 0.15, delay = 0, slide = 0 } = {}) {
-  const c = ac(); if (!c || !soundOn) return;
+  const c = ac(); if (!c || !audible()) return;
   const t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
   o.type = type; o.frequency.setValueAtTime(freq, t);
   if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), t + dur);
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
 }
-function click(vol, dur) {
-  const c = ac(); if (!c || !soundOn) return;
+function click(vol, dur, freq = 1400, delay = 0) {
+  const c = ac(); if (!c || !audible()) return;
   const n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
   const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-  f.type = 'bandpass'; f.frequency.value = 1400; g.gain.value = vol;
-  src.buffer = buf; src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+  f.type = 'bandpass'; f.frequency.value = freq; g.gain.value = vol;
+  src.buffer = buf; src.connect(f); f.connect(g); g.connect(master); src.start(c.currentTime + delay);
+}
+const PACKS = {
+  classic: ['Classic', {
+    move: () => { click(0.5, 0.06); tone(190, 0.08, { type: 'triangle', vol: 0.18, slide: -70 }); },
+    capture: () => { click(0.9, 0.1); tone(140, 0.14, { type: 'triangle', vol: 0.28, slide: -60 }); },
+    check: () => { click(0.5, 0.06); tone(740, 0.14, { vol: 0.1, delay: 0.07 }); tone(988, 0.18, { vol: 0.1, delay: 0.16 }); },
+    end: () => [392, 494, 587, 784].forEach((f, i) => tone(f, 0.4, { vol: 0.12, delay: i * 0.11 })),
+  }],
+  wood: ['Wooden', {
+    move: () => { click(1.1, 0.05, 700); tone(120, 0.06, { type: 'triangle', vol: 0.25, slide: -40 }); },
+    capture: () => { click(1.3, 0.05, 650); click(1.1, 0.07, 500, 0.06); tone(95, 0.12, { type: 'triangle', vol: 0.3, slide: -30, delay: 0.06 }); },
+    check: () => { click(1.1, 0.05, 700); tone(523, 0.2, { type: 'triangle', vol: 0.14, delay: 0.06 }); },
+    end: () => [262, 330, 392].forEach((f, i) => tone(f, 0.5, { type: 'triangle', vol: 0.16, delay: i * 0.14 })),
+  }],
+  soft: ['Soft', {
+    move: () => tone(330, 0.12, { vol: 0.12, slide: -40 }),
+    capture: () => { tone(262, 0.16, { vol: 0.16, slide: -60 }); tone(196, 0.18, { vol: 0.1, delay: 0.05 }); },
+    check: () => { tone(587, 0.2, { vol: 0.08 }); tone(784, 0.26, { vol: 0.08, delay: 0.12 }); },
+    end: () => [523, 659, 784].forEach((f, i) => tone(f, 0.6, { vol: 0.08, delay: i * 0.16 })),
+  }],
+  retro: ['Retro', {
+    move: () => tone(440, 0.05, { type: 'square', vol: 0.06 }),
+    capture: () => { tone(220, 0.06, { type: 'square', vol: 0.08 }); tone(165, 0.08, { type: 'square', vol: 0.08, delay: 0.06 }); },
+    check: () => { tone(880, 0.06, { type: 'square', vol: 0.06 }); tone(880, 0.06, { type: 'square', vol: 0.06, delay: 0.1 }); },
+    end: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, { type: 'square', vol: 0.06, delay: i * 0.09 })),
+  }],
+  glass: ['Glass', {
+    move: () => tone(1568, 0.25, { vol: 0.06 }),
+    capture: () => { tone(1175, 0.3, { vol: 0.07 }); tone(1760, 0.3, { vol: 0.05, delay: 0.04 }); },
+    check: () => { tone(2093, 0.3, { vol: 0.06 }); tone(2637, 0.4, { vol: 0.05, delay: 0.1 }); },
+    end: () => [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, 0.7, { vol: 0.05, delay: i * 0.12 })),
+  }],
+  silent: ['Silent', { move() {}, capture() {}, check() {}, end() {} }],
+};
+if (!PACKS[SND.pack]) SND.pack = 'classic';
+
+// uploaded clips: IndexedDB keeps the file, memory keeps the decoded buffer
+const CUSTOM = {};   // kind -> { name, buf }
+const SND_MAX_BYTES = 2 * 1024 * 1024, SND_MAX_SECS = 6;
+function sndDB() {
+  return new Promise((ok, no) => {
+    if (!window.indexedDB) return no(new Error('no IndexedDB'));
+    const r = indexedDB.open('chess-sounds', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('clips');
+    r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
+  });
+}
+async function sndStore(mode, fn) {
+  const db = await sndDB();
+  return new Promise((ok, no) => { const tx = db.transaction('clips', mode), r = fn(tx.objectStore('clips')); tx.oncomplete = () => ok(r && r.result); tx.onerror = () => no(tx.error); });
+}
+function decode(arr) {
+  const c = ac(false);
+  if (!c) return Promise.reject(new Error('no audio'));
+  return new Promise((ok, no) => { const p = c.decodeAudioData(arr, ok, no); if (p && p.then) p.then(ok, no); });
+}
+async function loadCustom(kind, rec) {
+  if (!rec || !rec.blob) return;
+  try { CUSTOM[kind] = { name: rec.name, buf: await decode(await rec.blob.arrayBuffer()) }; } catch { delete CUSTOM[kind]; }
+}
+(async () => {
+  try {
+    for (const [kind] of SND_EVENTS) await loadCustom(kind, await sndStore('readonly', (s) => s.get(kind)));
+  } catch {}
+  paintSounds();
+})();
+function playClip(buf) {
+  const c = ac(); if (!c || !audible()) return;
+  const src = c.createBufferSource(), g = c.createGain(), t = c.currentTime, len = Math.min(buf.duration, SND_MAX_SECS);
+  g.gain.setValueAtTime(1, t);
+  if (buf.duration > SND_MAX_SECS) { g.gain.setValueAtTime(1, t + len - 0.3); g.gain.linearRampToValueAtTime(0.0001, t + len); }
+  src.buffer = buf; src.connect(g); g.connect(master); src.start(t); src.stop(t + len + 0.02);
 }
 function sfx(kind) {
-  if (kind === 'move') { click(0.5, 0.06); tone(190, 0.08, { type: 'triangle', vol: 0.18, slide: -70 }); }
-  else if (kind === 'capture') { click(0.9, 0.1); tone(140, 0.14, { type: 'triangle', vol: 0.28, slide: -60 }); }
-  else if (kind === 'check') { click(0.5, 0.06); tone(740, 0.14, { vol: 0.1, delay: 0.07 }); tone(988, 0.18, { vol: 0.1, delay: 0.16 }); }
-  else if (kind === 'end') { [392, 494, 587, 784].forEach((f, i) => tone(f, 0.4, { vol: 0.12, delay: i * 0.11 })); }
+  if (!audible()) return;
+  if (CUSTOM[kind]) return playClip(CUSTOM[kind].buf);
+  const fn = PACKS[SND.pack][1][kind];
+  if (fn) fn();
 }
+function preview(kind) { sndForce = true; try { sfx(kind); } finally { sndForce = false; } }
 document.addEventListener('pointerdown', () => ac(), { once: true });
+
+// sounds panel (inside the Board & pieces modal)
+function paintSounds() {
+  if (!$('#sndPacks')) return;
+  setHTML($('#sndPacks'), Object.entries(PACKS).map(([k, [name]]) => `<button class="${k === SND.pack ? 'on' : ''}" data-pack="${k}">${name}</button>`).join(''));
+  $('#sndVol').value = Math.round(SND.vol * 100);
+  setHTML($('#sndRows'), SND_EVENTS.map(([k, label]) => {
+    const c = CUSTOM[k];
+    return `<div class="sndrow"><b>${label}</b><span class="sndsrc ${c ? 'mine' : ''}" title="${c ? esc(c.name) : ''}">${c ? esc(c.name) : PACKS[SND.pack][0] + ' pack'}</span>
+      <button class="small" data-play="${k}" title="Play" aria-label="Play ${label} sound">▶</button>
+      <button class="small" data-up="${k}">Upload</button>
+      ${c ? `<button class="small" data-reset="${k}" title="Use the pack sound again">Reset</button>` : ''}</div>`;
+  }).join(''));
+}
+let sndTarget = null;
+$('#sndPacks').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pack]'); if (!b) return;
+  SND.pack = b.dataset.pack; saveSnd(); paintSounds(); preview('move'); setTimeout(() => preview('capture'), 350);
+});
+$('#sndVol').addEventListener('input', (e) => { SND.vol = e.target.value / 100; if (master) master.gain.value = SND.vol; saveSnd(); });
+$('#sndVol').addEventListener('change', () => preview('move'));
+$('#sndRows').addEventListener('click', async (e) => {
+  const p = e.target.closest('[data-play]'), u = e.target.closest('[data-up]'), r = e.target.closest('[data-reset]');
+  if (p) preview(p.dataset.play);
+  else if (u) { sndTarget = u.dataset.up; $('#sndFile').value = ''; $('#sndFile').click(); }
+  else if (r) {
+    delete CUSTOM[r.dataset.reset];
+    try { await sndStore('readwrite', (s) => s.delete(r.dataset.reset)); } catch {}
+    sndMsg(''); paintSounds();
+  }
+});
+function sndMsg(t) { $('#sndMsg').textContent = t; }
+$('#sndFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0], kind = sndTarget; if (!f || !kind) return;
+  if (f.size > SND_MAX_BYTES) return sndMsg(`That file is ${(f.size / 1048576).toFixed(1)} MB. Please pick a sound under 2 MB.`);
+  sndMsg('Loading…');
+  let buf;
+  try { buf = await decode(await f.arrayBuffer()); } catch { return sndMsg('Couldn\'t play that file. Try an MP3, WAV, OGG or M4A.'); }
+  CUSTOM[kind] = { name: f.name, buf };
+  try { await sndStore('readwrite', (s) => s.put({ name: f.name, blob: f }, kind)); sndMsg(buf.duration > SND_MAX_SECS ? `Saved. Only the first ${SND_MAX_SECS} seconds will play.` : ''); }
+  catch { sndMsg('Using this sound for now, but it couldn\'t be saved on this device (private browsing?).'); }
+  paintSounds(); preview(kind);
+});
 
 // ---------- per-snapshot effects: sounds, title, game-over card ----------
 function afterSnapshot(r) {
