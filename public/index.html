@@ -449,16 +449,34 @@
     box-shadow: 0 6px 16px -4px #000a; pointer-events: none; animation: tpop 2.2s ease forwards; white-space: nowrap; }
   @keyframes bpop { from { transform: translate(-60%, -40%) scale(0); } to { transform: translate(-60%, -40%) scale(1); } }
   @keyframes tpop { 0% { opacity: 0; transform: translate(-50%, -6px); } 10%, 75% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+  /* coach */
+  #coach { max-width: 1060px; margin: 0 auto; padding: 22px 18px 60px; }
+  .cohero { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+  .coav { flex: none; width: 64px; height: 64px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; box-shadow: 0 4px 0 var(--green-dark); }
+  .coav svg { width: 34px; height: 34px; }
+  .coav.sm { width: 30px; height: 30px; box-shadow: none; } .coav.sm svg { width: 18px; height: 18px; }
+  .cobubble { background: var(--panel); border-radius: 12px; padding: 12px 16px; font-weight: 600; line-height: 1.45; margin-top: 6px; }
+  .cogrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 760px) { .cogrid { grid-template-columns: 1fr; } .cohero .coav { width: 48px; height: 48px; } }
+  .cofocus { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid #ffffff10; }
+  .cofocus span:last-child { flex-basis: 100%; color: var(--muted); font-size: .88rem; font-weight: 600; }
+  .cofocus.good b { color: var(--green); }
+  .cores-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .cotable { overflow-x: auto; }
+  .cores.win { color: var(--green); } .cores.loss { color: #fa412d; } .cores.draw { color: var(--muted); }
+  #coachpanel { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid var(--green); }
+  #coachpanel.hidden { display: none; }
+  #coachpanel[data-kind="blunder"] { border-left-color: #fa412d; } #coachpanel[data-kind="mistake"] { border-left-color: #ff8c3a; }
+  #coachpanel[data-kind="inaccuracy"] { border-left-color: #f0b50f; } #coachpanel[data-kind="chance"] { border-left-color: #5c8bb0; }
+  .cohead { display: flex; align-items: center; gap: 8px; } .cohead .muted { margin-left: auto; font-size: .78rem; font-weight: 600; }
+  #coMsg { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; line-height: 1.45; min-height: 2.9em; }
+  #coMsg .sym { flex: none; margin-top: 2px; }
+  #coachpanel .row button.hidden { display: none; }
   .sktoggle { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 700; cursor: pointer; }
   #sndPacks button { min-height: 40px; }
   .sndvol { display: flex; align-items: center; gap: 12px; margin: 12px 0 6px; font-weight: 700; }
   .sndvol input { flex: 1; min-height: 0; accent-color: var(--green); }
-  .sndrow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ffffff10; }
-  .sndrow b { width: 88px; flex: none; white-space: nowrap; }
-  .sndrow .sndsrc { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .82rem; font-weight: 600; }
-  .sndrow .sndsrc.mine { color: var(--green); }
-  .sndnote { font-size: .78rem; font-weight: 600; margin-top: 8px; }
-  #sndMsg { font-size: .82rem; font-weight: 700; margin-top: 4px; min-height: 1.2em; }
+  .sndtest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-weight: 700; }
   .sktoggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--green); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -471,6 +489,7 @@
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
+    <button id="navCoach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
     <button id="navProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile</button>
@@ -592,6 +611,24 @@
   </div>
 </div>
 
+<!-- coach -->
+<div id="coach" class="hidden">
+  <div class="cohero"><div class="coav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg></div><div><h1 class="ptitle">Coach</h1><div class="cobubble" id="coGreet"></div></div></div>
+  <div class="rcards" id="coCards"></div>
+  <div class="cogrid">
+    <div class="panel">
+      <h2 class="ph">Play with the coach</h2>
+      <div class="muted" style="font-weight:600;margin-bottom:10px">After every move, the coach tells you if it was a blunder, a mistake or a great move, and shows you the better one. Its strength adapts to you.</div>
+      <div class="colorpick" id="coColor"><button data-c="w">White</button><button data-c="r">Random</button><button data-c="b">Black</button></div>
+      <label class="sktoggle" style="justify-content:flex-start"><input type="checkbox" id="coHelp"> Hints and takebacks</label>
+      <button class="primary big" id="coStart" style="margin-top:14px">Start coached game</button>
+      <div class="cores-row hidden" id="coResume"><span class="muted" id="coResumeText"></span><span class="row"><button class="small primary" id="coResumeBtn">Resume</button><button class="small" id="coDiscardBtn">Discard</button></span></div>
+    </div>
+    <div class="panel"><h2 class="ph">What to work on</h2><div id="coFocus"></div></div>
+  </div>
+  <div class="panel"><h2 class="ph">Recent coach games</h2><div id="coGames" class="cotable"></div></div>
+</div>
+
 <!-- profile -->
 <div id="profile" class="hidden">
   <div class="phead"><div class="avatar w" id="pfAvatar"></div><div><h1 class="ptitle" id="pfName"></h1><div class="muted" id="pfSub" style="font-weight:600"></div></div><button class="primary" id="pfChallenge">Challenge</button></div>
@@ -627,6 +664,11 @@
   </div>
   <aside class="side-panel">
     <div id="statuscard"><div id="status"></div><div id="sub"></div></div>
+    <div class="panel hidden" id="coachpanel">
+      <div class="cohead"><span class="coav sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg></span><b>Coach</b><span class="muted" id="coLvl"></span></div>
+      <div id="coMsg" aria-live="polite"></div>
+      <div class="row"><button class="small" id="coHint">Hint</button><button class="small primary" id="coTake">Take back</button><button class="small" id="coGo">Continue</button></div>
+    </div>
     <div class="panel hidden" id="drawbox"><span id="drawtxt"></span><span class="row"><button class="primary small" id="drawYes">Accept</button><button class="small" id="drawNo">Decline</button></span></div>
     <div class="panel hidden" id="pausebox"><span>Your opponent wants to pause the game</span><span class="row"><button class="primary small" id="pauseYes">Accept</button><button class="small" id="pauseNo">Decline</button></span></div>
     <div class="panel" id="invite">
@@ -690,13 +732,10 @@
     <div>
       <div class="label" style="margin-top:0">Board</div><div class="swatches" id="boardSwatches"></div>
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
-      <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges during games (Brilliant, Best, …)</label>
+      <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
       <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
       <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
-      <div id="sndRows"></div>
-      <div class="muted sndnote">Upload your own sound for any event (MP3, WAV, OGG, M4A · up to 2 MB). Saved on this device.</div>
-      <div id="sndMsg" role="status"></div>
-      <input type="file" id="sndFile" accept="audio/*" hidden>
+      <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button></div>
     </div>
   </div>
 </div></div>
@@ -735,7 +774,7 @@ function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
   return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
 }
-const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -947,6 +986,8 @@ async function start() {
   ensureSessionSubs();
   const params = new URLSearchParams(location.search);
   if (params.has('learn')) return enterLearn();
+  if (params.get('coach') === 'game') { const b = botLoad('chess:coachgame'); if (b) return enterBot(b); }
+  if (params.has('coach')) return enterCoach();
   if (params.has('admin')) wantAdmin = true;
   const q = params.get('game');
   if (params.has('bot')) { const b = botLoad(); if (b) return enterBot(b); }
@@ -1361,7 +1402,7 @@ function stopGame() {
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
   if (rtRoomOff) { rtRoomOff(); rtRoomOff = null; } rtRoomLive = false;
 }
-$('#leave').onclick = enterLobby;
+$('#leave').onclick = () => (isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
@@ -1478,8 +1519,8 @@ function render() {
   } else if (!mine) {
     t = `${state.turn === 'w' ? 'White' : 'Black'} to move`; s = 'You are spectating';
   } else {
-    t = state.turn === you ? 'Your move' : (isBot() ? 'Computer is thinking…' : "Opponent's move");
-    s = status.check ? 'Check!' : (isBot() ? BOT_LEVELS[botGame.level].name + ' · ' : '') + tcLabel(snap.tc);
+    t = state.turn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused · read the coach\'s tip' : 'Coach is thinking…') : 'Computer is thinking…') : "Opponent's move");
+    s = status.check ? 'Check!' : (isBot() ? (botGame.coach ? 'Coach game · ' : BOT_LEVELS[botGame.level].name + ' · ') : '') + tcLabel(snap.tc);
   }
   if (snap.paused && !status.over) { t = 'Game paused'; s = 'Both players must press Resume to continue'; }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
@@ -1527,7 +1568,7 @@ function render() {
   setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '');
   setText($('#cbText'), mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating');
   const liveTurn = snap.state.turn;
-  setText($('#cbTurn'), status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? "Computer's move" : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
+  setText($('#cbTurn'), status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
 
   renderMoves(moves, upto, live);
   paintPendingMove();
@@ -1678,6 +1719,7 @@ function drawOverlay() {
   for (const a of arrows) h += arrowSVG(a.from, a.to, ARROW[a.color], 0.8);
   if (premove && viewPly === null) h += arrowSVG(premove.from, premove.to, ARROW.blue, 0.75);
   if (anArrow && AN.key) h += arrowSVG(anArrow.from, anArrow.to, '#5fb030', 0.85);
+  if (isCoach() && viewPly === null) { if (CO.mark != null) h += circleSVG(CO.mark, '#5fb030', 0.9); if (CO.arrow) h += arrowSVG(CO.arrow.from, CO.arrow.to, '#5fb030', 0.85); }
   if (rdrag) h += rdrag.from === rdrag.to ? circleSVG(rdrag.from, ARROW[rdrag.color], 0.55) : arrowSVG(rdrag.from, rdrag.to, ARROW[rdrag.color], 0.55);
   if (h !== ovSig) { ovSig = h; svg.innerHTML = h; }
 }
@@ -1708,7 +1750,6 @@ async function send(from, to, promo) {
   sending = true;
   const base = snap, baseAt = snapAt, baseSig = sig;
   applyOptimistic(m);
-  liveBadge(base.state, m, base.moves.length, true);
   // in the background: the board already moved. Network blips are retried (the server's ply check makes retries safe).
   let r, tries = 0;
   for (;;) {
@@ -2227,7 +2268,11 @@ function paintReviewComment(upto) {
     html = `<span class="sym" style="background:${CLS[c].c}">${CLS[c].sym}</span> ${num}${m ? Chess.notate(st, m) : ''} is <b style="color:${CLS[c].c}">${phrase}</b>.`;
     if (r.best && !(r.best.from === h.from && r.best.to === h.to) && ['inaccuracy', 'mistake', 'blunder', 'good'].includes(c)) {
       const bm = Chess.legalMoves(st).find((x) => x.from === r.best.from && x.to === r.best.to && (x.promo || undefined) === (r.best.promo || undefined));
-      if (bm) { html += ` Better was <b>${Chess.notate(st, bm)}</b> (green arrow).`; arrow = { from: bm.from, to: bm.to }; }
+      if (bm) {
+        const { why } = explainMove(st, m, bm, c, i, st.turn);
+        if (why) html += ` ${why}`;
+        html += ` Better was <b>${Chess.notate(st, bm)}</b> (green arrow).`; arrow = { from: bm.from, to: bm.to };
+      }
     }
     const after = evalWhite(i + 1);
     if (after != null) html += ` <span class="muted">Eval ${fmtEval(after)}</span>`;
@@ -2247,13 +2292,11 @@ $('#oAnalyze').onclick = () => { $('#over').classList.add('hidden'); if (snap &&
 
 
 // ---------- live move badges: each move is checked in a background worker right after it is played ----------
-// Fair play: in games against people only your OWN moves get badges, and only good ones (Brilliant/Great/Best/Excellent/Good);
-// in computer games every move gets one.
+// Only in games against the computer: nothing grades your moves while a game against a person is still going.
 if (SKIN.badges === undefined) SKIN.badges = true;
-const POSITIVE = new Set(['brilliant', 'great', 'best', 'excellent', 'good']);
 const LB = { worker: null, id: 0, cur: null, queue: [], shown: null };
 function liveBadge(before, move, ply, mine) {
-  if (!SKIN.badges || !window.Worker) return;
+  if (!SKIN.badges || !window.Worker || !isBot()) return;
   const h = move.promo ? { from: move.from, to: move.to, promo: move.promo } : { from: move.from, to: move.to };
   LB.queue.push({ before, h, ply, mine, game: gameCode });
   if (!LB.cur) nextBadgeJob();
@@ -2269,7 +2312,7 @@ function onBadge(e) {
   if (d.id !== LB.id || d.done || d.i !== 0 || !LB.cur) { if (d.done) nextBadgeJob(); return; }
   const job = LB.cur;
   const c = classifyMove(d, job.before, job.h);
-  const allow = isBot() ? c !== 'forced' : job.mine && POSITIVE.has(c);
+  const allow = isBot() && c !== 'forced';
   if (allow && job.game === gameCode && snap && snap.moves.length === job.ply + 1) {
     LB.shown = { ply: job.ply, sq: job.h.to, c };
     paintBadge(true);
@@ -2385,9 +2428,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- sound ----------
-// Built-in packs are synthesized; any event can be swapped for an uploaded clip (kept in IndexedDB on this device).
+// Sound packs are synthesized in the browser, so there are no audio files to load.
 let actx = null, master = null, sndForce = false, soundOn = (() => { try { return localStorage.getItem('chess:sound') !== '0'; } catch { return true; } })();
-const SND_EVENTS = [['move', 'Move'], ['capture', 'Capture'], ['check', 'Check'], ['end', 'Game over']];
 let SND = (() => { try { return { pack: 'classic', vol: 1, ...(JSON.parse(localStorage.getItem('chess:sounds')) || {}) }; } catch { return { pack: 'classic', vol: 1 }; } })();
 const saveSnd = () => { try { localStorage.setItem('chess:sounds', JSON.stringify(SND)); } catch {} };
 const SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
@@ -2395,12 +2437,12 @@ const SPK_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 function paintSound() { $('#sndBtn').innerHTML = soundOn ? SPK : SPK_OFF; $('#sndBtn').title = soundOn ? 'Sound on' : 'Sound off'; }
 paintSound();
 $('#sndBtn').onclick = () => { soundOn = !soundOn; try { localStorage.setItem('chess:sound', soundOn ? '1' : '0'); } catch {} paintSound(); if (soundOn) sfx('move'); };
-function ac(resume = true) {
+function ac() {
   if (!actx) {
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
     master = actx.createGain(); master.gain.value = SND.vol; master.connect(actx.destination);
   }
-  if (resume && actx.state === 'suspended') actx.resume();
+  if (actx.state === 'suspended') actx.resume();
   return actx;
 }
 const audible = () => soundOn || sndForce;
@@ -2412,12 +2454,12 @@ function tone(freq, dur, { type = 'sine', vol = 0.15, delay = 0, slide = 0 } = {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
 }
-function click(vol, dur, freq = 1400, delay = 0) {
+function click(vol, dur, freq = 1400, delay = 0, q = 1) {
   const c = ac(); if (!c || !audible()) return;
   const n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
   const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-  f.type = 'bandpass'; f.frequency.value = freq; g.gain.value = vol;
+  f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol;
   src.buffer = buf; src.connect(f); f.connect(g); g.connect(master); src.start(c.currentTime + delay);
 }
 const PACKS = {
@@ -2426,6 +2468,13 @@ const PACKS = {
     capture: () => { click(0.9, 0.1); tone(140, 0.14, { type: 'triangle', vol: 0.28, slide: -60 }); },
     check: () => { click(0.5, 0.06); tone(740, 0.14, { vol: 0.1, delay: 0.07 }); tone(988, 0.18, { vol: 0.1, delay: 0.16 }); },
     end: () => [392, 494, 587, 784].forEach((f, i) => tone(f, 0.4, { vol: 0.12, delay: i * 0.11 })),
+  }],
+  // hard stone pieces on a stone board: a bright, ringing knock over a short low thud
+  marble: ['Marble', {
+    move: () => { click(1.6, 0.035, 2600, 0, 6); tone(2350, 0.09, { vol: 0.05 }); tone(3700, 0.05, { vol: 0.025 }); tone(230, 0.05, { type: 'triangle', vol: 0.14, slide: -80 }); },
+    capture: () => { click(1.8, 0.035, 2400, 0, 6); tone(2100, 0.1, { vol: 0.06 }); click(1.7, 0.04, 2900, 0.07, 6); tone(2650, 0.12, { vol: 0.05, delay: 0.07 }); tone(180, 0.08, { type: 'triangle', vol: 0.18, slide: -60, delay: 0.07 }); },
+    check: () => { click(1.6, 0.035, 2600, 0, 6); tone(2350, 0.09, { vol: 0.05 }); tone(1319, 0.22, { vol: 0.06, delay: 0.08 }); tone(1760, 0.3, { vol: 0.06, delay: 0.17 }); },
+    end: () => [1047, 1319, 1568, 2093].forEach((f, i) => { tone(f, 0.55, { vol: 0.05, delay: i * 0.12 }); click(0.8, 0.03, 2600, i * 0.12, 6); }),
   }],
   wood: ['Wooden', {
     move: () => { click(1.1, 0.05, 700); tone(120, 0.06, { type: 'triangle', vol: 0.25, slide: -40 }); },
@@ -2454,47 +2503,10 @@ const PACKS = {
   silent: ['Silent', { move() {}, capture() {}, check() {}, end() {} }],
 };
 if (!PACKS[SND.pack]) SND.pack = 'classic';
+try { if (window.indexedDB) indexedDB.deleteDatabase('chess-sounds'); } catch {}   // uploaded clips from an earlier version
 
-// uploaded clips: IndexedDB keeps the file, memory keeps the decoded buffer
-const CUSTOM = {};   // kind -> { name, buf }
-const SND_MAX_BYTES = 2 * 1024 * 1024, SND_MAX_SECS = 6;
-function sndDB() {
-  return new Promise((ok, no) => {
-    if (!window.indexedDB) return no(new Error('no IndexedDB'));
-    const r = indexedDB.open('chess-sounds', 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('clips');
-    r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
-  });
-}
-async function sndStore(mode, fn) {
-  const db = await sndDB();
-  return new Promise((ok, no) => { const tx = db.transaction('clips', mode), r = fn(tx.objectStore('clips')); tx.oncomplete = () => ok(r && r.result); tx.onerror = () => no(tx.error); });
-}
-function decode(arr) {
-  const c = ac(false);
-  if (!c) return Promise.reject(new Error('no audio'));
-  return new Promise((ok, no) => { const p = c.decodeAudioData(arr, ok, no); if (p && p.then) p.then(ok, no); });
-}
-async function loadCustom(kind, rec) {
-  if (!rec || !rec.blob) return;
-  try { CUSTOM[kind] = { name: rec.name, buf: await decode(await rec.blob.arrayBuffer()) }; } catch { delete CUSTOM[kind]; }
-}
-(async () => {
-  try {
-    for (const [kind] of SND_EVENTS) await loadCustom(kind, await sndStore('readonly', (s) => s.get(kind)));
-  } catch {}
-  paintSounds();
-})();
-function playClip(buf) {
-  const c = ac(); if (!c || !audible()) return;
-  const src = c.createBufferSource(), g = c.createGain(), t = c.currentTime, len = Math.min(buf.duration, SND_MAX_SECS);
-  g.gain.setValueAtTime(1, t);
-  if (buf.duration > SND_MAX_SECS) { g.gain.setValueAtTime(1, t + len - 0.3); g.gain.linearRampToValueAtTime(0.0001, t + len); }
-  src.buffer = buf; src.connect(g); g.connect(master); src.start(t); src.stop(t + len + 0.02);
-}
 function sfx(kind) {
   if (!audible()) return;
-  if (CUSTOM[kind]) return playClip(CUSTOM[kind].buf);
   const fn = PACKS[SND.pack][1][kind];
   if (fn) fn();
 }
@@ -2503,46 +2515,17 @@ document.addEventListener('pointerdown', () => ac(), { once: true });
 
 // sounds panel (inside the Board & pieces modal)
 function paintSounds() {
-  if (!$('#sndPacks')) return;
   setHTML($('#sndPacks'), Object.entries(PACKS).map(([k, [name]]) => `<button class="${k === SND.pack ? 'on' : ''}" data-pack="${k}">${name}</button>`).join(''));
   $('#sndVol').value = Math.round(SND.vol * 100);
-  setHTML($('#sndRows'), SND_EVENTS.map(([k, label]) => {
-    const c = CUSTOM[k];
-    return `<div class="sndrow"><b>${label}</b><span class="sndsrc ${c ? 'mine' : ''}" title="${c ? esc(c.name) : ''}">${c ? esc(c.name) : PACKS[SND.pack][0] + ' pack'}</span>
-      <button class="small" data-play="${k}" title="Play" aria-label="Play ${label} sound">▶</button>
-      <button class="small" data-up="${k}">Upload</button>
-      ${c ? `<button class="small" data-reset="${k}" title="Use the pack sound again">Reset</button>` : ''}</div>`;
-  }).join(''));
 }
-let sndTarget = null;
 $('#sndPacks').addEventListener('click', (e) => {
   const b = e.target.closest('[data-pack]'); if (!b) return;
   SND.pack = b.dataset.pack; saveSnd(); paintSounds(); preview('move'); setTimeout(() => preview('capture'), 350);
 });
 $('#sndVol').addEventListener('input', (e) => { SND.vol = e.target.value / 100; if (master) master.gain.value = SND.vol; saveSnd(); });
 $('#sndVol').addEventListener('change', () => preview('move'));
-$('#sndRows').addEventListener('click', async (e) => {
-  const p = e.target.closest('[data-play]'), u = e.target.closest('[data-up]'), r = e.target.closest('[data-reset]');
-  if (p) preview(p.dataset.play);
-  else if (u) { sndTarget = u.dataset.up; $('#sndFile').value = ''; $('#sndFile').click(); }
-  else if (r) {
-    delete CUSTOM[r.dataset.reset];
-    try { await sndStore('readwrite', (s) => s.delete(r.dataset.reset)); } catch {}
-    sndMsg(''); paintSounds();
-  }
-});
-function sndMsg(t) { $('#sndMsg').textContent = t; }
-$('#sndFile').addEventListener('change', async (e) => {
-  const f = e.target.files[0], kind = sndTarget; if (!f || !kind) return;
-  if (f.size > SND_MAX_BYTES) return sndMsg(`That file is ${(f.size / 1048576).toFixed(1)} MB. Please pick a sound under 2 MB.`);
-  sndMsg('Loading…');
-  let buf;
-  try { buf = await decode(await f.arrayBuffer()); } catch { return sndMsg('Couldn\'t play that file. Try an MP3, WAV, OGG or M4A.'); }
-  CUSTOM[kind] = { name: f.name, buf };
-  try { await sndStore('readwrite', (s) => s.put({ name: f.name, blob: f }, kind)); sndMsg(buf.duration > SND_MAX_SECS ? `Saved. Only the first ${SND_MAX_SECS} seconds will play.` : ''); }
-  catch { sndMsg('Using this sound for now, but it couldn\'t be saved on this device (private browsing?).'); }
-  paintSounds(); preview(kind);
-});
+document.querySelector('.sndtest').addEventListener('click', (e) => { const b = e.target.closest('[data-play]'); if (b) preview(b.dataset.play); });
+paintSounds();
 
 // ---------- per-snapshot effects: sounds, title, game-over card ----------
 function afterSnapshot(r) {
@@ -2582,11 +2565,11 @@ function paintOver(r) {
   $('#oMe').innerHTML = side(me); $('#oOpp').innerHTML = side(opp);
   $('#oMoves').textContent = Math.ceil(r.moves.length / 2);
   $('#oDur').textContent = fmtDur(r.endedAt && r.startedAt ? r.endedAt - r.startedAt : 0);
-  $('#oCat').textContent = (isBot() ? 'Practice' : CAT_NAME[r.cat || catOfTc(r.tc)] || '') + ' · ' + tcLabel(r.tc);
+  $('#oCat').textContent = (isBot() ? (botGame.coach ? 'Coach' : 'Practice') : CAT_NAME[r.cat || catOfTc(r.tc)] || '') + ' · ' + tcLabel(r.tc);
   $('#oRematch').classList.toggle('hidden', !mine);
   // rating line: before -> after (+X), counted up once; skeleton while the server is still settling
   const el = $('#orating');
-  if (isBot()) el.innerHTML = '<div class="onote">Practice game · not rated</div>';
+  if (isBot()) el.innerHTML = `<div class="onote">${botGame.coach ? 'Coach game · your coach\'s summary is next to the board' : 'Practice game · not rated'}</div>`;
   else if (!mine) el.innerHTML = '';
   else if (r.unrated) el.innerHTML = '<div class="onote">Not rated · the game ended before both players moved</div>';
   else if (r.status.reason === 'ended by an admin') el.innerHTML = '<div class="onote">Ended by an admin · not rated</div>';
@@ -2669,7 +2652,7 @@ function botSnap() {
   const b = botGame, now = Date.now(), st = botStatusOf(b);
   const run = b.tc && b.moves.length >= 2 && !st.over ? b.state.turn : null;
   const left = (c) => (b.clock ? Math.max(0, b.clock[c] - (run === c ? now - b.clock.ts : 0)) : null);
-  const me = { name: user.name, elo: myElo }, cpu = { name: 'Computer', elo: BOT_LEVELS[b.level].name };
+  const me = { name: user.name, elo: myElo }, cpu = b.coach ? { name: 'Coach', elo: coachRating(b.coach.s) } : { name: 'Computer', elo: BOT_LEVELS[b.level].name };
   return {
     code: 'BOT', you: b.you, state: b.state, moves: b.moves, last: b.last, status: st,
     players: b.you === 'w' ? { w: me, b: cpu } : { w: cpu, b: me }, present: { w: true, b: true },
@@ -2678,7 +2661,7 @@ function botSnap() {
     startedAt: b.startedAt || null, endedAt: st.over ? (b.endedAt = b.endedAt || now) : null, cat: null, ratings: null,
   };
 }
-function pushBot() { const sn = botSnap(); applySnapshot(sn); if (sn.status.over) botClear(); }
+function pushBot() { const sn = botSnap(); applySnapshot(sn); if (sn.status.over) botClear(); if (botGame && botGame.coach) coachAfterPush(); }
 
 function botWorkerGet() {
   if (botWorker) return botWorker;
@@ -2691,7 +2674,7 @@ function botWorkerGet() {
 }
 function botThink() {
   const b = botGame;
-  if (!b || b.thinking || botStatusOf(b).over || b.state.turn === b.you) return;
+  if (!b || b.thinking || botStatusOf(b).over || b.state.turn === b.you || (b.coach && b.coach.wait)) return;
   b.thinking = true;
   const id = ++botReq, t0 = Date.now();
   const finish = (mv) => setTimeout(() => {
@@ -2702,12 +2685,12 @@ function botThink() {
     const m = (mv && all.find((x) => x.from === mv.from && x.to === mv.to && (x.promo || undefined) === mv.promo)) || all[Math.floor(Math.random() * all.length)];
     const before = b.state, ply = b.moves.length;
     applyBotMove(b, m, true); botSave(); pushBot();
-    liveBadge(before, m, ply, false);
+    if (!b.coach) liveBadge(before, m, ply, false);
   }, Math.max(0, 350 - (Date.now() - t0)));          // never answer instantly: it feels like a person
   const w = botWorkerGet();
   if (!w) return finish(null);
   botCb = finish;
-  w.postMessage({ id, state: b.state, level: b.level, seen: b.positions });
+  w.postMessage({ id, state: b.state, level: b.coach ? coachCfg(b.coach.s) : b.level, seen: b.positions });
 }
 function botHumanMove(from, to, promo) {
   const b = botGame;
@@ -2717,7 +2700,9 @@ function botHumanMove(from, to, promo) {
   if (!m) { paintBoard(); return; }
   viewPly = null; premove = null;
   const before = b.state, ply = b.moves.length;
-  applyBotMove(b, m, true); botSave(); pushBot(); liveBadge(before, m, ply, true); botThink();
+  applyBotMove(b, m, true); botSave(); pushBot();
+  if (b.coach) coachUserMove(before, m, ply); else liveBadge(before, m, ply, true);
+  botThink();
 }
 function botEnd(result, reason) {
   const b = botGame; if (!b) return;
@@ -2732,18 +2717,20 @@ function botTick() {
   const t = b.state.turn;
   if (b.clock[t] - (Date.now() - b.clock.ts) <= 0) botEnd(t === 'w' ? 'b' : 'w', 'timeout');
 }
+const botKey = (b) => (b && b.coach ? 'chess:coachgame' : 'chess:bot');
 function botSave() {
   const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
   let clock = null;
   if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
-  try { localStorage.setItem('chess:bot', JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock })); } catch {}
+  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined })); } catch {}
 }
-function botClear() { try { localStorage.removeItem('chess:bot'); } catch {} }
-function botLoad() {
+function botClear(key = botKey(botGame)) { try { localStorage.removeItem(key); } catch {} }
+function botLoad(key = 'chess:bot') {
   try {
-    const d = JSON.parse(localStorage.getItem('chess:bot'));
+    const d = JSON.parse(localStorage.getItem(key));
     if (!d || d.v !== 1 || !BOT_LEVELS[d.level]) return null;
     const b = makeBot(d.level, d.you, d.tc);
+    if (d.coach) { b.coach = d.coach; b.coach.wait = false; }
     for (const h of d.hist) {
       const m = Chess.legalMoves(b.state).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === h.promo);
       if (!m) return null;
@@ -2754,7 +2741,7 @@ function botLoad() {
   } catch { return null; }
 }
 function botLeave() {            // leaving the game screen: stop thinking, keep the saved game
-  botReq++; botCb = null; clearInterval(botTimer); botTimer = null;
+  botReq++; botCb = null; clearInterval(botTimer); botTimer = null; coachReset();
   if (botWorker) { botWorker.terminate(); botWorker = null; }
   if (botGame) { botGame.thinking = false; botGame = null; }
 }
@@ -2764,14 +2751,14 @@ function enterBot(b) {
   snap = null; sig = ''; selected = null; legal = []; premove = null; arrows = []; marks = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = 'BOT'; pending = null; sending = false;
   $('#over').classList.add('hidden'); document.title = baseTitle;
-  history.replaceState(null, '', '?bot=1');
+  history.replaceState(null, '', b.coach ? '?coach=game' : '?bot=1');
   show('game'); hideGameChat();
   clockTimer = setInterval(drawClocks, 200);
   botTimer = setInterval(botTick, 250);
-  botSave(); pushBot(); botThink();
+  botSave(); pushBot(); paintCoach(); botThink();
 }
 function hideGameChat() { $('#gchat').classList.add('hidden'); }
-function botRematch() { const b = botGame; if (b) enterBot(makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc)); }
+function botRematch() { const b = botGame; if (!b) return; if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); enterBot(makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc)); }
 
 // ----- lobby: mode switch, difficulty, resume -----
 function setLobbyMode(m) {
@@ -2803,6 +2790,288 @@ function paintBotResume() {
 $('#botResumeBtn').onclick = () => { const b = botLoad(); if (b) enterBot(b); else { botClear(); paintBotResume(); } };
 $('#botDiscardBtn').onclick = () => { botClear(); paintBotResume(); };
 paintLevels();
+
+
+// ---------- Coach: an adaptive opponent that comments on every move you make ----------
+// The coach's strength (s, 0..1) moves up when you win and down when you lose, so games stay close.
+// While you play, a background engine scores every legal move in your position, so each move is graded the moment you make it.
+const COACH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg>';
+const COACH_MS = 700;
+const PV = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 };
+const PNAME = { P: 'pawn', N: 'knight', B: 'bishop', R: 'rook', Q: 'queen', K: 'king' };
+const coachRating = (s) => Math.round((400 + s * 1600) / 25) * 25;
+function coachData() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem('chess:coach')); } catch {}
+  if (!d || typeof d.s !== 'number') d = { s: Math.max(0.05, Math.min(0.9, ((myElo || 1200) - 500) / 1600)), games: [], help: true };
+  if (!Array.isArray(d.games)) d.games = [];
+  if (d.help === undefined) d.help = true;
+  return d;
+}
+function saveCoach(d) { try { localStorage.setItem('chess:coach', JSON.stringify(d)); } catch {} }
+// engine settings for a strength between 0 (gives pieces away) and 1 (the full engine)
+function coachCfg(s) {
+  if (s < 0.5) return { depth: s < 0.22 ? 1 : 2, ms: 900, full: true, margin: Math.max(25, Math.round(300 - 550 * s)), random: Math.max(0, 0.2 - 0.38 * s) };
+  return { depth: s < 0.65 ? 3 : s < 0.8 ? 4 : s < 0.92 ? 5 : 6, ms: Math.round(900 + 2200 * (s - 0.5)), full: false, margin: 0, random: Math.max(0, 0.05 - 0.1 * (s - 0.5)) };
+}
+const isCoach = () => isBot() && !!botGame.coach;
+const CO = { worker: null, id: 0, ply: -1, res: null, waiting: null, prevWP: null, last: null, msg: null, hint: 0, arrow: null, mark: null };
+function coachReset() {
+  if (CO.worker) CO.worker.terminate();
+  Object.assign(CO, { worker: null, ply: -1, res: null, waiting: null, prevWP: null, last: null, msg: null, hint: 0, arrow: null, mark: null });
+}
+function coachWorker() {
+  if (CO.worker) return CO.worker;
+  try {
+    CO.worker = new Worker('bot.js');
+    CO.worker.onmessage = onCoachResult;
+    CO.worker.onerror = (ev) => { ev.preventDefault(); CO.worker = null; CO.ply = -1; };
+  } catch { CO.worker = null; }
+  return CO.worker;
+}
+// analyze the position whenever it is your turn (the result answers both "hint" and "how good was my move")
+function coachAnalyze() {
+  const b = botGame;
+  if (!isCoach() || botStatusOf(b).over || b.state.turn !== b.you) return;
+  const ply = b.moves.length;
+  if (CO.ply === ply || CO.waiting) return;   // a move still waiting for its grade needs this analysis first
+  const w = coachWorker(); if (!w) return;
+  CO.ply = ply; CO.res = null; CO.hint = 0;
+  w.postMessage({ type: 'analyze', id: ++CO.id, states: [b.state], hist: [], ms: COACH_MS, scores: true });
+}
+function onCoachResult(e) {
+  const d = e.data;
+  if (d.id !== CO.id || d.done || d.i !== 0) return;
+  CO.res = d;
+  if (CO.waiting) { const w = CO.waiting; CO.waiting = null; coachGrade(w); coachAnalyze(); return paintCoach(); }
+  // did the opponent's last move hand you something?
+  const b = botGame;
+  if (b && CO.prevWP != null && !d.terminal && b.moves.length === CO.ply && WP(d.bestScore) - CO.prevWP >= 0.15 && b.coach.help)
+    coachSay('chance', 'Your opponent just slipped up! There\'s a strong move in this position. Can you find it?', { hintFirst: true });
+  if (CO.hint) coachHint(true);
+  paintCoach();
+}
+const moveOf = (st, h) => Chess.legalMoves(st).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === (h.promo || undefined));
+// What does the opponent get after this move? Mate, or the most valuable piece they can win.
+function coachThreat(after) {
+  let mate = null, win = null;
+  for (const x of Chess.legalMoves(after)) {
+    const nx = Chess.apply(after, x), st = Chess.status(nx);
+    if (st.over && st.reason === 'checkmate') { mate = Chess.notate(after, x); break; }
+    const victim = after.board[x.to]; if (!victim) continue;
+    const back = Chess.legalMoves(nx).some((y) => y.to === x.to);
+    const gain = PV[victim[1]] - (back ? PV[after.board[x.from][1]] : 0);
+    if (gain >= 2 && (!win || gain > win.gain)) win = { gain, piece: victim[1], sq: x.to, free: !back, san: Chess.notate(after, x) };
+  }
+  return { mate, win };
+}
+// Why was this move bad? Used live by the coach and in the post-game review.
+// side: null speaks to you ("Your knight…"); 'w'/'b' names the player ("White's knight…") for reviewing either side.
+function explainMove(before, m, bm, c, ply, side = null) {
+  if (!['inaccuracy', 'mistake', 'blunder'].includes(c) || !m) return { tag: null, why: '' };
+  const me = side ? (side === 'w' ? 'White' : 'Black') : 'You', my = side ? me + '\'s' : 'Your', opp = side ? (side === 'w' ? 'Black' : 'White') : 'your opponent';
+  const t = coachThreat(Chess.apply(before, m));
+  const bAfter = bm ? Chess.apply(before, bm) : null, bMate = bAfter && Chess.status(bAfter).reason === 'checkmate', bsan = bm ? Chess.notate(before, bm) : '';
+  if (t.mate) return { tag: 'hung', why: `This lets ${opp} checkmate with <b>${t.mate}</b>.` };
+  if (bMate) return { tag: 'missed', why: `${me} had checkmate: <b>${bsan}</b>!` };
+  if (t.win && c !== 'inaccuracy') return { tag: 'hung', why: t.win.free ? `${my} ${PNAME[t.win.piece]} on ${Chess.sqName(t.win.sq)} is left undefended, so <b>${t.win.san}</b> wins it for free.` : `It lets ${opp} win material with <b>${t.win.san}</b>.` };
+  if (bm && before.board[bm.to] && PV[before.board[bm.to][1]] >= 3 && c !== 'inaccuracy') return { tag: 'missed', why: `${me} missed <b>${bsan}</b>, which wins a ${PNAME[before.board[bm.to][1]]}.` };
+  return { tag: ply < 20 ? 'opening' : 'position', why: '' };
+}
+function coachGrade({ before, h, ply }) {
+  const b = botGame, r = CO.res;
+  if (!b || !r || !r.scores) return;
+  const p = r.scores.find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === (h.promo || undefined));
+  const rr = { legal: r.legal, bestScore: r.bestScore, second: r.second, played: p ? p.s : null };
+  const c = classifyMove(rr, before, h);
+  const m = moveOf(before, h), san = m ? Chess.notate(before, m) : '';
+  const bm = r.best && moveOf(before, r.best), bsan = bm ? Chess.notate(before, bm) : '';
+  const isBest = r.best && r.best.from === h.from && r.best.to === h.to;
+  const loss = rr.played == null ? 0 : Math.max(0, WP(rr.bestScore) - WP(rr.played));
+  const acc = c === 'forced' ? null : Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * loss * 100) - 3.1669));
+  const { tag, why } = explainMove(before, m, bm, c, ply);
+  b.coach.log.push({ ply, c, acc, tag });
+  CO.prevWP = rr.played == null ? null : WP(rr.played);
+  CO.last = { ply, c };
+  CO.arrow = null; CO.mark = null;
+  // what the coach says
+  const pick = (a) => a[ply % a.length];
+  let text;
+  if (c === 'brilliant') text = `Brilliant! <b>${san}</b> gives up material, and it works.`;
+  else if (c === 'great') text = `Great find! <b>${san}</b> was the only really good move here.`;
+  else if (c === 'best') text = pick([`<b>${san}</b> is the best move. Nice!`, `Spot on, <b>${san}</b> is exactly what I'd play.`, `Perfect. <b>${san}</b> is the top engine move.`]);
+  else if (c === 'excellent') text = pick([`Excellent, <b>${san}</b> is nearly as good as the best move.`, `<b>${san}</b>, very solid. Keep it up.`]);
+  else if (c === 'good') text = `<b>${san}</b> is a good move.${bsan && !isBest ? ` <b>${bsan}</b> was a little stronger.` : ''}`;
+  else if (c === 'forced') text = `<b>${san}</b> was your only legal move.`;
+  else {
+    const head = { inaccuracy: 'Not quite.', mistake: 'That\'s a mistake.', blunder: 'Oops, that\'s a blunder.' }[c];
+    text = `${head} ${why || ''} ${bsan ? `Better was <b>${bsan}</b> (green arrow).` : ''}`;
+    if (bm) CO.arrow = { from: bm.from, to: bm.to };
+  }
+  const pause = (c === 'mistake' || c === 'blunder') && b.coach.help;
+  if (pause && b.state.turn !== b.you) { b.coach.wait = true; botReq++; botCb = null; b.thinking = false; }   // hold the reply so you can read this
+  if (b.coach.wait) pushBot();
+  coachSay(c, text + (b.coach.wait ? ' <span class="muted">Take it back, or continue the game.</span>' : ''), { takeback: ['inaccuracy', 'mistake', 'blunder'].includes(c) && b.coach.help });
+  if (c !== 'forced') { LB.shown = { ply, sq: h.to, c }; paintBadge(true); }
+  botSave();
+}
+function coachSay(kind, html, opts = {}) { CO.msg = { kind, html, ...opts }; paintCoach(); }
+function coachHint(auto) {
+  const b = botGame; if (!isCoach() || b.state.turn !== b.you || botStatusOf(b).over) return;
+  if (!CO.res) { CO.hint = 1; coachSay('hint', 'Let me look at the position…'); return; }
+  const bm = CO.res.best && moveOf(b.state, CO.res.best);
+  if (!bm) return;
+  if (!auto) { CO.hint = Math.min(2, CO.hint + 1); b.coach.hints++; } else if (!CO.hint) CO.hint = 1;
+  const pc = PNAME[b.state.board[bm.from][1]];
+  if (CO.hint === 1) { CO.mark = bm.from; CO.arrow = null; coachSay('hint', `Hint: look at your <b>${pc}</b> on ${Chess.sqName(bm.from)}. Press Hint again to see the move.`); }
+  else { CO.mark = null; CO.arrow = { from: bm.from, to: bm.to }; coachSay('hint', `The best move here is <b>${Chess.notate(b.state, bm)}</b>.`); }
+  ovSig = ''; drawOverlay();
+}
+function coachTakeback() {
+  const b = botGame; if (!isCoach() || !CO.last) return;
+  const keep = CO.last.ply;
+  botReq++; botCb = null;
+  const nb = makeBot(b.level, b.you, null);
+  nb.coach = b.coach; nb.startedAt = b.startedAt;
+  for (const h of b.hist.slice(0, keep)) applyBotMove(nb, moveOf(nb.state, h), false);
+  nb.coach.takebacks++; nb.coach.wait = false;
+  const i = nb.coach.log.findIndex((x) => x.ply === keep); if (i >= 0) nb.coach.log.splice(i);
+  botGame = nb; CO.last = null; CO.arrow = null; CO.mark = null; LB.shown = null;
+  CO.prevWP = null;
+  coachSay('info', 'Move taken back. Have another look. What is your opponent threatening?');
+  botSave(); pushBot();
+}
+function paintCoach() {
+  const box = $('#coachpanel');
+  if (!isCoach()) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  const b = botGame, st = botStatusOf(b), myTurn = b.state.turn === b.you && !st.over;
+  let msg = CO.msg;
+  if (!msg) msg = { kind: 'info', html: b.moves.length ? 'Your move. Take your time.' : 'Let\'s play! I\'ll tell you after every move how it went. Ask for a hint any time.' };
+  const k = CLS[msg.kind];
+  setHTML($('#coMsg'), `${k ? `<span class="sym" style="background:${k.c}">${k.sym}</span>` : ''}<span>${msg.html}</span>`);
+  $('#coachpanel').dataset.kind = msg.kind;
+  $('#coHint').classList.toggle('hidden', !myTurn || !b.coach.help);
+  $('#coTake').classList.toggle('hidden', !msg.takeback || st.over || !CO.last);
+  $('#coGo').classList.toggle('hidden', !b.coach.wait || st.over);
+  setText($('#coLvl'), `Coach plays at about ${coachRating(b.coach.s)}`);
+  ovSig = ''; drawOverlay();
+}
+// called after every position change in a coach game
+function coachAfterPush() {
+  const b = botGame;
+  if (!isCoach()) return paintCoach();
+  if (botStatusOf(b).over) { coachFinish(); return paintCoach(); }
+  if (b.state.turn === b.you) { if (CO.ply !== b.moves.length) { CO.arrow = null; CO.mark = null; } coachAnalyze(); if (CO.msg && CO.msg.kind === 'hint') CO.msg = null; }
+  paintCoach();
+}
+function coachUserMove(before, m, ply) {
+  const h = m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to };
+  CO.arrow = null; CO.mark = null; CO.hint = 0;
+  if (CO.ply !== ply) { CO.msg = null; return; }   // no analysis for this position (no worker support)
+  if (CO.res) coachGrade({ before, h, ply });
+  else { CO.waiting = { before, h, ply }; coachSay('info', 'Let me see…'); }
+}
+// game over: grade the game, adapt the strength, remember it
+function coachFinish() {
+  const b = botGame; if (!b || b.coach.done) return;
+  b.coach.done = true; b.coach.wait = false;
+  const st = botStatusOf(b), mine = b.coach.log.filter((x) => x.acc != null);
+  const score = st.result === 'draw' ? 0.5 : st.result === b.you ? 1 : 0;
+  const acc = mine.length ? mine.reduce((x, y) => x + y.acc, 0) / mine.length : null;
+  const n = {}; for (const x of b.coach.log) n[x.c] = (n[x.c] || 0) + 1;
+  const tags = {}; for (const x of b.coach.log) if (x.tag) tags[x.tag] = (tags[x.tag] || 0) + 1;
+  const d = coachData(), before = d.s;
+  if (b.coach.log.length >= 5) {
+    // results move the level most; accuracy nudges it; heavy use of takebacks and hints counts as help
+    let delta = 0.08 * (score - 0.5) * 2 + (acc != null ? (acc - 72) / 900 : 0);
+    if (score === 1 && b.coach.takebacks + b.coach.hints > 4) delta *= 0.5;
+    d.s = Math.max(0.02, Math.min(1, d.s + delta));
+  }
+  d.games.unshift({ t: Date.now(), res: score === 1 ? 'win' : score === 0 ? 'loss' : 'draw', reason: st.reason, acc: acc == null ? null : Math.round(acc * 10) / 10, n, tags, you: b.you, lvl: coachRating(b.coach.s), moves: Math.ceil(b.moves.length / 2), tb: b.coach.takebacks, hints: b.coach.hints });
+  d.games = d.games.slice(0, 50);
+  saveCoach(d);
+  const head = score === 1 ? 'You won, well played!' : score === 0 ? 'I won this one, but you\'ll get me next time.' : 'A draw. Hard fought!';
+  const parts = [];
+  if (acc != null) parts.push(`Your accuracy: <b>${acc.toFixed(1)}%</b>.`);
+  const bad = ['blunder', 'mistake'].filter((k) => n[k]).map((k) => `${n[k]} ${CLS[k].label.toLowerCase()}${n[k] > 1 ? 's' : ''}`);
+  parts.push(bad.length ? `You made ${bad.join(' and ')}.` : 'No mistakes or blunders. Excellent!');
+  const top = Object.entries(tags).sort((x, y) => y[1] - x[1])[0];
+  if (top) parts.push(`Work on: <b>${FOCUS[top[0]].title.toLowerCase()}</b>. ${FOCUS[top[0]].tip}`);
+  if (d.s > before + 0.005) parts.push(`Next game I'll play a bit stronger (about ${coachRating(d.s)}).`);
+  else if (d.s < before - 0.005) parts.push(`Next game I'll go a bit easier (about ${coachRating(d.s)}).`);
+  CO.arrow = null; CO.mark = null;
+  coachSay('end', `${head} ${parts.join(' ')}`);
+}
+const FOCUS = {
+  hung: { title: 'Hanging pieces', tip: 'Before every move, ask: "What can my opponent capture or check after this?"' },
+  missed: { title: 'Missed tactics', tip: 'On each turn, look at every check, capture and threat you have before anything else.' },
+  opening: { title: 'Opening play', tip: 'Control the center, develop knights and bishops, castle early, and avoid moving the same piece twice.' },
+  position: { title: 'Planning', tip: 'When nothing is attacked, improve your worst piece and look for weak squares in your opponent\'s camp.' },
+};
+
+// ----- coach home page -----
+let coColor = 'r';
+function enterCoach() {
+  stopLobby(); stopGame(); stopAdmin();
+  view = 'coach'; gameCode = null;
+  history.replaceState(null, '', '/?coach');
+  show('coach');
+  paintCoachHome();
+}
+function paintCoachHome() {
+  const d = coachData(), g = d.games, last = g.slice(0, 10);
+  const scored = last.filter((x) => x.acc != null);
+  const avgAcc = scored.length ? (scored.reduce((x, y) => x + y.acc, 0) / scored.length).toFixed(1) : '–';
+  const bpg = last.length ? (last.reduce((x, y) => x + (y.n.blunder || 0), 0) / last.length).toFixed(1) : '–';
+  const w = g.filter((x) => x.res === 'win').length, l = g.filter((x) => x.res === 'loss').length, dr = g.length - w - l;
+  // greeting adapts to how the last games went
+  let greet;
+  if (!g.length) greet = `Hi ${esc(user.name)}! I'm your coach. We'll play a game, I'll tell you what was good and what wasn't after every move, and I'll adjust my strength to match yours.`;
+  else {
+    const prev = g.slice(10, 20).filter((x) => x.acc != null), pa = prev.length ? prev.reduce((x, y) => x + y.acc, 0) / prev.length : null;
+    if (pa != null && avgAcc !== '–' && +avgAcc > pa + 3) greet = `Welcome back! Your accuracy is up from ${pa.toFixed(0)}% to ${avgAcc}% recently. That's real progress.`;
+    else if (g[0].res === 'win') greet = 'Welcome back! You won our last game, so I\'ve turned up the difficulty a little.';
+    else if (g[0].res === 'loss') greet = 'Welcome back! I took it a bit easier after last game. Let\'s go again.';
+    else greet = 'Welcome back! Ready for another game?';
+  }
+  $('#coGreet').innerHTML = greet;
+  setHTML($('#coCards'), [
+    ['Coach level', coachRating(d.s), 'adapts after every game'],
+    ['Games', g.length, `${w} W · ${l} L · ${dr} D`],
+    ['Accuracy', avgAcc === '–' ? '–' : avgAcc + '%', 'last 10 games'],
+    ['Blunders', bpg, 'per game, last 10'],
+  ].map(([a, b2, c]) => `<div class="rcard" style="cursor:default"><div class="rc-l">${a}</div><div class="rc-r">${b2}</div><div class="rc-s">${c}</div></div>`).join(''));
+  // focus areas from recent games
+  const tags = {}; for (const x of last) for (const [k, v] of Object.entries(x.tags || {})) tags[k] = (tags[k] || 0) + v;
+  const focus = Object.entries(tags).filter(([, v]) => v / Math.max(1, last.length) >= 0.4).sort((x, y) => y[1] - x[1]);
+  let fh;
+  if (g.length < 2) fh = '<div class="muted">Play a couple of games with me and I\'ll show you patterns in your mistakes here.</div>';
+  else if (!focus.length) fh = '<div class="cofocus good"><b>Clean play</b><span>No repeating weakness in your recent games. I\'ll keep raising the level.</span></div>';
+  else fh = focus.slice(0, 3).map(([k, v]) => `<div class="cofocus"><b>${FOCUS[k].title}</b> <span class="muted">${(v / last.length).toFixed(1)} per game</span><span>${FOCUS[k].tip}</span></div>`).join('');
+  setHTML($('#coFocus'), fh);
+  setHTML($('#coGames'), g.length ? `<table><thead><tr><th>Result</th><th>Color</th><th class="r">Accuracy</th><th class="r">Blunders</th><th class="r">Mistakes</th><th class="r">Coach</th><th class="r">Moves</th></tr></thead><tbody>${g.slice(0, 15).map((x) => `<tr><td><b class="cores ${x.res}">${x.res === 'win' ? 'Won' : x.res === 'loss' ? 'Lost' : 'Draw'}</b> <span class="muted">${esc(x.reason || '')}</span></td><td>${x.you === 'w' ? 'White' : 'Black'}</td><td class="r">${x.acc == null ? '–' : x.acc.toFixed(1) + '%'}</td><td class="r">${x.n.blunder || 0}</td><td class="r">${x.n.mistake || 0}</td><td class="r">${x.lvl}</td><td class="r">${x.moves}</td></tr>`).join('')}</tbody></table>` : '<div class="muted">No coach games yet.</div>');
+  $('#coHelp').checked = d.help;
+  document.querySelectorAll('#coColor button').forEach((x) => x.classList.toggle('on', x.dataset.c === coColor));
+  let sv = null; try { sv = JSON.parse(localStorage.getItem('chess:coachgame')); } catch {}
+  $('#coResume').classList.toggle('hidden', !(sv && Array.isArray(sv.hist)));
+  if (sv && Array.isArray(sv.hist)) $('#coResumeText').textContent = `Game in progress · move ${Math.floor(sv.hist.length / 2) + 1}`;
+}
+function startCoachGame(you) {
+  const d = coachData();
+  const b = makeBot(2, you || (coColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : coColor), null);
+  b.coach = { s: d.s, help: d.help, log: [], takebacks: 0, hints: 0, done: false };
+  enterBot(b);
+}
+document.querySelectorAll('#coColor button').forEach((x) => x.onclick = () => { coColor = x.dataset.c; paintCoachHome(); });
+$('#coHelp').addEventListener('change', (e) => { const d = coachData(); d.help = e.target.checked; saveCoach(d); });
+$('#coStart').onclick = () => startCoachGame();
+$('#coResumeBtn').onclick = () => { const b = botLoad('chess:coachgame'); if (b) enterBot(b); else { botClear('chess:coachgame'); paintCoachHome(); } };
+$('#coDiscardBtn').onclick = () => { botClear('chess:coachgame'); paintCoachHome(); };
+$('#coHint').onclick = () => coachHint(false);
+$('#coTake').onclick = coachTakeback;
+$('#coGo').onclick = () => { const b = botGame; if (!isCoach() || !b.coach.wait) return; b.coach.wait = false; CO.arrow = null; CO.msg = null; paintCoach(); botThink(); };
+$('#navCoach').onclick = enterCoach;
 
 
 // ---------- player profile: ratings per time control, history graph, recent games ----------

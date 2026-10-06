@@ -104,7 +104,7 @@ const LEVELS = {
 const plain = (m) => (m.promo ? { from: m.from, to: m.to, promo: m.promo } : { from: m.from, to: m.to });
 
 function chooseMove(state, level, seen, msScale) {
-  const cfg = LEVELS[level] || LEVELS[2];
+  const cfg = typeof level === 'object' && level ? level : LEVELS[level] || LEVELS[2];   // an object is a custom strength (the adaptive coach)
   const moves = C.legalMoves(state);
   if (!moves.length) return null;
   nodes = 0;
@@ -178,7 +178,7 @@ if (typeof importScripts === 'function') {
         const h = hist[i];
         const played = h && r.scores.find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === (h.promo || undefined));
         self.postMessage({ id, i, n: hist.length, best: r.best, bestScore: r.terminal ? r.score : r.score, second: r.scores[1] ? r.scores[1].s : null,
-          played: played ? played.s : null, legal: r.legal || 0, depth: r.depth, terminal: !!r.terminal });
+          played: played ? played.s : null, legal: r.legal || 0, depth: r.depth, terminal: !!r.terminal, scores: e.data.scores ? r.scores : undefined });
       }
       self.postMessage({ id, done: true });
       return;
