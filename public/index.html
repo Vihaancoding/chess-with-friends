@@ -170,6 +170,16 @@
   #statuscard { background: var(--panel); border-radius: 10px; padding: 16px 18px; }
   #status { font-size: 1.25rem; font-weight: 800; }
   #sub { color: var(--muted); font-size: .9rem; min-height: 1.3em; font-weight: 600; }
+  #opening { display: flex; align-items: baseline; gap: 8px; width: 100%; margin-top: 10px; padding: 8px 0 0; min-height: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; box-shadow: none; color: var(--muted); font-size: .85rem; font-weight: 600; text-align: left; cursor: pointer; }
+  #opening:active { transform: none; } #opening:disabled { cursor: default; }
+  #opening .oplbl { flex: none; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+  #opName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #opening:not(:disabled):hover #opName, #opening[aria-expanded="true"] #opName { color: var(--text); }
+  #opName .eco { color: var(--gold); font-weight: 800; margin-right: 6px; }
+  #opPanel { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #1f1e1b; font-size: .85rem; }
+  #opPanel .opfam { font-weight: 800; } #opPanel .opvar { color: var(--muted); font-weight: 600; margin-top: 2px; }
+  #opPanel .opline { margin-top: 8px; font-weight: 700; line-height: 1.6; word-spacing: 2px; } #opPanel .opline i { color: var(--muted); font-style: normal; font-weight: 600; }
+  #opPanel .opnote { margin-top: 6px; color: var(--muted); font-size: .78rem; font-weight: 600; }
   .gcode { font-size: 2.3rem; font-weight: 800; letter-spacing: .25em; color: var(--gold); margin: 2px 0 8px; }
   #moves { max-height: 300px; min-height: 90px; overflow-y: auto; display: grid; grid-template-columns: 48px 1fr 1fr; font-size: .95rem; font-weight: 700; scrollbar-width: thin; align-content: start; }
   #moves > span { padding: 5px 10px; } #moves > span:nth-child(3n+1) { background: #1f1e1b; color: var(--muted); font-weight: 600; }
@@ -677,7 +687,10 @@
     <div class="player" id="bottom"></div>
   </div>
   <aside class="side-panel">
-    <div id="statuscard"><div id="status"></div><div id="sub"></div></div>
+    <div id="statuscard"><div id="status"></div><div id="sub"></div>
+      <button id="opening" type="button" aria-expanded="false" aria-controls="opPanel" title="Opening"><span class="oplbl">Opening</span><span id="opName">—</span></button>
+      <div id="opPanel" class="hidden"></div>
+    </div>
     <div class="panel hidden" id="coachpanel">
       <div class="cohead"><span class="coav sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg></span><b>Coach</b><span class="muted" id="coLvl"></span></div>
       <div id="coMsg" aria-live="polite"></div>
@@ -1608,6 +1621,7 @@ function render() {
   setText($('#cbTurn'), status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
 
   renderMoves(moves, upto, live);
+  paintOpening(H, upto);
   paintPendingMove();
   paintAnnotations(); paintReviewComment(upto);
   paintBadge(false);
@@ -2370,6 +2384,73 @@ $('#badgeToggle').addEventListener('change', (e) => {
   try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
   if (!SKIN.badges) { LB.shown = null; paintBadge(true); }
 });
+
+// ---------- opening recognition (Lichess opening list, see scripts/build-openings.js) ----------
+// Positions are matched, not move orders, so transpositions are recognised. The name shown is that of the
+// latest book position reached; it stays once the game leaves theory, like "Sicilian Defense: Najdorf Variation".
+const OP = { map: null, depth: 0, open: false };
+const opKey = (st) => st.board.map((p) => p || '-').join('') + st.turn + (st.castle.wK ? 'K' : '') + (st.castle.wQ ? 'Q' : '') + (st.castle.bK ? 'k' : '') + (st.castle.bQ ? 'q' : '');
+function opApply(st, u) {   // book moves are known to be legal, so skip move generation
+  const sq = (q) => 'abcdefgh'.indexOf(q[0]) + (8 - +q[1]) * 8;
+  const from = sq(u.slice(0, 2)), to = sq(u.slice(2, 4)), pc = st.board[from][1], df = (to & 7) - (from & 7);
+  return Chess.apply(st, { from, to, promo: u[4] ? u[4].toUpperCase() : undefined,
+    castle: pc === 'K' && Math.abs(df) === 2 ? (df > 0 ? 'K' : 'Q') : undefined,
+    double: pc === 'P' && Math.abs((to >> 3) - (from >> 3)) === 2 || undefined,
+    enPassant: pc === 'P' && df !== 0 && !st.board[to] || undefined });
+}
+function openingIndex() {
+  if (OP.map || !self.OPENINGS_TSV) return OP.map;
+  const map = new Map(), seen = new Map();
+  for (const line of OPENINGS_TSV.split('\n')) {
+    const [eco, name, ucis] = line.split('\t'), moves = ucis.split(' ');
+    let st = Chess.initial(), pre = '';
+    for (const u of moves) { pre += u + ' '; let nx = seen.get(pre); if (!nx) seen.set(pre, nx = opApply(st, u)); st = nx; }
+    const k = opKey(st);
+    if (!map.has(k)) map.set(k, { eco, name, moves });
+    OP.depth = Math.max(OP.depth, moves.length);
+  }
+  return (OP.map = map);
+}
+// deepest named position among states[1..upto] -> { eco, name, moves, ply } or null
+function openingAt(states, upto) {
+  const map = openingIndex();
+  if (!map) return null;
+  for (let i = Math.min(upto, OP.depth); i >= 1; i--) {
+    const st = states[i];
+    if (st._op === undefined) st._op = map.get(opKey(st)) || null;
+    if (st._op) return { ...st._op, ply: i };
+  }
+  return null;
+}
+function paintOpening(H, upto) {
+  const o = openingAt(H.states, upto), btn = $('#opening');
+  const [fam, vari] = o ? [o.name.split(': ')[0], o.name.split(': ').slice(1).join(': ')] : [];
+  setHTML($('#opName'), o ? `<span class="eco">${esc(o.eco)}</span>${esc(o.name)}` : !self.OPENINGS_TSV ? '—' : upto ? 'Unclassified' : '—');
+  btn.title = o ? `${o.eco} ${o.name}. Click for details` : 'The opening is named once the moves match a known line';
+  if (btn.disabled !== !o) btn.disabled = !o;
+  const shown = OP.open && !!o;
+  btn.setAttribute('aria-expanded', String(shown));
+  $('#opPanel').classList.toggle('hidden', !shown);
+  if (!shown) return;
+  let st = Chess.initial(), line = '';
+  o.moves.forEach((u, i) => {
+    const m = Chess.findUci(st, u);
+    line += (i % 2 ? '' : `<i>${i / 2 + 1}.</i> `) + esc(Chess.notate(st, m)) + ' ';
+    st = Chess.apply(st, m);
+  });
+  const same = o.moves.length === o.ply && (snap.hist || []).slice(0, o.ply).every((h, i) => Chess.sqName(h.from) + Chess.sqName(h.to) === o.moves[i].slice(0, 4));
+  const n = Math.ceil(o.ply / 2);
+  setHTML($('#opPanel'), `<div class="opfam">${esc(fam)}</div>${vari ? `<div class="opvar">${esc(vari)}</div>` : ''}
+    <div class="opline">${line.trim()}</div>
+    <div class="opnote">ECO ${esc(o.eco)} · reached on move ${n}${same ? '' : ' by a different move order (transposition)'}</div>`);
+}
+$('#opening').onclick = () => { OP.open = !OP.open; if (snap) render(); };
+{ // the opening list is ~50 KB gzipped: fetch it after the page is up, then refresh the label
+  const s = document.createElement('script');
+  s.src = 'openings.js'; s.async = true;
+  s.onload = () => { if (view === 'game' && snap) render(); };
+  document.head.append(s);
+}
 
 // ---------- move history / review ----------
 function buildStates(hist) {
