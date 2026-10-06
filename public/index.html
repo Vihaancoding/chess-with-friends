@@ -399,6 +399,32 @@
   #lboard .sq.hintsq::before { content: ""; position: absolute; inset: 0; background: rgba(30, 86, 200, .45); }
   #lboard .sq.wrong { animation: wrongflash .4s; }
   @keyframes wrongflash { 30% { box-shadow: inset 0 0 0 200px rgba(250, 65, 45, .5); } }
+  /* voice room */
+  #vcpeople { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: #22211e; }
+  .vchip { display: inline-flex; align-items: center; gap: 6px; background: #2e2d2a; border-radius: 999px; padding: 3px 10px 3px 8px; font-size: .8rem; font-weight: 700; }
+  .vchip i { width: 8px; height: 8px; border-radius: 50%; background: #706f6d; }
+  .vchip.ok i { background: var(--green); } .vchip.bad i { background: var(--bad); } .vchip.muted i { background: var(--gold); }
+  .spec { background: #ffffff1a; color: #c3c2c1; font-size: .62rem; font-weight: 800; text-transform: uppercase; border-radius: 4px; padding: 0 5px; letter-spacing: .04em; vertical-align: 1px; }
+  /* pause */
+  #pausedOv { position: absolute; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center; background: rgba(20, 19, 17, .72); border-radius: 5px; }
+  #pausedOv > div { background: var(--panel); border-radius: 12px; padding: 18px 22px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; box-shadow: 0 20px 40px -12px #000; }
+  #pausedOv b { font-size: 1.3rem; }
+  #pausedTxt { color: var(--muted); font-weight: 600; font-size: .9rem; }
+  #pausebox { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 14px; font-weight: 700; background: #3b4a2b; }
+  /* game review */
+  .anhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  #anProg { margin-bottom: 10px; }
+  .ansum { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 2px 8px; font-size: .85rem; align-items: center; }
+  .ansum .h { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; text-align: center; }
+  .ansum .acc { font-size: 1.4rem; font-weight: 800; text-align: center; }
+  .ansum .c { text-align: center; font-weight: 800; }
+  .ansum .lbl { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .sym { display: inline-grid; place-items: center; min-width: 22px; height: 18px; border-radius: 9px; font-size: .68rem; font-weight: 900; color: #fff; padding: 0 4px; }
+  #anGraph { margin: 10px 0 6px; height: 70px; border-radius: 6px; overflow: hidden; background: #403d39; cursor: pointer; }
+  #anGraph svg { width: 100%; height: 100%; display: block; }
+  #anComment { min-height: 2.6em; font-size: .9rem; font-weight: 600; color: #e8e8e6; }
+  .annote { font-size: .72rem; margin-top: 6px; }
+  #moves .mv[data-sym]::after { content: attr(data-sym); margin-left: 5px; font-size: .72rem; font-weight: 900; color: var(--symc); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -560,12 +586,13 @@
 <div id="game" class="hidden">
   <div class="boardcol">
     <div class="player" id="top"></div>
-    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
+    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg><div id="pausedOv" class="hidden"><div><b>Game paused</b><span id="pausedTxt">Clocks are stopped</span><button class="primary" id="resumeBtn">Resume</button></div></div></div>
     <div class="player" id="bottom"></div>
   </div>
   <aside class="side-panel">
     <div id="statuscard"><div id="status"></div><div id="sub"></div></div>
     <div class="panel hidden" id="drawbox"><span id="drawtxt"></span><span class="row"><button class="primary small" id="drawYes">Accept</button><button class="small" id="drawNo">Decline</button></span></div>
+    <div class="panel hidden" id="pausebox"><span>Your opponent wants to pause the game</span><span class="row"><button class="primary small" id="pauseYes">Accept</button><button class="small" id="pauseNo">Decline</button></span></div>
     <div class="panel" id="invite">
       <div class="muted" style="font-size:.85rem;font-weight:600">Game code — send this to your friend</div>
       <div class="gcode" id="gcode"></div>
@@ -582,15 +609,26 @@
       <div id="moves"></div>
     </div>
     <div class="actions">
+      <button id="pauseBtn" class="hidden">Pause</button>
+      <button id="anBtn" class="hidden">Analyze</button>
       <button id="drawBtn" class="hidden">Offer draw</button>
       <button id="resign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg> Resign</button>
       <button id="rematch" class="primary hidden">Rematch</button>
       <button id="leave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Lobby</button>
     </div>
+    <div class="panel hidden" id="anpanel">
+      <div class="anhead"><b>Game review</b><span class="muted" id="anStatus"></span></div>
+      <div class="pbar" id="anProg"><i style="width:0%"></i></div>
+      <div id="anSummary"></div>
+      <div id="anGraph" title="Click to jump to a move"></div>
+      <div id="anComment"></div>
+      <div class="muted annote">Reviewed by the built-in engine, which looks a few moves deep. Treat it as a guide, not gospel.</div>
+    </div>
     <div class="panel hidden" id="gchat">
       <div class="gchead"><span>Chat</span><span id="callctl"></span></div>
+      <div id="vcpeople" class="hidden"></div>
       <div id="gclog"></div>
-      <form id="gcForm" class="row"><input id="gcIn" maxlength="200" placeholder="Message your opponent…" autocomplete="off"><button class="primary small" type="submit">Send</button></form>
+      <form id="gcForm" class="row"><input id="gcIn" maxlength="200" placeholder="Message everyone in this game…" autocomplete="off"><button class="primary small" type="submit">Send</button></form>
       <audio id="callAudio" autoplay playsinline></audio>
     </div>
   </aside>
@@ -604,7 +642,7 @@
   <div class="ovs"><div class="oside" id="oMe"></div><div class="ovsmid">VS</div><div class="oside" id="oOpp"></div></div>
   <div id="orating"></div>
   <div class="ostats"><div><b id="oMoves"></b><span>Moves</span></div><div><b id="oDur"></b><span>Duration</span></div><div><b id="oCat"></b><span>Time control</span></div></div>
-  <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oClose">Review game</button><button id="oLobby">Back to home</button></div>
+  <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
 
 <div id="busybar" aria-hidden="true"></div>
@@ -1153,7 +1191,7 @@ function enterGame(code, seed) {
   openGameChat(code);
   if (rtRoomOff) rtRoomOff();
   rtRoomLive = false;
-  rtRoomOff = rtSubscribe('room:' + code, { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was && Date.now() - lastKick > 400) kick(); });
+  rtRoomOff = rtSubscribe('room:' + code, { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); } });
   kick();
   clockTimer = setInterval(drawClocks, 200);
 }
@@ -1170,7 +1208,7 @@ function gameSkeleton() {
   $('#arrows').innerHTML = ''; ovSig = '';
 }
 function stopGame() {
-  if (CALL.state !== 'idle') { if (gameCode && !isBot()) signal('hangup'); endCall(null); }
+  vcLeave(); resetAnalysis();
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
   if (rtRoomOff) { rtRoomOff(); rtRoomOff = null; } rtRoomLive = false;
 }
@@ -1182,7 +1220,7 @@ function copy(t, sel) { navigator.clipboard.writeText(t).then(() => { const b = 
 $('#resign').onclick = async () => { if (!confirm('Resign this game?')) return; if (isBot()) return botEnd(botGame.you === 'w' ? 'b' : 'w', 'resignation'); await api('resign', { code: gameCode }); kick(); };
 $('#rematch').onclick = async () => { if (isBot()) return botRematch(); await api('rematch', { code: gameCode }); kick(); };
 
-const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer].join('|');
+const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer, !!r.paused, r.pauseReq, (r.resumeReady || []).join()].join('|');
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
 let lastKick = 0;
@@ -1292,6 +1330,7 @@ function render() {
     t = state.turn === you ? 'Your move' : (isBot() ? 'Computer is thinking…' : "Opponent's move");
     s = status.check ? 'Check!' : (isBot() ? BOT_LEVELS[botGame.level].name + ' · ' : '') + tcLabel(snap.tc);
   }
+  if (snap.paused && !status.over) { t = 'Game paused'; s = 'Both players must press Resume to continue'; }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
   if (snap.watching) s += (s ? ' · ' : '') + snap.watching + ' watching';
   setText($('#status'), t); setText($('#sub'), s);
@@ -1310,6 +1349,22 @@ function render() {
   db.classList.toggle('hidden', !canDraw);
   if (db.disabled !== (snap.drawOffer === you)) db.disabled = snap.drawOffer === you;
   setText(db, snap.drawOffer === you ? 'Draw offered' : 'Offer draw');
+  // mutual pause
+  const canPause = mine && !status.over && bothIn && !isBot();
+  const pb = $('#pauseBtn'), reqMine = snap.pauseReq === you;
+  pb.classList.toggle('hidden', !canPause || !!snap.paused);
+  if (pb.disabled !== reqMine) pb.disabled = reqMine;
+  setText(pb, reqMine ? 'Pause requested…' : 'Pause');
+  $('#pausebox').classList.toggle('hidden', !(canPause && !snap.paused && snap.pauseReq && snap.pauseReq !== you));
+  $('#pausedOv').classList.toggle('hidden', !snap.paused);
+  if (snap.paused) {
+    const rr = snap.resumeReady || [], ready = rr.includes(you), rb = $('#resumeBtn');
+    rb.classList.toggle('hidden', !mine);
+    if (rb.disabled !== ready) rb.disabled = ready;
+    setText(rb, ready ? 'Waiting for opponent…' : 'Resume');
+    setText($('#pausedTxt'), rr.length && !ready ? 'Your opponent is ready to continue' : 'Clocks are stopped');
+  }
+  $('#anBtn').classList.toggle('hidden', !status.over || !(snap.hist || []).length);
   const incoming = canDraw && snap.drawOffer && snap.drawOffer !== you;
   $('#drawbox').classList.toggle('hidden', !incoming);
   updateOver();
@@ -1325,6 +1380,7 @@ function render() {
 
   renderMoves(moves, upto, live);
   paintPendingMove();
+  paintAnnotations(); paintReviewComment(upto);
   if (!isBot()) paintCall();
 }
 function paintPendingMove() {
@@ -1359,7 +1415,7 @@ const movesFor = (sn) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.state) 
 let premove = null, arrows = [], marks = [], rdrag = null;
 
 function clickSquare(sq) {
-  if (!snap || snap.status.over || !snap.players.w || !snap.players.b || viewPly !== null) return;
+  if (!snap || snap.status.over || snap.paused || !snap.players.w || !snap.players.b || viewPly !== null) return;
   const { state, you } = snap;
   if (you !== 'w' && you !== 'b') return;
   const myTurn = state.turn === you;
@@ -1469,6 +1525,7 @@ function drawOverlay() {
   for (const m of marks) h += circleSVG(m.sq, ARROW[m.color], 0.8);
   for (const a of arrows) h += arrowSVG(a.from, a.to, ARROW[a.color], 0.8);
   if (premove && viewPly === null) h += arrowSVG(premove.from, premove.to, ARROW.blue, 0.75);
+  if (anArrow && AN.key) h += arrowSVG(anArrow.from, anArrow.to, '#5fb030', 0.85);
   if (rdrag) h += rdrag.from === rdrag.to ? circleSVG(rdrag.from, ARROW[rdrag.color], 0.55) : arrowSVG(rdrag.from, rdrag.to, ARROW[rdrag.color], 0.55);
   if (h !== ovSig) { ovSig = h; svg.innerHTML = h; }
 }
@@ -1491,6 +1548,7 @@ function finishArrow() {
 // Play the move on screen immediately, confirm with the server in the background, roll back if it is refused.
 async function send(from, to, promo) {
   if (isBot()) return botHumanMove(from, to, promo);
+  if (snap && snap.paused) return;
   if (sending || !snap) return;
   const m = Chess.legalMoves(snap.state).find((x) => x.from === from && x.to === to && (x.promo || undefined) === promo);
   selected = null; legal = [];
@@ -1552,7 +1610,7 @@ function askPromo(from, to) {
 // ---------- in-game chat ----------
 let gchatIds = new Set();
 function openGameChat(code) {
-  gchatIds = new Set();
+  gchatIds = new Set(); VC.roster.clear(); VC.early.clear();
   $('#gclog').innerHTML = '';
   $('#gchat').classList.remove('hidden');
   paintCall();
@@ -1562,7 +1620,7 @@ function addGameMsg(m) {
   if (!m || gchatIds.has(m.id)) return;
   gchatIds.add(m.id);
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-  log.insertAdjacentHTML('beforeend', `<div class="gm"><b class="${m.s}">${esc(m.n)}</b> ${esc(m.t)}</div>`);
+  log.insertAdjacentHTML('beforeend', `<div class="gm"><b class="${m.s}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${esc(m.t)}</div>`);
   if (near) log.scrollTop = log.scrollHeight;
 }
 function sysGameMsg(text) {
@@ -1583,41 +1641,15 @@ $('#gcForm').addEventListener('submit', async (e) => {
   if (r.ok) addGameMsg(r.msg); else { sysGameMsg(r.error || 'Message not sent.'); $('#gcIn').value = text; }
 });
 
-// ---------- voice call (WebRTC audio, peer to peer; the server only relays the handshake) ----------
-const CALL = { state: 'idle', pc: null, stream: null, queue: [], since: 0, muted: false, ringT: null, tick: null, dropT: null, ringTone: null };
-const signal = (t, d) => api('rtc_signal', { code: gameCode, t, d });
+// ---------- voice chat room: players and spectators. Audio goes browser-to-browser; the server only relays the handshake. ----------
 const isPlayer = () => snap && (snap.you === 'w' || snap.you === 'b');
-const PH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
-function paintCall() {
-  const el = $('#callctl'); if (!el) return;
-  const both = snap && snap.players && snap.players.w && snap.players.b;
-  $('#gcForm').classList.toggle('hidden', !isPlayer());
-  if (!isPlayer() || !both) { if (el._h !== '') { el._h = ''; el.innerHTML = ''; } return; }
-  const opp = snap.you === 'w' ? 'b' : 'w', oppHere = !!(snap.present && snap.present[opp]);
-  const html = {
-    idle: oppHere ? `<button data-c="call" title="Voice call your opponent">${PH} Call</button>`
-                  : `<button data-c="call" disabled title="Your opponent isn't on the game screen right now">${PH} Call</button>`,
-    calling: `<span class="cstate"><span class="ringing" style="display:inline-block">${PH}</span> Calling…</span><button data-c="hangup">Cancel</button>`,
-    incoming: `<span class="cstate">Incoming call</span><button class="primary" data-c="accept">Accept</button><button class="decline" data-c="decline">Decline</button>`,
-    connecting: `<span class="cstate">Connecting…</span><button class="decline" data-c="hangup">Hang up</button>`,
-    live: `<span class="cstate live">● <span class="ctime">0:00</span></span>${CALL.needTap ? '<button class="primary" data-c="hear">Tap to hear</button>' : ''}<button data-c="mute">${CALL.muted ? 'Unmute' : 'Mute'}</button><button class="decline" data-c="hangup">Hang up</button>`,
-  }[CALL.state];
-  if (el._h !== html) { el._h = html; el.innerHTML = html; }   // buttons are only rebuilt when the state changes
-  paintCallTime();
-}
-// the call timer updates its own text, so buttons are never replaced under your finger
-function paintCallTime() {
-  const t = $('#callctl .ctime'); if (!t) return;
-  const x = Math.floor((Date.now() - CALL.since) / 1000);
-  t.textContent = `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}`;
-}
-function setCall(st) {
-  CALL.state = st;
-  clearInterval(CALL.tick); clearInterval(CALL.ringTone);
-  if (st === 'live') { CALL.since = Date.now(); CALL.tick = setInterval(paintCallTime, 1000); }
-  if (st === 'incoming') { ringOnce(); CALL.ringTone = setInterval(ringOnce, 2000); }
-  paintCall();
-}
+const VC = { on: false, joining: false, stream: null, muted: false, needTap: false, peers: new Map(), roster: new Map(), early: new Map() };
+const MAX_VOICE = 6;
+const vcSend = (t, d, to) => api('rtc_signal', { code: gameCode, t, d, to });
+const HEADSET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>';
+const specTag = (s) => (s === 's' ? ' <span class="spec">spectator</span>' : '');
+function ringOnce() { tone(880, 0.18, { vol: 0.12 }); tone(660, 0.18, { vol: 0.12, delay: 0.22 }); }
+function unlockAudio() { const a = document.createElement('audio'); const p = a.play(); if (p) p.catch(() => {}); }   // inside the click, so later audio may play
 const micError = (e) => {
   const n = e && e.name;
   if (n === 'NotAllowedError' || n === 'SecurityError') return 'Microphone blocked. Click the lock icon next to the address bar, allow the microphone, and try again.';
@@ -1625,112 +1657,126 @@ const micError = (e) => {
   if (n === 'NotReadableError') return 'Your microphone is being used by another app. Close it and try again.';
   return 'Could not use the microphone' + (n ? ` (${n})` : '') + '.';
 };
-// play() must happen inside the click so browsers (especially Safari) allow the call audio later
-function unlockAudio() { const a = $('#callAudio'); if (a) { a.muted = false; const p = a.play(); if (p) p.catch(() => {}); } }
-function ringOnce() { tone(880, 0.18, { vol: 0.12 }); tone(660, 0.18, { vol: 0.12, delay: 0.22 }); }
-async function getMic() {
-  if (CALL.stream) return CALL.stream;
-  return (CALL.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }));
+function paintCall() {
+  const el = $('#callctl'), ppl = $('#vcpeople'); if (!el || !snap) return;
+  const n = VC.roster.size;
+  const html = !VC.on
+    ? `${n ? `<span class="cstate live">${n} in voice</span>` : ''}<button data-c="join" ${VC.joining || n >= MAX_VOICE ? 'disabled' : ''} title="${n >= MAX_VOICE ? 'Voice chat is full' : 'Talk with everyone in this game'}">${HEADSET} ${VC.joining ? 'Joining…' : n ? 'Join voice' : 'Start voice'}</button>`
+    : `${VC.needTap ? '<button class="primary" data-c="hear">Tap to hear</button>' : ''}<button data-c="mute">${VC.muted ? 'Unmute' : 'Mute'}</button><button class="decline" data-c="leave">Leave</button>`;
+  setHTML(el, html);
+  const chip = (name, seat, st) => `<span class="vchip ${st}"><i></i>${esc(name)}${specTag(seat)}</span>`;
+  let p = VC.on ? chip(user.name + ' (you)', snap.you, VC.muted ? 'muted' : 'ok') : '';
+  for (const [name, r] of VC.roster) { const peer = VC.peers.get(name); p += chip(name, r.s, !VC.on ? 'ok' : peer ? peer.st : 'wait'); }
+  setHTML(ppl, p);
+  ppl.classList.toggle('hidden', !p);
 }
-function makePC() {
-  const pc = (CALL.pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] }));
-  CALL.stream.getTracks().forEach((t) => pc.addTrack(t, CALL.stream));
-  pc.onicecandidate = (e) => { if (e.candidate) signal('ice', e.candidate.toJSON()); };
-  pc.ontrack = (e) => {
-    const a = $('#callAudio'); a.srcObject = e.streams[0];
-    a.play().then(() => { CALL.needTap = false; paintCall(); }).catch(() => { CALL.needTap = true; paintCall(); });   // autoplay blocked: offer a tap
-  };
-  // connectionState is missing in some browsers (older Safari): fall back to the ICE state
-  const onState = () => {
-    const st = pc.connectionState || ({ connected: 'connected', completed: 'connected', failed: 'failed', disconnected: 'disconnected', closed: 'closed' }[pc.iceConnectionState] || pc.iceConnectionState);
-    clearTimeout(CALL.dropT);
-    if (st === 'connected') { if (CALL.state !== 'live') { setCall('live'); sysGameMsg('Call connected'); } }
-    else if (st === 'failed') { signal('hangup'); endCall('Call could not connect. One of your networks blocks direct calls (common on school, office and some mobile networks).'); }
-    else if (st === 'disconnected') CALL.dropT = setTimeout(() => { if (CALL.pc === pc && CALL.state !== 'idle') { signal('hangup'); endCall('Call dropped'); } }, 8000);
-  };
-  pc.onconnectionstatechange = onState;
-  pc.oniceconnectionstatechange = onState;
-  // if it never connects, say so instead of hanging forever
-  CALL.connT = setTimeout(() => { if (CALL.pc === pc && CALL.state === 'connecting') { signal('hangup'); endCall('Call could not connect. One of your networks blocks direct calls.'); } }, 20000);
-}
-async function flushIce() { const q = CALL.queue; CALL.queue = []; for (const c of q) await CALL.pc.addIceCandidate(c).catch(() => {}); }
-async function startCall() {
-  if (CALL.state !== 'idle' || !isPlayer()) return;
-  if (!navigator.mediaDevices || !window.RTCPeerConnection || !window.isSecureContext) return sysGameMsg('Voice calls are not supported in this browser.');
+async function vcJoin() {
+  if (VC.on || VC.joining || !gameCode || isBot()) return;
+  if (!navigator.mediaDevices || !window.RTCPeerConnection || !window.isSecureContext) return sysGameMsg('Voice chat is not supported in this browser.');
   unlockAudio();
-  setCall('calling');                                       // instant feedback while the browser asks for the microphone
-  try { await getMic(); } catch (e) { endCall(null); return sysGameMsg(micError(e)); }
-  if (CALL.state !== 'calling') return;                     // cancelled while the permission prompt was open
-  signal('ring');
-  CALL.ringT = setTimeout(() => { if (CALL.state === 'calling') { signal('hangup'); endCall('No answer. Your opponent has to be on the game screen to hear the call.'); } }, 30000);
+  VC.joining = true; paintCall();
+  try { VC.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }); }
+  catch (e) { VC.joining = false; paintCall(); return sysGameMsg(micError(e)); }
+  VC.joining = false; VC.on = true; VC.muted = false;
+  paintCall();
+  vcSend('join');                                   // everyone already in voice will connect to us
+  sysGameMsg(VC.roster.size ? 'You joined voice chat. Connecting…' : 'Voice chat started. Everyone in this game can join.');
 }
-async function acceptCall() {
-  if (CALL.state !== 'incoming' && CALL.state !== 'calling') return;
-  clearTimeout(CALL.ringT);
-  unlockAudio();
-  try { await getMic(); } catch (e) { signal('decline'); return endCall(micError(e)); }
-  setCall('connecting');
-  if (!CALL.pc) makePC();
-  signal('accept');
-}
-function endCall(note) {
-  clearTimeout(CALL.ringT); clearTimeout(CALL.dropT); clearTimeout(CALL.connT); clearInterval(CALL.tick); clearInterval(CALL.ringTone);
-  const wasLive = CALL.state === 'live', dur = Date.now() - CALL.since;
-  if (CALL.pc) { try { CALL.pc.close(); } catch {} }
-  if (CALL.stream) CALL.stream.getTracks().forEach((t) => t.stop());
-  const a = $('#callAudio'); if (a) a.srcObject = null;
-  Object.assign(CALL, { state: 'idle', pc: null, stream: null, queue: [], muted: false, needTap: false });
-  if (note) sysGameMsg(wasLive && note === 'Call ended' ? `Call ended · ${Math.floor(dur / 60000)}:${String(Math.floor(dur / 1000) % 60).padStart(2, '0')}` : note);
+function vcLeave(silent) {
+  if (!VC.on) return;
+  for (const name of [...VC.peers.keys()]) closePeer(name);
+  if (VC.stream) VC.stream.getTracks().forEach((t) => t.stop());
+  Object.assign(VC, { on: false, stream: null, muted: false, needTap: false });
+  if (!silent && gameCode && !isBot()) vcSend('leave');
   paintCall();
 }
+function closePeer(name) {
+  const p = VC.peers.get(name); if (!p) return;
+  clearTimeout(p.failT); try { p.pc.close(); } catch {}
+  p.audio.srcObject = null; p.audio.remove();
+  VC.peers.delete(name);
+}
+function makePeer(name) {
+  closePeer(name);
+  const pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] });
+  const audio = document.createElement('audio'); audio.autoplay = true; audio.setAttribute('playsinline', ''); document.body.appendChild(audio);
+  const p = { pc, audio, q: [], st: 'wait', mine: new Set(), theirs: new Set() };
+  VC.peers.set(name, p);
+  VC.stream.getTracks().forEach((t) => pc.addTrack(t, VC.stream));
+  pc.onicecandidate = (e) => {
+    if (!e.candidate) return;
+    const t = e.candidate.type || (e.candidate.candidate.match(/typ (\w+)/) || [])[1]; if (t) p.mine.add(t);
+    vcSend('ice', e.candidate.toJSON(), name);
+  };
+  pc.ontrack = (e) => {
+    audio.srcObject = e.streams[0];
+    audio.play().then(() => { if (VC.needTap) { VC.needTap = false; paintCall(); } }).catch(() => { VC.needTap = true; paintCall(); });
+  };
+  const fail = () => {
+    if (p.st === 'bad' || VC.peers.get(name) !== p) return;
+    p.st = 'bad'; paintCall();
+    const relay = p.mine.has('relay') || p.theirs.has('relay');
+    sysGameMsg(`Couldn't connect voice with ${name} (your routes: ${[...p.mine].join(', ') || 'none'}; theirs: ${[...p.theirs].join(', ') || 'none'}). ${relay ? 'Even the relay could not get through: try another network.' : 'No relay route was found: one of your networks blocks direct calls.'}`);
+  };
+  const onState = () => {
+    const st = pc.connectionState || ({ connected: 'connected', completed: 'connected', failed: 'failed' }[pc.iceConnectionState] || pc.iceConnectionState);
+    if (st === 'connected' && p.st !== 'ok') { p.st = 'ok'; clearTimeout(p.failT); paintCall(); sysGameMsg(`Voice connected with ${name}`); }
+    else if (st === 'failed') fail();
+  };
+  pc.onconnectionstatechange = onState; pc.oniceconnectionstatechange = onState;
+  p.failT = setTimeout(() => { if (p.st === 'wait') fail(); }, 25000);
+  const early = VC.early.get(name) || []; VC.early.delete(name); p.q.push(...early);   // candidates that arrived first
+  return p;
+}
+async function flushPeer(p) { const q = p.q; p.q = []; for (const c of q) await p.pc.addIceCandidate(c).catch(() => {}); }
 async function onSignal(ev) {
-  if (view !== 'game' || !isPlayer() || ev.f === snap.you) return;
+  if (view !== 'game' || !snap || isBot() || ev.f === user.name) return;
+  if (ev.to && ev.to !== user.name) return;
+  const name = ev.f;
   try {
     switch (ev.t) {
-      case 'ring':
-        if (CALL.state === 'calling') {                        // both pressed Call at once: White leads, Black answers
-          if (snap.you === 'b') { CALL.state = 'incoming'; return acceptCall(); }
-          return;                                              // White waits for Black's accept
-        }
-        if (CALL.state === 'idle') setCall('incoming');
-        break;
-      case 'accept': {
-        if (CALL.state !== 'calling') return;
-        clearTimeout(CALL.ringT);
-        setCall('connecting');
-        makePC();
-        const offer = await CALL.pc.createOffer();
-        await CALL.pc.setLocalDescription(offer);
-        signal('offer', { type: offer.type, sdp: offer.sdp });
-        break;
-      }
+      case 'who': if (VC.on) vcSend('here', null, name); break;              // someone asks who is in voice
+      case 'here': VC.roster.set(name, { s: ev.s }); paintCall(); break;
+      case 'join':
+        VC.roster.set(name, { s: ev.s });
+        if (VC.on) {                                                          // people already in voice call the newcomer
+          const p = makePeer(name), o = await p.pc.createOffer();
+          await p.pc.setLocalDescription(o);
+          vcSend('offer', { type: o.type, sdp: o.sdp }, name);
+        } else { sysGameMsg(`${name}${ev.s === 's' ? ' (spectator)' : ''} is in voice chat. Press Join voice to talk.`); ringOnce(); }
+        paintCall(); break;
+      case 'leave': VC.roster.delete(name); closePeer(name); paintCall(); sysGameMsg(`${name} left voice chat`); break;
       case 'offer': {
-        if (!CALL.pc) return;
-        await CALL.pc.setRemoteDescription(ev.d);
-        await flushIce();
-        const ans = await CALL.pc.createAnswer();
-        await CALL.pc.setLocalDescription(ans);
-        signal('answer', { type: ans.type, sdp: ans.sdp });
+        if (!VC.on) return;
+        const ex = VC.peers.get(name);
+        if (ex && ex.pc.signalingState === 'have-local-offer' && user.name < name) return;   // both offered at once: one side wins
+        VC.roster.set(name, { s: ev.s });
+        const p = makePeer(name);
+        await p.pc.setRemoteDescription(ev.d); await flushPeer(p);
+        const a = await p.pc.createAnswer(); await p.pc.setLocalDescription(a);
+        vcSend('answer', { type: a.type, sdp: a.sdp }, name);
+        paintCall(); break;
+      }
+      case 'answer': { const p = VC.peers.get(name); if (p && p.pc.signalingState === 'have-local-offer') { await p.pc.setRemoteDescription(ev.d); await flushPeer(p); } break; }
+      case 'ice': {
+        const t = ev.d && ev.d.candidate && (ev.d.candidate.match(/typ (\w+)/) || [])[1];
+        const p = VC.peers.get(name);
+        if (p) { if (t) p.theirs.add(t); if (p.pc.remoteDescription) await p.pc.addIceCandidate(ev.d).catch(() => {}); else p.q.push(ev.d); }
+        else { if (!VC.early.has(name)) VC.early.set(name, []); VC.early.get(name).push(ev.d); }
         break;
       }
-      case 'answer': if (CALL.pc) { await CALL.pc.setRemoteDescription(ev.d); await flushIce(); } break;
-      case 'ice': if (CALL.pc && CALL.pc.remoteDescription) await CALL.pc.addIceCandidate(ev.d).catch(() => {}); else CALL.queue.push(ev.d); break;
-      case 'decline': if (CALL.state === 'calling') endCall('Call declined'); break;
-      case 'hangup': if (CALL.state !== 'idle') endCall(CALL.state === 'incoming' ? 'Missed call' : 'Call ended'); break;
     }
-  } catch (e) { signal('hangup'); endCall('Call failed: ' + (e.message || e)); }
+  } catch (e) { sysGameMsg('Voice error: ' + (e.message || e)); }
 }
 $('#callctl').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-c]'); if (!b) return;
+  const b = e.target.closest('[data-c]'); if (!b || b.disabled) return;
   const c = b.dataset.c;
-  if (c === 'call') startCall();
-  else if (c === 'accept') acceptCall();
-  else if (c === 'decline') { signal('decline'); endCall('Call declined'); }
-  else if (c === 'hangup') { signal('hangup'); endCall('Call ended'); }
-  else if (c === 'hear') { const a = $('#callAudio'); a.play().then(() => { CALL.needTap = false; paintCall(); }).catch(() => {}); }
-  else if (c === 'mute') { CALL.muted = !CALL.muted; if (CALL.stream) CALL.stream.getAudioTracks().forEach((t) => (t.enabled = !CALL.muted)); paintCall(); }
+  if (c === 'join') vcJoin();
+  else if (c === 'leave') { vcLeave(); sysGameMsg('You left voice chat'); }
+  else if (c === 'hear') { for (const p of VC.peers.values()) p.audio.play().catch(() => {}); VC.needTap = false; paintCall(); }
+  else if (c === 'mute') { VC.muted = !VC.muted; if (VC.stream) VC.stream.getAudioTracks().forEach((t) => (t.enabled = !VC.muted)); paintCall(); }
 });
-window.addEventListener('beforeunload', () => { if (CALL.state !== 'idle' && gameCode) navigator.sendBeacon && signal('hangup'); });
+window.addEventListener('beforeunload', () => { if (VC.on && gameCode) vcSend('leave'); });
 
 
 // ---------- Learn: interactive courses (content in lessons.js, checked by scripts/check-lessons.js) ----------
@@ -1884,6 +1930,151 @@ $('#lNext').onclick = () => {
 };
 $('#navLearn').onclick = () => enterLearn();
 
+
+// ---------- game review: rate every move (runs the engine in a background worker) ----------
+const CLS = {
+  brilliant: { label: 'Brilliant', sym: '!!', c: '#1baca6' }, great: { label: 'Great', sym: '!', c: '#5c8bb0' },
+  best: { label: 'Best', sym: '★', c: '#81b64c' }, excellent: { label: 'Excellent', sym: '✓', c: '#96bc4b' },
+  good: { label: 'Good', sym: '✓', c: '#7f9b6b' }, inaccuracy: { label: 'Inaccuracy', sym: '?!', c: '#f0b50f' },
+  mistake: { label: 'Mistake', sym: '?', c: '#ff8c3a' }, blunder: { label: 'Blunder', sym: '??', c: '#fa412d' },
+  forced: { label: 'Forced', sym: '□', c: '#8b8987' },
+};
+const CLS_ORDER = ['brilliant', 'great', 'best', 'excellent', 'good', 'inaccuracy', 'mistake', 'blunder'];
+const WP = (cp) => (cp > 90000 ? 1 : cp < -90000 ? 0 : 1 / (1 + Math.exp(-0.00368208 * cp)));
+const AN = { worker: null, id: 0, key: null, res: [], cls: [], n: 0, done: false, states: null, hist: null };
+let anArrow = null;
+const gameKey = () => `${gameCode}:${(snap.hist || []).length}:${snap.startedAt || ''}`;
+function resetAnalysis() {
+  if (AN.worker) AN.worker.terminate();
+  Object.assign(AN, { worker: null, key: null, res: [], cls: [], n: 0, done: false, states: null, hist: null });
+  anArrow = null;
+  $('#anpanel').classList.add('hidden');
+  document.querySelectorAll('#moves .mv[data-sym]').forEach((c) => { c.removeAttribute('data-sym'); c.style.removeProperty('--symc'); });
+}
+function startAnalysis() {
+  if (!snap || !snap.status.over) return;
+  const hist = snap.hist || [];
+  if (!hist.length) return;
+  if (AN.key === gameKey()) { $('#anpanel').classList.remove('hidden'); return; }
+  resetAnalysis();
+  const H = buildStates(hist);
+  if (H.states.length !== hist.length + 1) return;
+  Object.assign(AN, { key: gameKey(), states: H.states.slice(), hist: hist.slice(), n: hist.length, id: AN.id + 1 });
+  try { AN.worker = new Worker('bot.js'); } catch { setText($('#anStatus'), 'Not supported in this browser'); return; }
+  AN.worker.onmessage = onAnalysis;
+  AN.worker.onerror = () => setText($('#anStatus'), 'The review stopped unexpectedly.');
+  AN.worker.postMessage({ type: 'analyze', id: AN.id, states: AN.states, hist: AN.hist, ms: hist.length > 80 ? 120 : 180 });
+  $('#anpanel').classList.remove('hidden');
+  paintAnalysis();
+  $('#anpanel').scrollIntoView({ block: 'nearest' });
+}
+function onAnalysis(e) {
+  const d = e.data;
+  if (d.id !== AN.id) return;
+  if (d.done) { AN.done = true; return paintAnalysis(); }
+  AN.res[d.i] = d;
+  if (d.i < AN.n) AN.cls[d.i] = classify(d.i);
+  paintAnalysis();
+  paintAnnotations();
+  if (snap) paintReviewComment(viewPly === null ? (snap.hist || []).length : viewPly);
+}
+// Did the move give up material on purpose? (moved piece can be taken by something cheaper)
+function isSacrifice(st, m) {
+  const V = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 };
+  const piece = st.board[m.from][1];
+  if (piece === 'P' || piece === 'K') return false;
+  const got = st.board[m.to] ? V[st.board[m.to][1]] : 0;
+  const after = Chess.apply(st, m);
+  const takers = Chess.legalMoves(after).filter((x) => x.to === m.to).map((x) => V[after.board[x.from][1]]);
+  return takers.length > 0 && Math.min(...takers) < V[piece] && V[piece] - got >= 2;
+}
+function classify(i) {
+  const r = AN.res[i], st = AN.states[i], h = AN.hist[i];
+  if (r.legal <= 1) return 'forced';
+  if (r.played == null) return 'good';
+  const wb = WP(r.bestScore), wp = WP(r.played), loss = Math.max(0, wb - wp);
+  const m = Chess.legalMoves(st).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === (h.promo || undefined));
+  const sac = m && isSacrifice(st, m) && wp >= 0.5;
+  if (loss <= 0.02 && sac) return 'brilliant';
+  if (loss < 0.005) return r.second != null && wb - WP(r.second) >= 0.2 && wb < 0.97 ? 'great' : 'best';
+  if (loss <= 0.02) return 'excellent';
+  if (loss <= 0.05) return 'good';
+  if (loss <= 0.10) return 'inaccuracy';
+  if (loss <= 0.20) return 'mistake';
+  return 'blunder';
+}
+const moveAcc = (i) => { const r = AN.res[i]; if (!r || r.played == null || AN.cls[i] === 'forced') return null; const d = Math.max(0, WP(r.bestScore) - WP(r.played)) * 100; return Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * d) - 3.1669)); };
+const evalWhite = (i) => { const r = AN.res[i]; if (!r) return null; return AN.states[i].turn === 'w' ? r.bestScore : -r.bestScore; };
+function paintAnalysis() {
+  const got = AN.res.filter(Boolean).length, total = AN.n + 1;
+  $('#anProg').querySelector('i').style.width = Math.round((100 * got) / total) + '%';
+  $('#anProg').classList.toggle('hidden', AN.done);
+  setText($('#anStatus'), AN.done ? 'Done' : `Analyzing… ${Math.round((100 * got) / total)}%`);
+  const sides = { w: { acc: [], n: {} }, b: { acc: [], n: {} } };
+  for (let i = 0; i < AN.n; i++) {
+    const c = AN.cls[i]; if (!c) continue;
+    const side = AN.states[i].turn;
+    sides[side].n[c] = (sides[side].n[c] || 0) + 1;
+    const a = moveAcc(i); if (a != null) sides[side].acc.push(a);
+  }
+  const avg = (a) => (a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(1) : '–');
+  const pw = snap && snap.players.w ? snap.players.w.name : 'White', pb = snap && snap.players.b ? snap.players.b.name : 'Black';
+  let h = `<div class="ansum"><span></span><span class="h" title="${esc(pw)}">White</span><span class="h" title="${esc(pb)}">Black</span>
+    <span class="lbl">Accuracy</span><span class="acc">${avg(sides.w.acc)}</span><span class="acc">${avg(sides.b.acc)}</span>`;
+  for (const k of CLS_ORDER) h += `<span class="lbl"><span class="sym" style="background:${CLS[k].c}">${CLS[k].sym}</span>${CLS[k].label}</span><span class="c" style="color:${CLS[k].c}">${sides.w.n[k] || 0}</span><span class="c" style="color:${CLS[k].c}">${sides.b.n[k] || 0}</span>`;
+  setHTML($('#anSummary'), h + '</div>');
+  // evaluation graph (White's winning chances, like chess.com)
+  const pts = [];
+  for (let i = 0; i <= AN.n; i++) { const e = evalWhite(i); if (e == null) break; pts.push([i, 100 - WP(e) * 100]); }
+  if (pts.length > 1) {
+    const W = Math.max(1, AN.n);
+    const line = pts.map(([x, y]) => `${x},${y.toFixed(1)}`).join(' ');
+    const marks = pts.slice(1).map(([x]) => { const c = AN.cls[x - 1]; return c === 'blunder' || c === 'mistake' || c === 'brilliant' || c === 'great' ? `<circle cx="${x}" cy="${pts[x][1].toFixed(1)}" r="2.2" fill="${CLS[c].c}" vector-effect="non-scaling-stroke"/>` : ''; }).join('');
+    setHTML($('#anGraph'), `<svg viewBox="0 0 ${W} 100" preserveAspectRatio="none"><polygon points="0,100 ${line} ${pts[pts.length - 1][0]},100" fill="#ebecd0"/><line x1="0" x2="${W}" y1="50" y2="50" stroke="#00000040" stroke-width="1" vector-effect="non-scaling-stroke"/>${marks}</svg>`);
+  }
+}
+function paintAnnotations() {
+  if (!AN.key) return;
+  for (let i = 0; i < AN.n; i++) {
+    const c = AN.cls[i]; if (!c || c === 'best' || c === 'excellent' || c === 'good' || c === 'forced') continue;   // badge only the notable moves
+    const cell = document.querySelector(`#moves .mv[data-ply="${i + 1}"]:not(.ph)`);
+    if (cell && cell.dataset.sym !== CLS[c].sym) { cell.dataset.sym = CLS[c].sym; cell.style.setProperty('--symc', CLS[c].c); }
+  }
+}
+const fmtEval = (cp) => (cp > 90000 ? '#' + Math.max(1, Math.ceil((100000 - cp) / 2)) : cp < -90000 ? '#-' + Math.max(1, Math.ceil((100000 + cp) / 2)) : (cp >= 0 ? '+' : '') + (cp / 100).toFixed(1));
+function paintReviewComment(upto) {
+  const box = $('#anComment'); if (!box || !AN.key) return;
+  const i = upto - 1, r = AN.res[i], c = AN.cls[i];
+  let html = '', arrow = null;
+  if (i < 0) html = 'Starting position. Use the arrows or click a move to step through the review.';
+  else if (!r || !c) html = 'Still analyzing this move…';
+  else {
+    const st = AN.states[i], h = AN.hist[i];
+    const m = Chess.legalMoves(st).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === (h.promo || undefined));
+    const num = `${Math.floor(i / 2) + 1}${i % 2 ? '…' : '.'}`;
+    const phrase = { best: 'the best move', excellent: 'an excellent move', good: 'a good move', great: 'a great move (the only good one!)', brilliant: 'a brilliant sacrifice',
+      inaccuracy: 'an inaccuracy', mistake: 'a mistake', blunder: 'a blunder', forced: 'forced (the only legal move)' }[c];
+    html = `<span class="sym" style="background:${CLS[c].c}">${CLS[c].sym}</span> ${num}${m ? Chess.notate(st, m) : ''} is <b style="color:${CLS[c].c}">${phrase}</b>.`;
+    if (r.best && !(r.best.from === h.from && r.best.to === h.to) && ['inaccuracy', 'mistake', 'blunder', 'good'].includes(c)) {
+      const bm = Chess.legalMoves(st).find((x) => x.from === r.best.from && x.to === r.best.to && (x.promo || undefined) === (r.best.promo || undefined));
+      if (bm) { html += ` Better was <b>${Chess.notate(st, bm)}</b> (green arrow).`; arrow = { from: bm.from, to: bm.to }; }
+    }
+    const after = evalWhite(i + 1);
+    if (after != null) html += ` <span class="muted">Eval ${fmtEval(after)}</span>`;
+  }
+  if (box._h !== html) { box._h = html; box.innerHTML = html; }
+  const changed = JSON.stringify(arrow) !== JSON.stringify(anArrow);
+  anArrow = arrow;
+  if (changed) { ovSig = ''; drawOverlay(); }
+}
+$('#anGraph').addEventListener('click', (e) => {
+  if (!AN.n) return;
+  const rc = e.currentTarget.getBoundingClientRect();
+  goPly(Math.round(((e.clientX - rc.left) / rc.width) * AN.n));
+});
+$('#anBtn').onclick = startAnalysis;
+$('#oAnalyze').onclick = () => { $('#over').classList.add('hidden'); if (snap && snap.status.over) { startAnalysis(); goPly(0); } };
+
 // ---------- move history / review ----------
 function buildStates(hist) {
   const c = stCache;
@@ -1937,7 +2128,7 @@ board.addEventListener('pointerdown', (e) => {
   }
   if (e.button !== 0) return;
   if (arrows.length || marks.length) { arrows = []; marks = []; drawOverlay(); }
-  if (!snap || viewPly !== null || snap.status.over || !snap.players.w || !snap.players.b) return;
+  if (!snap || viewPly !== null || snap.status.over || snap.paused || !snap.players.w || !snap.players.b) return;
   const sqEl = e.target.closest('.sq');
   if (!sqEl) return;
   const sq = +sqEl.dataset.sq, p = snap.state.board[sq];
@@ -2017,7 +2208,7 @@ document.addEventListener('pointerdown', () => ac(), { once: true });
 function afterSnapshot(r) {
   const n = r.moves.length;
   if (n !== prevMoves) { arrows = []; marks = []; }
-  if (prevMoves !== null && n < prevMoves) { viewPly = null; $('#over').classList.add('hidden'); } // rematch started
+  if (prevMoves !== null && n < prevMoves) { viewPly = null; $('#over').classList.add('hidden'); resetAnalysis(); } // rematch started
   if (prevMoves !== null) {
     if (r.status.over && !prevOver) { sfx('end'); showOver(r); }
     else if (n > prevMoves) {
@@ -2081,6 +2272,13 @@ function updateOver() {
 $('#oRematch').onclick = async () => { if (isBot()) { $('#over').classList.add('hidden'); return botRematch(); } await api('rematch', { code: gameCode }); kick(); };
 $('#oClose').onclick = () => $('#over').classList.add('hidden');
 $('#oLobby').onclick = () => { $('#over').classList.add('hidden'); enterLobby(); };
+
+// ---------- pause ----------
+const pauseCall = async (route, body) => { const r = await api(route, { code: gameCode, ...(body || {}) }); if (!r.ok) setText($('#sub'), r.error || 'Something went wrong.'); kick(); };
+$('#pauseBtn').onclick = () => pauseCall('pause_request');
+$('#pauseYes').onclick = () => pauseCall('pause_respond', { accept: true });
+$('#pauseNo').onclick = () => pauseCall('pause_respond', { accept: false });
+$('#resumeBtn').onclick = () => pauseCall('unpause');
 
 // ---------- draw offers ----------
 $('#drawBtn').onclick = async () => { const r = await api('draw_offer', { code: gameCode }); if (!r.ok) $('#sub').textContent = r.error; kick(); };
@@ -2218,7 +2416,7 @@ function botLeave() {            // leaving the game screen: stop thinking, keep
   if (botGame) { botGame.thinking = false; botGame = null; }
 }
 function enterBot(b) {
-  stopLobby(); stopAdmin(); stopGame();
+  stopLobby(); stopAdmin(); stopGame(); resetAnalysis();
   botGame = b; view = 'game'; gameCode = 'BOT';
   snap = null; sig = ''; selected = null; legal = []; premove = null; arrows = []; marks = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = 'BOT'; pending = null; sending = false;

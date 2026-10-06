@@ -147,13 +147,47 @@ function chooseMove(state, level, seen, msScale) {
   return { move: plain(best), depth: done, nodes, score: bestScore };
 }
 
+// ---------- game review: score every legal move in a position (exact root scores, time-limited depth) ----------
+function analyzePosition(state, ms) {
+  const moves = C.legalMoves(state);
+  if (!moves.length) return { terminal: true, best: null, scores: [], depth: 0, score: C.inCheck(state, state.turn) ? -MATE : 0 };
+  order(state, moves);
+  let scored = null, depth = 0;
+  for (let d = 1; d <= 12; d++) {
+    nodes = 0;
+    deadline = d === 1 ? Infinity : anT0 + ms;             // depth 1 always completes
+    try {
+      const sc = moves.map((m) => ({ m, s: -negamax(C.apply(state, m), d - 1, -INF, INF, 1) }));
+      sc.sort((a, b) => b.s - a.s);
+      scored = sc; depth = d;
+      moves.sort((a, b) => sc.findIndex((x) => x.m === a) - sc.findIndex((x) => x.m === b));
+      if (Math.abs(sc[0].s) > MATE - 1000) break;          // forced mate found
+    } catch (e) { if (e !== STOP) throw e; break; }
+  }
+  return { best: plain(scored[0].m), score: scored[0].s, scores: scored.map((x) => ({ ...plain(x.m), s: x.s })), depth, legal: moves.length };
+}
+var anT0 = 0;
+
 if (typeof importScripts === 'function') {
   self.onmessage = (e) => {
+    if (e.data.type === 'analyze') {
+      const { id, states, hist, ms } = e.data;
+      for (let i = 0; i <= hist.length; i++) {
+        anT0 = now();
+        const r = analyzePosition(states[i], ms);
+        const h = hist[i];
+        const played = h && r.scores.find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === (h.promo || undefined));
+        self.postMessage({ id, i, n: hist.length, best: r.best, bestScore: r.terminal ? r.score : r.score, second: r.scores[1] ? r.scores[1].s : null,
+          played: played ? played.s : null, legal: r.legal || 0, depth: r.depth, terminal: !!r.terminal });
+      }
+      self.postMessage({ id, done: true });
+      return;
+    }
     const { id, state, level, seen } = e.data;
     const t0 = now();
     const r = chooseMove(state, level, seen);
     self.postMessage({ id, move: r && r.move, depth: r && r.depth, ms: Math.round(now() - t0) });
   };
 } else {
-  module.exports = { chooseMove, evaluate, LEVELS };
+  module.exports = { chooseMove, evaluate, LEVELS, analyzePosition, setT0: (t) => { anT0 = t; } };
 }
