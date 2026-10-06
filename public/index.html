@@ -203,6 +203,7 @@
   .orow:first-child { border-top: 0; }
   .orow .odot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex: none; }
   .orow .odot.playing { background: var(--gold); } .orow .odot.watching { background: #8fc1ff; }
+  .orow .odot.offline { background: #6d6c6a; } .orow.off .onm { color: var(--muted); font-weight: 600; }
   .orow .onm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
   .orow .os { color: var(--muted); font-size: .8rem; }
   #claimForm { margin-bottom: 14px; }
@@ -547,7 +548,7 @@
       <div id="previewwrap"><div id="preview"></div></div>
       <div class="panel" id="livecard"><h2 class="ph"><span>Live games<span class="rtdot" id="rtDot" title="Live updates"></span><span class="rtnote" id="rtNote"></span></span></h2><div id="livelist"><div class="liverow"><span class="lv"><span class="sk" style="width:220px"></span></span></div></div></div>
       <div class="panel" id="onlinecard">
-        <h2 class="ph"><span>Online now <span class="muted" id="onlineN"></span></span></h2>
+        <h2 class="ph"><span>Players <span class="muted" id="onlineN"></span></span></h2>
         <div id="onlinelist"><div class="orow"><span class="sk" style="width:160px"></span></div><div class="orow"><span class="sk" style="width:120px"></span></div></div>
       </div>
       <div class="panel" id="chatcard">
@@ -1242,16 +1243,17 @@ function onRtChatDel(d) {
 // ----- who is online -----
 let onlineSig = '';
 const ONLINE_ST = { lobby: 'in the lobby', playing: 'playing', watching: 'watching a game' };
+const ago = (ts) => { const m = Math.floor((Date.now() - ts) / 60e3); return m < 60 ? `${Math.max(1, m)}m ago` : m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`; };
 function renderOnline(list) {
-  const sig = JSON.stringify(list);
+  const sig = JSON.stringify([list, Math.floor(Date.now() / 60e3)]);   // redraw each minute so "seen … ago" stays right
   if (sig === onlineSig) return;
   onlineSig = sig;
-  $('#onlineN').textContent = '· ' + list.length;
-  $('#onlinelist').innerHTML = list.length ? list.map((p) => `<div class="orow"><span class="odot ${esc(p.st)}"></span>
+  $('#onlineN').textContent = '· ' + list.filter((p) => p.st !== 'offline').length + ' online';
+  $('#onlinelist').innerHTML = list.length ? list.map((p) => `<div class="orow ${p.st === 'offline' ? 'off' : ''}"><span class="odot ${esc(p.st)}" title="${p.st === 'offline' ? 'offline' : 'online'}"></span>
       <span class="onm"><span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span>${p.name === user.name ? ' <span class="muted">(you)</span>' : ''}</span>
-      <span class="os">${ONLINE_ST[p.st] || ''}</span>
-      ${p.name === user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</div>`).join('')
-    : '<div class="muted empty">Nobody else is online.</div>';
+      <span class="os">${p.st === 'offline' ? (p.seen ? 'offline · seen ' + ago(p.seen) : 'offline') : ONLINE_ST[p.st] || ''}</span>
+      ${p.name === user.name || p.st === 'offline' ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</div>`).join('')
+    : '<div class="muted empty">Nobody else is around yet.</div>';
   paintChallengeButtons();
 }
 $('#onlinelist').addEventListener('click', (e) => {
