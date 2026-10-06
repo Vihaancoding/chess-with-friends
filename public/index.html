@@ -829,8 +829,9 @@ function rtInit() {
     RTC.mode = c.ok ? c.rt : 'none';
     RTC.ice = (c.ok && c.ice) || [{ urls: 'stun:stun.l.google.com:19302' }];
     if (RTC.mode === 'supabase') {
+      RTC.url = c.url; RTC.anon = c.anon;
       try {
-        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js');   // pinned: a new release can't change behaviour under us
         RTC.sb = window.supabase.createClient(c.url, c.anon, { auth: { persistSession: false, autoRefreshToken: false } });   // one websocket; channels share it
       } catch { RTC.mode = 'none'; }
     }
@@ -870,7 +871,9 @@ function rtSubscribe(topic, handlers, onState) {
       ch = RTC.sb.channel(topic, { config: { broadcast: { self: false } } });
       for (const [ev, fn] of Object.entries(handlers)) ch.on('broadcast', { event: ev }, (m) => fn(m.payload || {}));
       ch.subscribe((st, err) => {                                       // supabase-js rejoins after drops
-        RTC.status = st; if (err) { RTC.err = err.message || String(err); console.warn('Live updates:', st, RTC.err); } else if (st === 'SUBSCRIBED') RTC.err = '';
+        RTC.status = st;
+        if (err) { RTC.err = err.message || String(err); console.warn('Live updates:', st, RTC.err); if (/transport failure|connection lost|socket closed/.test(RTC.err)) rtProbe(); }
+        else if (st === 'SUBSCRIBED') RTC.err = RTC.hint = '';
         if (!closed && onState) onState(st === 'SUBSCRIBED');
       });
     } else if (onState) onState(false);
@@ -881,11 +884,23 @@ function rtSubscribe(topic, handlers, onState) {
     if (ch && RTC.sb) RTC.sb.removeChannel(ch);
   };
 }
+// A failed websocket gives no reason ("channel error: transport failure"), so ask Supabase over plain HTTPS
+// to tell the likely causes apart. At most once every 30s.
+function rtProbe() {
+  if (RTC.probing || Date.now() - (RTC.probedAt || 0) < 30000) return;
+  RTC.probing = true;
+  fetch(RTC.url + '/auth/v1/health', { headers: { apikey: RTC.anon }, cache: 'no-store' })
+    .then((r) => (r.status === 401 || r.status === 403 ? 'Supabase rejected the anon key (check SUPABASE_ANON_KEY)'
+      : !r.ok ? `Supabase answered HTTP ${r.status} (project paused or down?)`
+      : 'Supabase is reachable but the websocket was blocked (network, VPN or browser extension)'))
+    .catch(() => "can't reach Supabase from this network")
+    .then((hint) => { RTC.probing = false; RTC.probedAt = Date.now(); if (RTC.err) { RTC.hint = hint; console.warn('Live updates:', hint); paintRtDot(); } });
+}
 let rtRoomOff = null, rtRoomLive = false, rtSession = false, rtLobbyLive = false;
 function paintRtDot() {
   const d = $('#rtDot'), n = $('#rtNote'); if (!d) return;
   d.classList.toggle('on', rtLobbyLive);
-  const why = RTC.mode === 'none' ? 'not configured on the server' : RTC.err ? RTC.err : RTC.status && RTC.status !== 'SUBSCRIBED' ? RTC.status.toLowerCase().replace(/_/g, ' ') : 'connecting…';
+  const why = RTC.mode === 'none' ? 'not configured on the server' : RTC.err ? (RTC.hint || RTC.err) + ' · polling instead' : RTC.status && RTC.status !== 'SUBSCRIBED' ? RTC.status.toLowerCase().replace(/_/g, ' ') : 'connecting…';
   d.title = rtLobbyLive ? 'Live updates on' : 'Live updates off: ' + why;
   n.textContent = rtLobbyLive ? '' : 'live updates off · ' + why;
 }
