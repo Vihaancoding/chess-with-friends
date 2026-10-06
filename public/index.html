@@ -198,6 +198,13 @@
   .msg .x { position: absolute; right: 0; top: 0; min-height: 20px; padding: 0 6px; background: none; box-shadow: none; color: var(--bad); font-size: 1rem; }
   #chatErr { color: var(--bad); font-size: .82rem; min-height: 1.1em; margin-top: 6px; font-weight: 600; }
   #chatIn { text-align: left; }
+  #onlinelist { max-height: 220px; overflow-y: auto; scrollbar-width: thin; }
+  .orow { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+  .orow:first-child { border-top: 0; }
+  .orow .odot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex: none; }
+  .orow .odot.playing { background: var(--gold); } .orow .odot.watching { background: #8fc1ff; }
+  .orow .onm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .orow .os { color: var(--muted); font-size: .8rem; }
   #claimForm { margin-bottom: 14px; }
   #claimErr { color: var(--bad); font-size: .85rem; margin-top: 6px; min-height: 1em; font-weight: 600; }
 
@@ -539,6 +546,10 @@
     <div class="leftcol">
       <div id="previewwrap"><div id="preview"></div></div>
       <div class="panel" id="livecard"><h2 class="ph"><span>Live games<span class="rtdot" id="rtDot" title="Live updates"></span><span class="rtnote" id="rtNote"></span></span></h2><div id="livelist"><div class="liverow"><span class="lv"><span class="sk" style="width:220px"></span></span></div></div></div>
+      <div class="panel" id="onlinecard">
+        <h2 class="ph"><span>Online now <span class="muted" id="onlineN"></span></span></h2>
+        <div id="onlinelist"><div class="orow"><span class="sk" style="width:160px"></span></div><div class="orow"><span class="sk" style="width:120px"></span></div></div>
+      </div>
       <div class="panel" id="chatcard">
         <h2 class="ph">Lobby chat</h2>
         <div id="chatlog"><div class="msg"><span class="sk" style="width:200px;height:.85em"></span></div><div class="msg"><span class="sk" style="width:140px;height:.85em"></span></div><div class="msg"><span class="sk" style="width:240px;height:.85em"></span></div><div class="msg"><span class="sk" style="width:170px;height:.85em"></span></div></div>
@@ -1066,7 +1077,7 @@ function renderBanners() {
 function paintChallengeButtons() {
   const pending = !!(curOut && curOut.status === 'pending');
   $('#chBtn').disabled = pending;
-  $('#lb').querySelectorAll('[data-ch]').forEach((b) => {
+  document.querySelectorAll('#lb [data-ch], #onlinelist [data-ch]').forEach((b) => {
     const mine = pending && b.dataset.ch.toLowerCase() === curOut.to.toLowerCase();
     b.disabled = pending; b.textContent = mine ? 'Sent' : 'Challenge';
   });
@@ -1178,6 +1189,7 @@ async function pollLobby(full = true) {
       renderLive(r.live, r.user.name);
       curMuted = !!r.user.muted; lastBoards = r.leaderboards || lastBoards;
       renderChat(r.chat, r.user.admin, r.user.muted);
+      renderOnline(r.online || []);
       renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
@@ -1226,6 +1238,26 @@ function onRtChatDel(d) {
   if (d.id) chatGone.add(d.id);
   renderChat(d.all ? [] : curChat.filter((m) => m.id !== d.id), curAdmin, curMuted);
 }
+
+// ----- who is online -----
+let onlineSig = '';
+const ONLINE_ST = { lobby: 'in the lobby', playing: 'playing', watching: 'watching a game' };
+function renderOnline(list) {
+  const sig = JSON.stringify(list);
+  if (sig === onlineSig) return;
+  onlineSig = sig;
+  $('#onlineN').textContent = '· ' + list.length;
+  $('#onlinelist').innerHTML = list.length ? list.map((p) => `<div class="orow"><span class="odot ${esc(p.st)}"></span>
+      <span class="onm"><span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span>${p.name === user.name ? ' <span class="muted">(you)</span>' : ''}</span>
+      <span class="os">${ONLINE_ST[p.st] || ''}</span>
+      ${p.name === user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</div>`).join('')
+    : '<div class="muted empty">Nobody else is online.</div>';
+  paintChallengeButtons();
+}
+$('#onlinelist').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ch]'); if (b) { if (!b.disabled) challenge(b.dataset.ch); return; }
+  const n = e.target.closest('.plink'); if (n) enterProfile(n.dataset.name);
+});
 
 // ---------- live games, chat, admin ----------
 function renderLive(list, me) {
