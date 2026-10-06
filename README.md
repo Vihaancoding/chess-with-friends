@@ -2,7 +2,7 @@
 
 Multiplayer chess in the browser. Make a game, share the 5-letter code (or challenge a username), and play.
 
-**Features:** email accounts · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
+**Features:** email accounts · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · **opening recognition** (ECO code and named variation, updated live and on transpositions) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
 
 No framework and no build step: a vanilla JS client, a small Node API, and an optional Supabase database.
 
@@ -44,6 +44,7 @@ log in, open `https://your-site/?admin=1`, and enter `ADMIN_KEY`. An **Admin** l
 |---|---|
 | `public/index.html` | The whole client (UI, polling, drag and drop, sounds) |
 | `public/lessons.js` | Course content (openings, middlegame, endgames). Validate edits with `node scripts/check-lessons.js` |
+| `public/openings.js` | Opening names (ECO, name, moves) generated from the [Lichess opening list](https://github.com/lichess-org/chess-openings) (CC0). Rebuild with `node scripts/build-openings.js` |
 | `public/bot.js` | Computer opponent: alpha-beta search with quiescence, runs in a Web Worker |
 | `public/chess.js` | Chess engine shared by browser and server (legal moves, check/mate, castling, en passant, promotion, repetition key) |
 | `lib/app.js` | API: accounts, rooms, clocks, Elo, challenges, chat, admin |
