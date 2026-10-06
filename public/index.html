@@ -425,6 +425,22 @@
   #anComment { min-height: 2.6em; font-size: .9rem; font-weight: 600; color: #e8e8e6; }
   .annote { font-size: .72rem; margin-top: 6px; }
   #moves .mv[data-sym]::after { content: attr(data-sym); margin-left: 5px; font-size: .72rem; font-weight: 900; color: var(--symc); }
+  /* board & piece skins */
+  #skinModal { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 30; padding: 16px; }
+  #skinModal .box { background: var(--panel); border-radius: 14px; width: min(100%, 760px); max-height: 92vh; overflow-y: auto; padding: 20px 22px; box-shadow: 0 30px 70px -20px #000; }
+  .skhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .skgrid { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 680px) { .skgrid { grid-template-columns: 1fr; } }
+  #skinPreview { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; border-radius: 5px; overflow: hidden; width: 100%; }
+  #skinPreview .sq { cursor: default; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+  .swatches button { flex-direction: column; gap: 4px; padding: 6px; min-height: 0; background: #1f1e1b; box-shadow: none; border: 2px solid transparent; font-size: .72rem; font-weight: 700; color: var(--muted); }
+  .swatches button:active { transform: none; }
+  .swatches button.on { border-color: var(--green); color: #fff; }
+  .mini { display: grid; grid-template-columns: 1fr 1fr; width: 44px; height: 44px; border-radius: 4px; overflow: hidden; }
+  .mini i { display: block; }
+  .pieceset { display: flex; gap: 0; height: 36px; align-items: center; justify-content: center; }
+  .pieceset img { width: 30px; height: 30px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -436,6 +452,7 @@
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
+    <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
     <button id="navProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile</button>
     <button id="navAdmin" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg> Admin</button>
@@ -605,6 +622,7 @@
         <button id="mvNext" title="Next move (→)" aria-label="Next move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ><path d="m9 18 6-6-6-6"/></svg></button>
         <button id="mvLast" title="Back to live (End)" aria-label="Back to live game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ><path d="m5 4 10 8-10 8z"/><path d="M19 5v14"/></svg></button>
         <button id="sndBtn" title="Sound" aria-label="Toggle sound"></button>
+        <button id="skinBtn" title="Board &amp; pieces" aria-label="Board and piece style"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg></button>
       </div>
       <div id="moves"></div>
     </div>
@@ -645,6 +663,17 @@
   <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
 
+<div id="skinModal" class="hidden"><div class="box">
+  <div class="skhead"><h2 class="ptitle">Board &amp; pieces</h2><button class="primary" id="skinDone">Done</button></div>
+  <div class="muted" style="font-weight:600;margin-bottom:14px">Changes apply instantly and are saved on this device.</div>
+  <div class="skgrid">
+    <div><div id="skinPreview"></div></div>
+    <div>
+      <div class="label" style="margin-top:0">Board</div><div class="swatches" id="boardSwatches"></div>
+      <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
+    </div>
+  </div>
+</div></div>
 <div id="busybar" aria-hidden="true"></div>
 <div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span></span></div>
 
@@ -654,7 +683,28 @@
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
-const PIECE_CDN = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/';
+// ---------- board & piece skins (saved per device) ----------
+const PIECE_ROOT = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/';
+const BOARDS = {
+  green: ['Green', '#ebecd0', '#739552'], brown: ['Brown', '#f0d9b5', '#b58863'], blue: ['Blue', '#dee3e6', '#8ca2ad'],
+  ice: ['Ice', '#e9f1f8', '#8db3d1'], purple: ['Purple', '#e8e2f2', '#8877b7'], walnut: ['Walnut', '#e8c99b', '#a26d3f'],
+  coral: ['Coral', '#f3e3d3', '#c97b63'], olive: ['Olive', '#e6e6c8', '#9a9a61'], gray: ['Gray', '#dcdcdc', '#8f8f8f'],
+  pink: ['Pink', '#f6e1ea', '#d48aa7'], night: ['Night', '#a7adb3', '#4f5964'], tournament: ['Tournament', '#f5f5f0', '#3f8a5e'],
+};
+const PIECE_SETS = { cburnett: 'Classic', merida: 'Merida', alpha: 'Alpha', california: 'California', cardinal: 'Cardinal', chessnut: 'Chessnut',
+  companion: 'Companion', fresca: 'Fresca', gioco: 'Gioco', governor: 'Governor', kosal: 'Kosal', leipzig: 'Leipzig', maestro: 'Maestro',
+  staunty: 'Staunty', tatiana: 'Tatiana', celtic: 'Celtic', icpieces: 'IC', riohacha: 'Riohacha', caliente: 'Caliente', firi: 'Firi',
+  cooke: 'Cooke', anarcandy: 'Candy', horsey: 'Horsey', pixel: 'Pixel', spatial: 'Spatial', shapes: 'Shapes', letter: 'Letters' };
+let SKIN = (() => { try { return { board: 'green', pieces: 'cburnett', ...(JSON.parse(localStorage.getItem('chess:skin')) || {}) }; } catch { return { board: 'green', pieces: 'cburnett' }; } })();
+if (!BOARDS[SKIN.board]) SKIN.board = 'green';
+if (!PIECE_SETS[SKIN.pieces]) SKIN.pieces = 'cburnett';
+let PIECE_CDN = PIECE_ROOT + SKIN.pieces + '/';
+function applyBoardColors() {
+  const [, l, d] = BOARDS[SKIN.board];
+  document.documentElement.style.setProperty('--light', l);
+  document.documentElement.style.setProperty('--dark', d);
+}
+applyBoardColors();
 function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
   return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
@@ -988,6 +1038,40 @@ function enterLobby() {
     if (lobbyTick % fullEvery === 0) pollLobby(true); else if (lobbyTick % pingEvery === 0) pollLobby(false);
   }, 1000);
 }
+function setSkin(part, value) {
+  SKIN[part] = value;
+  try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
+  if (part === 'board') applyBoardColors();
+  if (part === 'pieces') {                       // redraw every place that shows pieces
+    PIECE_CDN = PIECE_ROOT + SKIN.pieces + '/';
+    $('#preview').innerHTML = ''; drawPreview();
+    if (snap && view === 'game') { boardFlip = null; paintBoard(); $('#top')._h = $('#bottom')._h = $('#cbIcon')._h = null; sig = ''; render(); }
+    if (LS && view === 'learn') paintLesson();
+  }
+  paintSkinModal();
+}
+function paintSkinModal() {
+  if ($('#skinModal').classList.contains('hidden')) return;
+  setHTML($('#boardSwatches'), Object.entries(BOARDS).map(([k, [name, l, d]]) => `<button class="${k === SKIN.board ? 'on' : ''}" data-board="${k}"><span class="mini"><i style="background:${l}"></i><i style="background:${d}"></i><i style="background:${d}"></i><i style="background:${l}"></i></span>${name}</button>`).join(''));
+  setHTML($('#pieceSwatches'), Object.entries(PIECE_SETS).map(([k, name]) => `<button class="${k === SKIN.pieces ? 'on' : ''}" data-pieces="${k}"><span class="pieceset"><img src="${PIECE_ROOT}${k}/wN.svg" alt="" loading="lazy"><img src="${PIECE_ROOT}${k}/bQ.svg" alt="" loading="lazy"></span>${name}</button>`).join(''));
+  // preview: the opening position of the Italian Game
+  const st = Chess.initial();
+  for (const [f, t] of [[52, 36], [12, 28], [62, 45], [1, 18], [61, 34]]) st.board[t] = st.board[f], st.board[f] = null;
+  let h = '';
+  for (let sq = 0; sq < 64; sq++) h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}">${st.board[sq] ? pieceHTML(st.board[sq]) : ''}</div>`;
+  setHTML($('#skinPreview'), h);
+}
+function openSkins() { $('#skinModal').classList.remove('hidden'); paintSkinModal(); }
+$('#navSkin').onclick = openSkins;
+$('#skinBtn').onclick = openSkins;
+$('#skinDone').onclick = () => $('#skinModal').classList.add('hidden');
+$('#skinModal').addEventListener('click', (e) => {
+  if (e.target.id === 'skinModal') return $('#skinModal').classList.add('hidden');
+  const b = e.target.closest('[data-board]'), q = e.target.closest('[data-pieces]');
+  if (b) setSkin('board', b.dataset.board); else if (q) setSkin('pieces', q.dataset.pieces);
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#skinModal').classList.contains('hidden')) $('#skinModal').classList.add('hidden'); });
+
 function drawPreview() {
   const st = Chess.initial(), pv = $('#preview');
   if (pv.childElementCount) return;
