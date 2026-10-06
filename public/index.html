@@ -408,6 +408,8 @@
   .spec { background: #ffffff1a; color: #c3c2c1; font-size: .62rem; font-weight: 800; text-transform: uppercase; border-radius: 4px; padding: 0 5px; letter-spacing: .04em; vertical-align: 1px; }
   /* pause */
   #pausedOv { position: absolute; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center; background: rgba(20, 19, 17, .72); border-radius: 5px; }
+  #boardwrap.paused #board, #boardwrap.paused #arrows { filter: blur(18px) grayscale(1); pointer-events: none; user-select: none; }   /* hide the position while paused */
+  #boardwrap.paused .mbadge, #boardwrap.paused .mtoast { visibility: hidden; }
   #pausedOv > div { background: var(--panel); border-radius: 12px; padding: 18px 22px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; box-shadow: 0 20px 40px -12px #000; }
   #pausedOv b { font-size: 1.3rem; }
   #pausedTxt { color: var(--muted); font-weight: 600; font-size: .9rem; }
@@ -1549,6 +1551,7 @@ function render() {
   setText(pb, reqMine ? 'Pause requested…' : 'Pause');
   $('#pausebox').classList.toggle('hidden', !(canPause && !snap.paused && snap.pauseReq && snap.pauseReq !== you));
   $('#pausedOv').classList.toggle('hidden', !snap.paused);
+  $('#boardwrap').classList.toggle('paused', !!snap.paused);
   if (snap.paused) {
     const rr = snap.resumeReady || [], ready = rr.includes(you), rb = $('#resumeBtn');
     rb.classList.toggle('hidden', !mine);
