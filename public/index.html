@@ -1385,14 +1385,15 @@ async function pollGame(gen) {
       const f = r.full;
       if (pending && Date.now() - pending.t > 5000) pending = null;
       if (pending && f.moves.length >= pending.expect) pending = null;
-      if (!(pending && f.moves.length < pending.expect)) applySnapshot(f);   // ignore a state that predates my move
+      const stale = snap && snap.code === f.code && (f.v || 0) < (snap.v || 0);   // a live update already brought something newer
+      if (!stale && !(pending && f.moves.length < pending.expect)) applySnapshot(f);   // ignore a state that predates my move
       paintPendingMove();
     } else if (snap) patchSnap({ present: { w: !!r.p[0], b: !!r.p[1] }, watching: r.n });
     const s0 = r.full || snap, mine = s0 && (s0.you === 'w' || s0.you === 'b');
     delay = rtRoomLive ? (s0 && s0.status.over ? 8000 : 4000)                   // push is healthy: light heartbeat only
       : !s0 || s0.status.over ? 2500 : mine && s0.state.turn !== s0.you ? 500 : 1000;   // push is down: recover fast
     if (document.hidden) delay = Math.max(delay, 2500);
-    if (!rtRoomLive && !document.hidden && Date.now() - gchatLoad > 3000) loadGameChat(gameCode);   // no push: poll chat too
+    if (r.c && Date.now() - gchatLoad > 1500 && gchatMissing(r.c)) loadGameChat(gameCode);   // a chat message never arrived: fetch it
   } else if (r.status === 404 || r.status === 401) { return enterLobby(); }
   gameTimer = setTimeout(() => pollGame(gen), delay);
 }
@@ -1760,9 +1761,11 @@ function askPromo(from, to) {
 
 
 // ---------- in-game chat ----------
-let gchatIds = new Set(), gchatLoad = 0, gchatSending = false;
+let gchatIds = new Set(), gchatKs = new Set(), gchatLoad = 0, gchatSending = false;
+// true when one of the latest chat messages (numbered 1, 2, 3…) never reached this screen
+const gchatMissing = (c) => { for (let k = c; k > 0 && k > c - 30; k--) if (!gchatKs.has(k)) return true; return false; };
 function openGameChat(code) {
-  gchatIds = new Set(); VC.roster.clear(); VC.early.clear();
+  gchatIds = new Set(); gchatKs = new Set(); VC.roster.clear(); VC.early.clear();
   $('#gclog').innerHTML = '';
   $('#gchat').classList.remove('hidden');
   paintCall();
@@ -1775,20 +1778,20 @@ function loadGameChat(code) {
 }
 function addGameMsg(m) {
   if (!m || !m.id || gchatIds.has(m.id)) return false;
-  gchatIds.add(m.id);
+  gchatIds.add(m.id); if (m.k) gchatKs.add(m.k);
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const el = document.createElement('div');
-  el.className = 'gm'; el.dataset.ts = m.ts || Date.now();
+  el.className = 'gm'; el.dataset.ts = m.ts || 0;
   el.innerHTML = `<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${esc(m.t)}`;
   // keep time order even when the saved history arrives after a live message
-  const after = [...log.children].find((x) => +x.dataset.ts > +el.dataset.ts);
+  const after = [...log.children].find((x) => x.dataset.ts && +x.dataset.ts > +el.dataset.ts);   // notices have no time: never reordered
   log.insertBefore(el, after || null);
   if (near) log.scrollTop = log.scrollHeight;
   return true;
 }
 function sysGameMsg(text) {
   const log = $('#gclog'), el = document.createElement('div');
-  el.className = 'gm sys'; el.dataset.ts = Date.now(); el.textContent = text;
+  el.className = 'gm sys'; el.textContent = text;
   log.appendChild(el); log.scrollTop = log.scrollHeight;
 }
 function onGameChat(m) {
