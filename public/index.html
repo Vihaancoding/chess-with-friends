@@ -731,7 +731,7 @@
     <div>
       <div class="label" style="margin-top:0">Board</div><div class="swatches" id="boardSwatches"></div>
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
-      <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges during games (Brilliant, Best, …)</label>
+      <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
       <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
       <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
       <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button></div>
@@ -1708,7 +1708,6 @@ async function send(from, to, promo) {
   sending = true;
   const base = snap, baseAt = snapAt, baseSig = sig;
   applyOptimistic(m);
-  liveBadge(base.state, m, base.moves.length, true);
   // in the background: the board already moved. Network blips are retried (the server's ply check makes retries safe).
   let r, tries = 0;
   for (;;) {
@@ -2210,7 +2209,11 @@ function paintReviewComment(upto) {
     html = `<span class="sym" style="background:${CLS[c].c}">${CLS[c].sym}</span> ${num}${m ? Chess.notate(st, m) : ''} is <b style="color:${CLS[c].c}">${phrase}</b>.`;
     if (r.best && !(r.best.from === h.from && r.best.to === h.to) && ['inaccuracy', 'mistake', 'blunder', 'good'].includes(c)) {
       const bm = Chess.legalMoves(st).find((x) => x.from === r.best.from && x.to === r.best.to && (x.promo || undefined) === (r.best.promo || undefined));
-      if (bm) { html += ` Better was <b>${Chess.notate(st, bm)}</b> (green arrow).`; arrow = { from: bm.from, to: bm.to }; }
+      if (bm) {
+        const { why } = explainMove(st, m, bm, c, i, st.turn);
+        if (why) html += ` ${why}`;
+        html += ` Better was <b>${Chess.notate(st, bm)}</b> (green arrow).`; arrow = { from: bm.from, to: bm.to };
+      }
     }
     const after = evalWhite(i + 1);
     if (after != null) html += ` <span class="muted">Eval ${fmtEval(after)}</span>`;
@@ -2230,13 +2233,11 @@ $('#oAnalyze').onclick = () => { $('#over').classList.add('hidden'); if (snap &&
 
 
 // ---------- live move badges: each move is checked in a background worker right after it is played ----------
-// Fair play: in games against people only your OWN moves get badges, and only good ones (Brilliant/Great/Best/Excellent/Good);
-// in computer games every move gets one.
+// Only in games against the computer: nothing grades your moves while a game against a person is still going.
 if (SKIN.badges === undefined) SKIN.badges = true;
-const POSITIVE = new Set(['brilliant', 'great', 'best', 'excellent', 'good']);
 const LB = { worker: null, id: 0, cur: null, queue: [], shown: null };
 function liveBadge(before, move, ply, mine) {
-  if (!SKIN.badges || !window.Worker) return;
+  if (!SKIN.badges || !window.Worker || !isBot()) return;
   const h = move.promo ? { from: move.from, to: move.to, promo: move.promo } : { from: move.from, to: move.to };
   LB.queue.push({ before, h, ply, mine, game: gameCode });
   if (!LB.cur) nextBadgeJob();
@@ -2252,7 +2253,7 @@ function onBadge(e) {
   if (d.id !== LB.id || d.done || d.i !== 0 || !LB.cur) { if (d.done) nextBadgeJob(); return; }
   const job = LB.cur;
   const c = classifyMove(d, job.before, job.h);
-  const allow = isBot() ? c !== 'forced' : job.mine && POSITIVE.has(c);
+  const allow = isBot() && c !== 'forced';
   if (allow && job.game === gameCode && snap && snap.moves.length === job.ply + 1) {
     LB.shown = { ply: job.ply, sq: job.h.to, c };
     paintBadge(true);
@@ -2805,6 +2806,19 @@ function coachThreat(after) {
   }
   return { mate, win };
 }
+// Why was this move bad? Used live by the coach and in the post-game review.
+// side: null speaks to you ("Your knight…"); 'w'/'b' names the player ("White's knight…") for reviewing either side.
+function explainMove(before, m, bm, c, ply, side = null) {
+  if (!['inaccuracy', 'mistake', 'blunder'].includes(c) || !m) return { tag: null, why: '' };
+  const me = side ? (side === 'w' ? 'White' : 'Black') : 'You', my = side ? me + '\'s' : 'Your', opp = side ? (side === 'w' ? 'Black' : 'White') : 'your opponent';
+  const t = coachThreat(Chess.apply(before, m));
+  const bAfter = bm ? Chess.apply(before, bm) : null, bMate = bAfter && Chess.status(bAfter).reason === 'checkmate', bsan = bm ? Chess.notate(before, bm) : '';
+  if (t.mate) return { tag: 'hung', why: `This lets ${opp} checkmate with <b>${t.mate}</b>.` };
+  if (bMate) return { tag: 'missed', why: `${me} had checkmate: <b>${bsan}</b>!` };
+  if (t.win && c !== 'inaccuracy') return { tag: 'hung', why: t.win.free ? `${my} ${PNAME[t.win.piece]} on ${Chess.sqName(t.win.sq)} is left undefended, so <b>${t.win.san}</b> wins it for free.` : `It lets ${opp} win material with <b>${t.win.san}</b>.` };
+  if (bm && before.board[bm.to] && PV[before.board[bm.to][1]] >= 3 && c !== 'inaccuracy') return { tag: 'missed', why: `${me} missed <b>${bsan}</b>, which wins a ${PNAME[before.board[bm.to][1]]}.` };
+  return { tag: ply < 20 ? 'opening' : 'position', why: '' };
+}
 function coachGrade({ before, h, ply }) {
   const b = botGame, r = CO.res;
   if (!b || !r || !r.scores) return;
@@ -2816,16 +2830,7 @@ function coachGrade({ before, h, ply }) {
   const isBest = r.best && r.best.from === h.from && r.best.to === h.to;
   const loss = rr.played == null ? 0 : Math.max(0, WP(rr.bestScore) - WP(rr.played));
   const acc = c === 'forced' ? null : Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * loss * 100) - 3.1669));
-  let tag = null, why = '';
-  if (['inaccuracy', 'mistake', 'blunder'].includes(c) && m) {
-    const t = coachThreat(Chess.apply(before, m));
-    const bAfter = bm ? Chess.apply(before, bm) : null, bMate = bAfter && Chess.status(bAfter).reason === 'checkmate';
-    if (t.mate) { tag = 'hung'; why = `This lets your opponent checkmate you with <b>${t.mate}</b>.`; }
-    else if (bMate) { tag = 'missed'; why = `You had checkmate: <b>${bsan}</b>!`; }
-    else if (t.win && c !== 'inaccuracy') { tag = 'hung'; why = t.win.free ? `Your ${PNAME[t.win.piece]} on ${Chess.sqName(t.win.sq)} is left undefended, so <b>${t.win.san}</b> wins it for free.` : `It lets your opponent win material with <b>${t.win.san}</b>.`; }
-    else if (bm && before.board[bm.to] && PV[before.board[bm.to][1]] >= 3 && c !== 'inaccuracy') { tag = 'missed'; why = `You missed <b>${bsan}</b>, which wins a ${PNAME[before.board[bm.to][1]]}.`; }
-    else tag = ply < 20 ? 'opening' : 'position';
-  }
+  const { tag, why } = explainMove(before, m, bm, c, ply);
   b.coach.log.push({ ply, c, acc, tag });
   CO.prevWP = rr.played == null ? null : WP(rr.played);
   CO.last = { ply, c };
