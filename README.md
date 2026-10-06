@@ -2,7 +2,7 @@
 
 Multiplayer chess in the browser. Make a game, share the 5-letter code (or challenge a username), and play.
 
-**Features:** email accounts · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and voice calls (WebRTC) · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat · admin panel · sounds.
+**Features:** email accounts · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and voice calls (WebRTC) · **Learn**: interactive opening, middlegame and endgame courses · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat · admin panel · sounds.
 
 No framework and no build step: a vanilla JS client, a small Node API, and an optional Supabase database.
 
@@ -43,6 +43,7 @@ log in, open `https://your-site/?admin=1`, and enter `ADMIN_KEY`. An **Admin** l
 | Path | What |
 |---|---|
 | `public/index.html` | The whole client (UI, polling, drag and drop, sounds) |
+| `public/lessons.js` | Course content (openings, middlegame, endgames). Validate edits with `node scripts/check-lessons.js` |
 | `public/bot.js` | Computer opponent: alpha-beta search with quiescence, runs in a Web Worker |
 | `public/chess.js` | Chess engine shared by browser and server (legal moves, check/mate, castling, en passant, promotion, repetition key) |
 | `lib/app.js` | API: accounts, rooms, clocks, Elo, challenges, chat, admin |

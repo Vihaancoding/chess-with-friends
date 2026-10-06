@@ -172,5 +172,25 @@
     return state.board.map((p) => p || '--').join('') + state.turn + (c.wK ? 'K' : '') + (c.wQ ? 'Q' : '') + (c.bK ? 'k' : '') + (c.bQ ? 'q' : '') + ep;
   }
 
-  return { initial, legalMoves, apply, status, inCheck, notate, sqName, key };
+  // Position from FEN (board, side to move, castling rights, en passant square).
+  function fromFEN(fen) {
+    const [pos, turn = 'w', cas = '-', ep = '-'] = fen.trim().split(/\s+/);
+    const board = new Array(64).fill(null);
+    let i = 0;
+    for (const ch of pos) {
+      if (ch === '/') continue;
+      if (/\d/.test(ch)) { i += +ch; continue; }
+      board[i++] = (ch === ch.toUpperCase() ? 'w' : 'b') + ch.toUpperCase();
+    }
+    return { board, turn, castle: { wK: cas.includes('K'), wQ: cas.includes('Q'), bK: cas.includes('k'), bQ: cas.includes('q') },
+      ep: ep === '-' ? null : 'abcdefgh'.indexOf(ep[0]) + (8 - +ep[1]) * 8, half: 0, full: 1 };
+  }
+  // "e2e4" / "e7e8q" -> legal move object in this position (or undefined)
+  function findUci(state, uci) {
+    const sq = (q) => 'abcdefgh'.indexOf(q[0]) + (8 - +q[1]) * 8;
+    const from = sq(uci.slice(0, 2)), to = sq(uci.slice(2, 4)), promo = uci[4] ? uci[4].toUpperCase() : undefined;
+    return legalMoves(state).find((m) => m.from === from && m.to === to && (m.promo || undefined) === (promo || (m.promo ? 'Q' : undefined)));
+  }
+
+  return { initial, legalMoves, apply, status, inCheck, notate, sqName, key, fromFEN, findUci };
 });

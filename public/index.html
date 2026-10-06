@@ -131,7 +131,7 @@
   tr.you td { color: var(--green); }
 
   /* ---------- board ---------- */
-  #board, #preview { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; border-radius: 5px; overflow: hidden; user-select: none; touch-action: manipulation; box-shadow: 0 8px 24px -10px #0009; }
+  #board, #preview, #lboard { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; border-radius: 5px; overflow: hidden; user-select: none; touch-action: manipulation; box-shadow: 0 8px 24px -10px #0009; }
   #preview { pointer-events: none; }
   .sq { position: relative; display: flex; align-items: center; justify-content: center; cursor: default; container-type: size; min-width: 0; -webkit-tap-highlight-color: transparent; }
   .sq.l { background: var(--light); } .sq.d { background: var(--dark); }
@@ -353,6 +353,7 @@
   .gchead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 8px 14px; background: #1f1e1b; border-bottom: 1px solid var(--line); font-weight: 800; min-height: 48px; }
   #callctl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   #callctl button { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
+  #callctl button:disabled { opacity: .45; }
   #callctl .cstate { color: var(--muted); font-size: .78rem; font-weight: 700; }
   #callctl .cstate.live { color: var(--green); }
   button.decline { background: #6b2a24; box-shadow: 0 2px 0 #3d1815; }
@@ -366,6 +367,38 @@
   #gcForm button { min-height: 38px; }
   .ringing { animation: ring 1s ease-in-out infinite; }
   @keyframes ring { 0%, 100% { transform: none; } 20% { transform: rotate(-12deg); } 40% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } }
+  /* learn */
+  #learn { max-width: 1100px; margin: 0 auto; padding: 22px 18px 60px; }
+  .ccards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+  @media (max-width: 760px) { .ccards { grid-template-columns: 1fr; } }
+  .ccard { background: var(--panel); border-radius: 10px; padding: 16px 18px; cursor: pointer; border: 2px solid transparent; }
+  .ccard.on { border-color: var(--green); }
+  .ccard h3 { margin: 0 0 4px; font-size: 1.15rem; font-weight: 800; }
+  .ccard p { margin: 0 0 12px; color: var(--muted); font-size: .85rem; min-height: 2.6em; }
+  .pbar { height: 8px; border-radius: 4px; background: #1f1e1b; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--green); border-radius: 4px; }
+  .pnum { color: var(--muted); font-size: .78rem; font-weight: 700; margin-top: 6px; }
+  .lrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 6px; border-top: 1px solid var(--line); cursor: pointer; }
+  .lrow:first-child { border-top: 0; }
+  .lrow:hover { background: #ffffff08; }
+  .lnum { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #3a3936; font-weight: 800; font-size: .85rem; }
+  .lrow.done .lnum { background: var(--green); color: #fff; }
+  .lrow b { display: block; } .lrow span.muted { font-size: .85rem; }
+  .lgrid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; }
+  .lgrid > .lboardcol { width: min(100%, calc(100vh - 120px)); min-width: 280px; margin-left: auto; }
+  @media (max-width: 1000px) { .lgrid { grid-template-columns: 1fr; } .lgrid > .lboardcol { width: 100%; min-width: 0; margin: 0; } }
+  .lside { display: flex; flex-direction: column; gap: 10px; }
+  .lcrumb { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+  .ldots { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  .ldots i { width: 10px; height: 10px; border-radius: 50%; background: #3a3936; } .ldots i.on { background: var(--green); } .ldots i.cur { background: #fff; }
+  #lmsgs { max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .lm { background: #1f1e1b; border-radius: 8px; padding: 10px 12px; border-left: 4px solid #706f6d; font-size: .95rem; animation: lmin .2s ease-out; }
+  .lm.task { border-left-color: #fff; font-weight: 700; }
+  .lm.good { border-left-color: var(--green); } .lm.bad { border-left-color: var(--bad); } .lm.done { border-left-color: var(--gold); font-weight: 600; }
+  @keyframes lmin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  #lboard .sq.hintsq::before { content: ""; position: absolute; inset: 0; background: rgba(30, 86, 200, .45); }
+  #lboard .sq.wrong { animation: wrongflash .4s; }
+  @keyframes wrongflash { 30% { box-shadow: inset 0 0 0 200px rgba(250, 65, 45, .5); } }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -376,6 +409,7 @@
   <div class="brand"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
+    <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
     <button id="navProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile</button>
     <button id="navAdmin" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg> Admin</button>
@@ -474,6 +508,28 @@
   </div>
 </div>
 
+<!-- learn -->
+<div id="learn" class="hidden">
+  <div id="learnHome">
+    <h1 class="ptitle">Learn</h1>
+    <div class="muted" style="font-weight:600">Short interactive lessons. You play the moves; the board answers.</div>
+    <div class="ccards" id="ccards"></div>
+    <div class="panel" id="lessonList"></div>
+  </div>
+  <div id="lessonView" class="hidden">
+    <div class="lgrid">
+      <div class="lboardcol"><div id="lboard"></div></div>
+      <aside class="lside">
+        <div class="panel"><div class="lcrumb" id="lcrumb"></div><h2 class="ptitle" id="ltitle" style="margin-top:4px"></h2><div class="ldots" id="ldots"></div></div>
+        <div class="panel" id="lmsgs"></div>
+        <div class="actions"><button id="lHint">Hint</button><button id="lShow">Show move</button><button id="lRestart">Restart</button></div>
+        <button class="primary big hidden" id="lNext">Next</button>
+        <button id="lBack">Back to course</button>
+      </aside>
+    </div>
+  </div>
+</div>
+
 <!-- profile -->
 <div id="profile" class="hidden">
   <div class="phead"><div class="avatar w" id="pfAvatar"></div><div><h1 class="ptitle" id="pfName"></h1><div class="muted" id="pfSub" style="font-weight:600"></div></div><button class="primary" id="pfChallenge">Challenge</button></div>
@@ -565,7 +621,7 @@ function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
   return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
 }
-const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -776,6 +832,7 @@ async function boot() {
 async function start() {
   ensureSessionSubs();
   const params = new URLSearchParams(location.search);
+  if (params.has('learn')) return enterLearn();
   if (params.has('admin')) wantAdmin = true;
   const q = params.get('game');
   if (params.has('bot')) { const b = botLoad(); if (b) return enterBot(b); }
@@ -1535,24 +1592,41 @@ function paintCall() {
   const el = $('#callctl'); if (!el) return;
   const both = snap && snap.players && snap.players.w && snap.players.b;
   $('#gcForm').classList.toggle('hidden', !isPlayer());
-  if (!isPlayer() || !both) { el.innerHTML = ''; return; }
-  const mmss = (ms) => { const x = Math.floor(ms / 1000); return `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}`; };
+  if (!isPlayer() || !both) { if (el._h !== '') { el._h = ''; el.innerHTML = ''; } return; }
+  const opp = snap.you === 'w' ? 'b' : 'w', oppHere = !!(snap.present && snap.present[opp]);
   const html = {
-    idle: `<button data-c="call" title="Voice call your opponent">${PH} Call</button>`,
+    idle: oppHere ? `<button data-c="call" title="Voice call your opponent">${PH} Call</button>`
+                  : `<button data-c="call" disabled title="Your opponent isn't on the game screen right now">${PH} Call</button>`,
     calling: `<span class="cstate"><span class="ringing" style="display:inline-block">${PH}</span> Calling…</span><button data-c="hangup">Cancel</button>`,
     incoming: `<span class="cstate">Incoming call</span><button class="primary" data-c="accept">Accept</button><button class="decline" data-c="decline">Decline</button>`,
     connecting: `<span class="cstate">Connecting…</span><button class="decline" data-c="hangup">Hang up</button>`,
-    live: `<span class="cstate live">● ${mmss(Date.now() - CALL.since)}</span><button data-c="mute">${CALL.muted ? 'Unmute' : 'Mute'}</button><button class="decline" data-c="hangup">Hang up</button>`,
+    live: `<span class="cstate live">● <span class="ctime">0:00</span></span>${CALL.needTap ? '<button class="primary" data-c="hear">Tap to hear</button>' : ''}<button data-c="mute">${CALL.muted ? 'Unmute' : 'Mute'}</button><button class="decline" data-c="hangup">Hang up</button>`,
   }[CALL.state];
-  if (el._h !== html) { el._h = html; el.innerHTML = html; }
+  if (el._h !== html) { el._h = html; el.innerHTML = html; }   // buttons are only rebuilt when the state changes
+  paintCallTime();
+}
+// the call timer updates its own text, so buttons are never replaced under your finger
+function paintCallTime() {
+  const t = $('#callctl .ctime'); if (!t) return;
+  const x = Math.floor((Date.now() - CALL.since) / 1000);
+  t.textContent = `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}`;
 }
 function setCall(st) {
   CALL.state = st;
   clearInterval(CALL.tick); clearInterval(CALL.ringTone);
-  if (st === 'live') { CALL.since = Date.now(); CALL.tick = setInterval(paintCall, 1000); }
+  if (st === 'live') { CALL.since = Date.now(); CALL.tick = setInterval(paintCallTime, 1000); }
   if (st === 'incoming') { ringOnce(); CALL.ringTone = setInterval(ringOnce, 2000); }
   paintCall();
 }
+const micError = (e) => {
+  const n = e && e.name;
+  if (n === 'NotAllowedError' || n === 'SecurityError') return 'Microphone blocked. Click the lock icon next to the address bar, allow the microphone, and try again.';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No microphone was found on this device.';
+  if (n === 'NotReadableError') return 'Your microphone is being used by another app. Close it and try again.';
+  return 'Could not use the microphone' + (n ? ` (${n})` : '') + '.';
+};
+// play() must happen inside the click so browsers (especially Safari) allow the call audio later
+function unlockAudio() { const a = $('#callAudio'); if (a) { a.muted = false; const p = a.play(); if (p) p.catch(() => {}); } }
 function ringOnce() { tone(880, 0.18, { vol: 0.12 }); tone(660, 0.18, { vol: 0.12, delay: 0.22 }); }
 async function getMic() {
   if (CALL.stream) return CALL.stream;
@@ -1562,39 +1636,50 @@ function makePC() {
   const pc = (CALL.pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] }));
   CALL.stream.getTracks().forEach((t) => pc.addTrack(t, CALL.stream));
   pc.onicecandidate = (e) => { if (e.candidate) signal('ice', e.candidate.toJSON()); };
-  pc.ontrack = (e) => { const a = $('#callAudio'); a.srcObject = e.streams[0]; a.play().catch(() => {}); };
-  pc.onconnectionstatechange = () => {
-    const st = pc.connectionState;
+  pc.ontrack = (e) => {
+    const a = $('#callAudio'); a.srcObject = e.streams[0];
+    a.play().then(() => { CALL.needTap = false; paintCall(); }).catch(() => { CALL.needTap = true; paintCall(); });   // autoplay blocked: offer a tap
+  };
+  // connectionState is missing in some browsers (older Safari): fall back to the ICE state
+  const onState = () => {
+    const st = pc.connectionState || ({ connected: 'connected', completed: 'connected', failed: 'failed', disconnected: 'disconnected', closed: 'closed' }[pc.iceConnectionState] || pc.iceConnectionState);
     clearTimeout(CALL.dropT);
     if (st === 'connected') { if (CALL.state !== 'live') { setCall('live'); sysGameMsg('Call connected'); } }
-    else if (st === 'failed') { signal('hangup'); endCall('Call could not connect (your networks may block direct calls)'); }
-    else if (st === 'disconnected') CALL.dropT = setTimeout(() => { if (pc.connectionState !== 'connected') { signal('hangup'); endCall('Call dropped'); } }, 8000);
+    else if (st === 'failed') { signal('hangup'); endCall('Call could not connect. One of your networks blocks direct calls (common on school, office and some mobile networks).'); }
+    else if (st === 'disconnected') CALL.dropT = setTimeout(() => { if (CALL.pc === pc && CALL.state !== 'idle') { signal('hangup'); endCall('Call dropped'); } }, 8000);
   };
+  pc.onconnectionstatechange = onState;
+  pc.oniceconnectionstatechange = onState;
+  // if it never connects, say so instead of hanging forever
+  CALL.connT = setTimeout(() => { if (CALL.pc === pc && CALL.state === 'connecting') { signal('hangup'); endCall('Call could not connect. One of your networks blocks direct calls.'); } }, 20000);
 }
 async function flushIce() { const q = CALL.queue; CALL.queue = []; for (const c of q) await CALL.pc.addIceCandidate(c).catch(() => {}); }
 async function startCall() {
   if (CALL.state !== 'idle' || !isPlayer()) return;
-  if (!navigator.mediaDevices || !window.RTCPeerConnection) return sysGameMsg('Voice calls are not supported in this browser.');
-  try { await getMic(); } catch { return sysGameMsg('Microphone access was blocked. Allow it in your browser to call.'); }
-  setCall('calling');
+  if (!navigator.mediaDevices || !window.RTCPeerConnection || !window.isSecureContext) return sysGameMsg('Voice calls are not supported in this browser.');
+  unlockAudio();
+  setCall('calling');                                       // instant feedback while the browser asks for the microphone
+  try { await getMic(); } catch (e) { endCall(null); return sysGameMsg(micError(e)); }
+  if (CALL.state !== 'calling') return;                     // cancelled while the permission prompt was open
   signal('ring');
-  CALL.ringT = setTimeout(() => { if (CALL.state === 'calling') { signal('hangup'); endCall('No answer'); } }, 30000);
+  CALL.ringT = setTimeout(() => { if (CALL.state === 'calling') { signal('hangup'); endCall('No answer. Your opponent has to be on the game screen to hear the call.'); } }, 30000);
 }
 async function acceptCall() {
   if (CALL.state !== 'incoming' && CALL.state !== 'calling') return;
   clearTimeout(CALL.ringT);
-  try { await getMic(); } catch { signal('decline'); return endCall('Microphone access was blocked. Allow it in your browser to take calls.'); }
+  unlockAudio();
+  try { await getMic(); } catch (e) { signal('decline'); return endCall(micError(e)); }
   setCall('connecting');
   if (!CALL.pc) makePC();
   signal('accept');
 }
 function endCall(note) {
-  clearTimeout(CALL.ringT); clearTimeout(CALL.dropT); clearInterval(CALL.tick); clearInterval(CALL.ringTone);
+  clearTimeout(CALL.ringT); clearTimeout(CALL.dropT); clearTimeout(CALL.connT); clearInterval(CALL.tick); clearInterval(CALL.ringTone);
   const wasLive = CALL.state === 'live', dur = Date.now() - CALL.since;
   if (CALL.pc) { try { CALL.pc.close(); } catch {} }
   if (CALL.stream) CALL.stream.getTracks().forEach((t) => t.stop());
   const a = $('#callAudio'); if (a) a.srcObject = null;
-  Object.assign(CALL, { state: 'idle', pc: null, stream: null, queue: [], muted: false });
+  Object.assign(CALL, { state: 'idle', pc: null, stream: null, queue: [], muted: false, needTap: false });
   if (note) sysGameMsg(wasLive && note === 'Call ended' ? `Call ended · ${Math.floor(dur / 60000)}:${String(Math.floor(dur / 1000) % 60).padStart(2, '0')}` : note);
   paintCall();
 }
@@ -1642,9 +1727,162 @@ $('#callctl').addEventListener('click', (e) => {
   else if (c === 'accept') acceptCall();
   else if (c === 'decline') { signal('decline'); endCall('Call declined'); }
   else if (c === 'hangup') { signal('hangup'); endCall('Call ended'); }
+  else if (c === 'hear') { const a = $('#callAudio'); a.play().then(() => { CALL.needTap = false; paintCall(); }).catch(() => {}); }
   else if (c === 'mute') { CALL.muted = !CALL.muted; if (CALL.stream) CALL.stream.getAudioTracks().forEach((t) => (t.enabled = !CALL.muted)); paintCall(); }
 });
 window.addEventListener('beforeunload', () => { if (CALL.state !== 'idle' && gameCode) navigator.sendBeacon && signal('hangup'); });
+
+
+// ---------- Learn: interactive courses (content in lessons.js, checked by scripts/check-lessons.js) ----------
+let LS = null, learnCourse = 'openings';
+const learnDone = () => { try { return JSON.parse(localStorage.getItem('chess:learn')) || {}; } catch { return {}; } };
+function markLessonDone(id) { const d = learnDone(); d[id] = Date.now(); try { localStorage.setItem('chess:learn', JSON.stringify(d)); } catch {} }
+const uciOf = (m) => Chess.sqName(m.from) + Chess.sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '');
+async function enterLearn(courseId) {
+  stopLobby(); stopGame(); stopAdmin();
+  view = 'learn'; gameCode = null; LS = null;
+  history.replaceState(null, '', '/?learn');
+  show('learn');
+  $('#lessonView').classList.add('hidden'); $('#learnHome').classList.remove('hidden');
+  if (courseId) learnCourse = courseId;
+  if (!window.COURSES) {
+    $('#ccards').innerHTML = [0, 1, 2].map(() => '<div class="ccard"><h3><span class="sk" style="width:110px"></span></h3><p><span class="sk" style="width:90%"></span></p><div class="pbar"></div></div>').join('');
+    $('#lessonList').innerHTML = '<div class="lrow"><span class="sk" style="width:30px;height:30px;border-radius:50%"></span><span><span class="sk" style="width:180px"></span></span><span></span></div>';
+    try { await loadScript('lessons.js'); } catch { $('#lessonList').innerHTML = '<div class="muted empty">Could not load the lessons. Check your connection.</div>'; return; }
+  }
+  paintCourses();
+}
+function paintCourses() {
+  const done = learnDone();
+  $('#ccards').innerHTML = Object.entries(COURSES).map(([id, c]) => {
+    const n = c.lessons.length, k = c.lessons.filter((l) => done[l.id]).length;
+    return `<div class="ccard ${id === learnCourse ? 'on' : ''}" data-course="${id}"><h3>${c.title}</h3><p>${c.blurb}</p><div class="pbar"><i style="width:${Math.round((100 * k) / n)}%"></i></div><div class="pnum">${k} / ${n} lessons</div></div>`;
+  }).join('');
+  const c = COURSES[learnCourse];
+  $('#lessonList').innerHTML = c.lessons.map((l, i) => `<div class="lrow ${done[l.id] ? 'done' : ''}" data-lesson="${i}"><span class="lnum">${done[l.id] ? '✓' : i + 1}</span><span><b>${l.title}</b><span class="muted">${l.summary}</span></span><button class="small ${done[l.id] ? '' : 'primary'}">${done[l.id] ? 'Review' : 'Start'}</button></div>`).join('');
+}
+$('#ccards').addEventListener('click', (e) => { const c = e.target.closest('[data-course]'); if (c) { learnCourse = c.dataset.course; paintCourses(); } });
+$('#lessonList').addEventListener('click', (e) => { const r = e.target.closest('[data-lesson]'); if (r) openLesson(learnCourse, +r.dataset.lesson); });
+
+function openLesson(cid, idx) {
+  const L = COURSES[cid].lessons[idx];
+  LS = { cid, idx, L, part: 0, step: 0, st: null, sel: null, legal: [], last: null, tries: 0, busy: false, mark: [], flip: L.side === 'b' };
+  $('#learnHome').classList.add('hidden'); $('#lessonView').classList.remove('hidden');
+  $('#lcrumb').textContent = `${COURSES[cid].title} · lesson ${idx + 1} of ${COURSES[cid].lessons.length}`;
+  $('#ltitle').textContent = L.title;
+  startPart(0);
+}
+function startPart(pi) {
+  const P = LS.L.parts[pi];
+  Object.assign(LS, { part: pi, step: 0, sel: null, legal: [], last: null, tries: 0, busy: false, mark: [] });
+  LS.st = P.fen ? Chess.fromFEN(P.fen) : Chess.initial();
+  for (const u of P.pre || []) { const m = Chess.findUci(LS.st, u); LS.last = m; LS.st = Chess.apply(LS.st, m); }
+  $('#lmsgs').innerHTML = '';
+  $('#lNext').classList.add('hidden');
+  if (pi === 0 || P.intro) lsay(P.intro, '');
+  lsay(lstep().say, 'task');
+  paintLesson();
+}
+const lstep = () => LS.L.parts[LS.part].steps[LS.step];
+function lsay(text, cls) {
+  if (!text) return;
+  const box = $('#lmsgs');
+  box.insertAdjacentHTML('beforeend', `<div class="lm ${cls}">${esc(text)}</div>`);
+  box.scrollTop = box.scrollHeight;
+}
+function paintLesson() {
+  if (!LS) return;
+  const bd = $('#lboard'), st = LS.st;
+  const targets = new Map(LS.legal.filter((m) => m.from === LS.sel).map((m) => [m.to, m]));
+  let h = '';
+  for (let i = 0; i < 64; i++) {
+    const sq = LS.flip ? 63 - i : i, r = sq >> 3, c = sq & 7, p = st.board[sq], t = targets.get(sq);
+    let cls = 'sq ' + ((r + c) % 2 ? 'd' : 'l');
+    if (LS.last && (sq === LS.last.from || sq === LS.last.to)) cls += ' last';
+    if (sq === LS.sel) cls += ' sel';
+    if (t) cls += ' hint' + (p || t.enPassant ? ' cap' : '');
+    if (LS.mark.includes(sq)) cls += ' hintsq';
+    if (p && p[0] === LS.L.side && !LS.busy) cls += ' mine';
+    h += `<div class="${cls}" data-sq="${sq}">${p ? pieceHTML(p) : ''}${i % 8 === 0 ? `<span class="coord r">${8 - (LS.flip ? 7 - (i >> 3) : i >> 3)}</span>` : ''}${i >= 56 ? `<span class="coord f">${'abcdefgh'[LS.flip ? 7 - (i & 7) : i & 7]}</span>` : ''}</div>`;
+  }
+  bd.innerHTML = h;
+  // progress dots across the whole lesson
+  let dots = '';
+  LS.L.parts.forEach((P, pi) => P.steps.forEach((_, si) => {
+    const doneDot = pi < LS.part || (pi === LS.part && si < LS.step), cur = pi === LS.part && si === LS.step;
+    dots += `<i class="${doneDot ? 'on' : cur ? 'cur' : ''}"></i>`;
+  }));
+  $('#ldots').innerHTML = dots;
+}
+$('#lboard').addEventListener('click', (e) => {
+  const el = e.target.closest('.sq'); if (!el || !LS || LS.busy || !lstep() || LS.st.turn !== LS.L.side) return;
+  const sq = +el.dataset.sq, p = LS.st.board[sq];
+  if (LS.sel !== null) {
+    const cand = LS.legal.filter((m) => m.from === LS.sel && m.to === sq);
+    if (cand.length) return lessonMove(cand.find((m) => !m.promo || m.promo === 'Q') || cand[0]);
+  }
+  if (p && p[0] === LS.L.side && sq !== LS.sel) { LS.sel = sq; LS.legal = Chess.legalMoves(LS.st); }
+  else { LS.sel = null; LS.legal = []; }
+  paintLesson();
+});
+function lessonMove(m) {
+  const S = lstep(), u = uciOf(m), after = Chess.apply(LS.st, m);
+  const ok = S.accept === 'mate' ? Chess.status(after).reason === 'checkmate' : (S.move || []).includes(u);
+  LS.sel = null; LS.legal = [];
+  if (!ok) {
+    LS.tries++;
+    sfx('check');
+    lsay(LS.tries >= 2 ? 'Not quite. Stuck? Press Hint.' : 'Not quite. Try again.', 'bad');
+    paintLesson();
+    const el = $(`#lboard .sq[data-sq="${m.to}"]`); if (el) el.classList.add('wrong');
+    return;
+  }
+  const capture = !!(LS.st.board[m.to] || m.enPassant);
+  LS.st = after; LS.last = m; LS.mark = []; LS.tries = 0;
+  sfx(Chess.status(after).check ? 'check' : capture ? 'capture' : 'move');
+  lsay(S.why || 'Correct!', 'good');
+  if (S.reply) {
+    LS.busy = true; paintLesson();
+    setTimeout(() => {
+      if (!LS) return;
+      const r = Chess.findUci(LS.st, S.reply), cap = !!(LS.st.board[r.to] || r.enPassant);
+      LS.st = Chess.apply(LS.st, r); LS.last = r; LS.busy = false;
+      sfx(Chess.status(LS.st).check ? 'check' : cap ? 'capture' : 'move');
+      nextLessonStep();
+    }, 550);
+  } else nextLessonStep();
+}
+function nextLessonStep() {
+  LS.step++;
+  const P = LS.L.parts[LS.part];
+  if (LS.step < P.steps.length) { lsay(lstep().say, 'task'); return paintLesson(); }
+  if (LS.part + 1 < LS.L.parts.length) {
+    $('#lNext').textContent = 'Next position'; $('#lNext').classList.remove('hidden'); $('#lNext').dataset.go = 'part';
+    return paintLesson();
+  }
+  markLessonDone(LS.L.id);
+  sfx('end');
+  lsay('Lesson complete! ' + (LS.L.outro || ''), 'done');
+  const more = LS.idx + 1 < COURSES[LS.cid].lessons.length;
+  $('#lNext').textContent = more ? 'Next lesson' : 'Back to course'; $('#lNext').classList.remove('hidden'); $('#lNext').dataset.go = more ? 'lesson' : 'home';
+  paintLesson();
+}
+function lessonSolution() {
+  const S = lstep(); if (!S) return null;
+  if (S.move && S.move.length) return Chess.findUci(LS.st, S.move[0]);
+  return Chess.legalMoves(LS.st).find((m) => Chess.status(Chess.apply(LS.st, m)).reason === 'checkmate');
+}
+$('#lHint').onclick = () => { if (!LS || LS.busy) return; const m = lessonSolution(); if (!m) return; LS.mark = [m.from]; lsay('Hint: move the highlighted piece.', ''); paintLesson(); };
+$('#lShow').onclick = () => { if (!LS || LS.busy) return; const m = lessonSolution(); if (!m) return; LS.mark = [m.from, m.to]; lsay('Play the highlighted move: from the first square to the second.', ''); paintLesson(); };
+$('#lRestart').onclick = () => { if (LS) startPart(0); };
+$('#lBack').onclick = () => enterLearn(LS ? LS.cid : learnCourse);
+$('#lNext').onclick = () => {
+  const go = $('#lNext').dataset.go;
+  if (go === 'part') startPart(LS.part + 1);
+  else if (go === 'lesson') openLesson(LS.cid, LS.idx + 1);
+  else enterLearn(LS.cid);
+};
+$('#navLearn').onclick = () => enterLearn();
 
 // ---------- move history / review ----------
 function buildStates(hist) {
