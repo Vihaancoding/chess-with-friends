@@ -2,7 +2,7 @@
 
 Multiplayer chess in the browser. Make a game, share the 5-letter code (or challenge a username), and play.
 
-**Features:** email accounts with **account recovery** (recovery codes, emailed or admin-issued reset links) · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · **game archive**: every finished game is saved for good, with search, filters and sorting, a replay with play/pause and speed control, and engine analysis from any move · **opening recognition** (ECO code and named variation, updated live and on transpositions) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
+**Features:** email accounts with **account recovery** (recovery codes, emailed or admin-issued reset links) · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · **game archive**: every finished game is saved for good, with search, filters and sorting, a replay with play/pause and speed control, and engine analysis from any move · **opening recognition** (ECO code and named variation, updated live and on transpositions) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · **Ask the coach**: ask what you want to learn ("teach me the Caro-Kann", "what is a pin?", "how do I improve?") and get a short explanation plus a lesson to play: any of the 3,000+ named openings becomes an interactive trainer for either colour, with a from-memory drill · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
 
 No framework and no build step: a vanilla JS client, a small Node API, and an optional Supabase database.
 
@@ -14,7 +14,7 @@ node server.js          # needs Node 18+
 
 Open http://localhost:3000. With no database configured, everything is stored in memory and resets when the server restarts. That's fine for development.
 
-Tests: `node scripts/test-archive.js` (game archive API, no dependencies). The browser tests `node scripts/test-archive-ui.js` and `node scripts/test-premoves.js` need Playwright.
+Tests: `node scripts/test-archive.js` (game archive API) and `node scripts/test-coach-ask.js` (Ask the coach), no dependencies. The browser tests `node scripts/test-archive-ui.js` and `node scripts/test-premoves.js` need Playwright.
 
 Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (see below).
 
@@ -61,6 +61,7 @@ Players who signed up before recovery codes existed can create one from their pr
 |---|---|
 | `public/index.html` | The whole client (UI, polling, drag and drop, sounds) |
 | `public/lessons.js` | Course content (openings, middlegame, endgames). Validate edits with `node scripts/check-lessons.js` |
+| `public/coachask.js` | Ask the coach: matches a question to an opening (from `openings.js`) or a topic, and builds opening trainer lessons. Runs in the browser, no AI service. Test with `node scripts/test-coach-ask.js` |
 | `public/opening.js` | Opening recognition shared by browser and server (matches positions, so transpositions count) |
 | `public/openings.js` | Opening names (ECO, name, moves) generated from the [Lichess opening list](https://github.com/lichess-org/chess-openings) (CC0). Rebuild with `node scripts/build-openings.js` |
 | `public/bot.js` | Computer opponent: alpha-beta search with quiescence, runs in a Web Worker |
