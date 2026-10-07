@@ -1671,15 +1671,22 @@ function premoveBoard() {
   }
   return board;
 }
-// squares a piece could go to once the opponent has moved. Own pieces (on the premove board) stay where they are,
-// so they block; opponent pieces may move or be traded off, so a slider sees through them and a pawn may capture
-// on either diagonal. That lets recaptures and planned sequences be queued.
+// squares a piece could go to once the opponent has moved. Opponent pieces may move or be traded off, so a slider
+// sees through them and a pawn may capture on either diagonal. Own pieces (on the premove board) stay put and block,
+// except one the opponent can capture right now: that square is offered as a recapture (marked `re`).
 function premoveTargets(board, sq) {
   const p = board[sq], you = snap.you, out = [];
   if (!p || p[0] !== you) return out;
   const r = sq >> 3, c = sq & 7, t = p[1], ok = (rr, cc) => rr >= 0 && rr < 8 && cc >= 0 && cc < 8;
   const own = (rr, cc) => { const q = board[rr * 8 + cc]; return !!q && q[0] === you; };
-  const add = (rr, cc, x) => { if (ok(rr, cc) && !own(rr, cc)) out.push({ from: sq, to: rr * 8 + cc, ...x }); };
+  const opp = you === 'w' ? 'b' : 'w';
+  const hit = new Set(Chess.legalMoves({ ...snap.state, board, turn: opp, ep: null }).map((m) => m.to));   // squares the opponent can take on
+  const add = (rr, cc, x) => {
+    if (!ok(rr, cc)) return;
+    const to = rr * 8 + cc;
+    if (!own(rr, cc)) out.push({ from: sq, to, ...x });
+    else if (hit.has(to) && !(x && x.castle) && !(t === 'P' && cc === c)) out.push({ from: sq, to, re: true, ...x });   // pawns only recapture diagonally
+  };
   if (t === 'P') {
     const dir = you === 'w' ? -1 : 1, promo = r + dir === (you === 'w' ? 0 : 7) ? { promo: 'Q' } : {};
     add(r + dir, c, promo); add(r + dir, c - 1, promo); add(r + dir, c + 1, promo);
@@ -1696,7 +1703,7 @@ function premoveTargets(board, sq) {
   } else {
     const dirs = t === 'B' ? [[-1, -1], [-1, 1], [1, -1], [1, 1]] : t === 'R' ? [[-1, 0], [1, 0], [0, -1], [0, 1]]
       : [[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (const [dr, dc] of dirs) for (let k = 1; ok(r + dr * k, c + dc * k) && !own(r + dr * k, c + dc * k); k++) add(r + dr * k, c + dc * k);
+    for (const [dr, dc] of dirs) for (let k = 1; ok(r + dr * k, c + dc * k); k++) { add(r + dr * k, c + dc * k); if (own(r + dr * k, c + dc * k)) break; }
   }
   return out;
 }
@@ -1705,13 +1712,13 @@ const movesFor = (sn, sq) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.sta
 // the board the player is acting on: the real one on my turn, the premove board otherwise
 const actBoard = () => (premoveTurn() && premoves.length ? premoveBoard() : snap.state.board);
 
-function clickSquare(sq) {
+function clickSquare(sq, dragged) {
   if (!snap || snap.status.over || snap.paused || !snap.players.w || !snap.players.b || viewPly !== null) return;
   const { you } = snap;
   if (you !== 'w' && you !== 'b') return;
   const myTurn = !premoveTurn();
   if (selected !== null) {
-    const cand = legal.filter((m) => m.from === selected && m.to === sq);
+    const cand = legal.filter((m) => m.from === selected && m.to === sq && (dragged || !m.re));   // a click on my own piece selects it; recaptures are dragged
     if (cand.length) {
       if (!myTurn) {                                             // queue a premove (promotes to a queen)
         const m = cand[0];
@@ -2589,7 +2596,7 @@ function endDrag(e, cancel) {
   lastDragEnd = Date.now();
   if (d.ghost) d.ghost.remove();
   const to = cancel ? null : sqAt(e.clientX, e.clientY);
-  if (to !== null && to !== d.from && legal.some((m) => m.from === d.from && m.to === to)) clickSquare(to);
+  if (to !== null && to !== d.from && legal.some((m) => m.from === d.from && m.to === to)) clickSquare(to, true);
   else { selected = null; legal = []; paintBoard(); }
 }
 window.addEventListener('pointerup', (e) => { if (e.button === 2 && rdrag) finishArrow(); else endDrag(e, false); });
