@@ -78,10 +78,11 @@
   .userbox button { margin-top: 10px; width: 100%; min-height: 34px; font-size: .82rem; }
   main.content { min-width: 0; }
   @media (max-width: 900px) {
-    .app { grid-template-columns: 1fr; }
+    .app { grid-template-columns: minmax(0, 1fr); }
     .side { position: static; height: auto; flex-direction: row; align-items: center; padding: 6px 10px; gap: 4px; flex-wrap: wrap; }
     .brand { padding: 0 8px; font-size: 1.25rem; } .brand img { width: 28px; height: 28px; }
-    .nav { flex-direction: row; } .nav button { padding: 8px 10px; min-height: 40px; border-left: 0; border-bottom: 3px solid transparent; font-size: .9rem; gap: 6px; }
+    .nav { flex-direction: row; order: 3; width: 100%; overflow-x: auto; scrollbar-width: none; } .nav::-webkit-scrollbar { display: none; }   /* its own row, scrolls sideways instead of widening the page */
+    .nav button { flex: none; padding: 8px 10px; min-height: 40px; border-left: 0; border-bottom: 3px solid transparent; font-size: .9rem; gap: 6px; }
     .nav button.on { border-bottom-color: var(--green); }
     .userbox { margin: 0 0 0 auto; padding: 0; border: 0; display: flex; align-items: center; gap: 10px; }
     .userbox .rec { display: none; } .userbox button { margin: 0; width: auto; }
@@ -249,6 +250,10 @@
   .movenav button { flex: 1; min-height: 34px; padding: 4px; box-shadow: none; background: #2e2d2a; }
   .movenav button:active { transform: none; }
   .movenav svg { width: 16px; height: 16px; }
+  #mvPlay.on { background: #3b4a2b; color: #fff; }
+  #mvSpeed { font-size: .8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  @media (max-width: 480px) { .movenav { gap: 4px; padding: 6px; } .movenav button { padding: 2px; } }
+  body.archive .avatar .dot { display: none; }
   #moves .mv { cursor: pointer; } #moves .mv.ph { cursor: default; } #moves .mv:hover { background: #ffffff12; }
   #moves .mv.cur { background: #ffffff24; color: #fff; }
   #drawbox { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 14px; font-weight: 700; background: #3b4a2b; }
@@ -316,7 +321,7 @@
   .phead { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
   .phead .avatar { width: 64px; height: 64px; font-size: 1.8rem; border-radius: 10px; }
   .phead .ptitle { margin: 0; }
-  .phead #pfChallenge { margin-left: auto; }
+  .phead .pfacts { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
   .rcards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
   @media (max-width: 760px) { .rcards { grid-template-columns: repeat(2, 1fr); } }
   .rcard { background: var(--panel); border-radius: 10px; padding: 14px 16px; cursor: pointer; border: 2px solid transparent; min-height: 104px; }
@@ -336,6 +341,34 @@
   .gmeta { color: var(--muted); font-size: .78rem; font-weight: 600; }
   .grat { text-align: right; font-weight: 800; white-space: nowrap; }
   .pos { color: var(--green); } .neg { color: var(--bad); }
+  /* game archive */
+  .gacount { font-size: .85rem; font-weight: 600; }
+  .gatools { display: grid; grid-template-columns: minmax(0, 2fr) repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+  .gatools input, .gatools select { min-height: 40px; padding: 6px 10px; border-radius: 8px; border: 2px solid transparent; background: #1f1e1b; font-size: .85rem; font-weight: 600; min-width: 0; width: 100%; }
+  .gatools select { cursor: pointer; text-overflow: ellipsis; }
+  .gatools select:focus { outline: none; border-color: var(--green); }
+  .gatools .on { border-color: #3b4a2b; background: #2b3322; }
+  @media (max-width: 900px) { .gatools { grid-template-columns: repeat(3, minmax(0, 1fr)); } .gatools input { grid-column: 1 / -1; } }
+  @media (max-width: 520px) { .gatools { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  #pfGames .grow.ga { grid-template-columns: 34px minmax(0, 1fr) auto auto; cursor: pointer; border-radius: 6px; }
+  #pfGames .grow.ga:hover { background: #ffffff08; }
+  #pfGames .grow.old { cursor: default; } #pfGames .grow.old:hover { background: none; }
+  .gop { color: #d6d5d3; font-size: .85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gop .eco { color: var(--gold); font-weight: 800; margin-right: 5px; }
+  .gcol { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; border: 1px solid #0006; }
+  .gcol.w { background: #ebecd0; } .gcol.b { background: #4b4845; border-color: #ffffff30; }
+  .grat .unr { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  .gact { display: flex; gap: 6px; }
+  .gact button { min-height: 32px; padding: 3px 10px; font-size: .8rem; }
+  .gact .muted { font-size: .75rem; font-weight: 600; max-width: 90px; text-align: right; }
+  @media (max-width: 600px) {
+    #pfGames .grow.ga { grid-template-columns: 34px minmax(0, 1fr) auto; }
+    .gact { grid-column: 2 / -1; }
+    .gact button { flex: 1; }
+  }
+  .gamore { display: flex; justify-content: center; } .gamore button { margin-top: 10px; }
+  .gempty { padding: 18px 6px; text-align: center; font-weight: 600; }
+  .gempty button { margin-top: 10px; }
 
   /* result card */
   #over .box { width: min(100%, 420px); }
@@ -677,10 +710,22 @@
 
 <!-- profile -->
 <div id="profile" class="hidden">
-  <div class="phead"><div class="avatar w" id="pfAvatar"></div><div><h1 class="ptitle" id="pfName"></h1><div class="muted" id="pfSub" style="font-weight:600"></div></div><button class="primary" id="pfChallenge">Challenge</button></div>
+  <div class="phead"><div class="avatar w" id="pfAvatar"></div><div><h1 class="ptitle" id="pfName"></h1><div class="muted" id="pfSub" style="font-weight:600"></div></div><span class="pfacts"><button id="pfGamesBtn">Game archive</button><button class="primary" id="pfChallenge">Challenge</button></span></div>
   <div class="rcards" id="pfCards"></div>
   <div class="panel" style="margin-bottom:16px"><h2 class="ph"><span>Rating history · <span id="pfCatName"></span></span></h2><div id="pfGraph"></div></div>
-  <div class="panel"><h2 class="ph">Recent games</h2><div id="pfGames"></div></div>
+  <div class="panel" id="pfArchive">
+    <h2 class="ph"><span>Game archive <span class="muted gacount" id="gaCount"></span></span></h2>
+    <div class="gatools" role="search">
+      <input id="gaQ" type="search" placeholder="Search opponent or opening" autocomplete="off" aria-label="Search by opponent or opening">
+      <select id="gaRes" aria-label="Result"><option value="">All results</option><option value="win">Wins</option><option value="loss">Losses</option><option value="draw">Draws</option></select>
+      <select id="gaCat" aria-label="Time control"><option value="">All time controls</option><option value="bullet">Bullet</option><option value="blitz">Blitz</option><option value="rapid">Rapid</option><option value="classical">Classical</option></select>
+      <select id="gaWhen" aria-label="Date"><option value="">Any date</option><option value="1">Last 24 hours</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="365">Last 12 months</option></select>
+      <select id="gaOp" aria-label="Opening"><option value="">All openings</option></select>
+      <select id="gaSort" aria-label="Sort by"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="opp">Opponent A–Z</option><option value="res">Result</option><option value="tc">Time control</option><option value="op">Opening A–Z</option><option value="len">Longest games</option></select>
+    </div>
+    <div id="pfGames"></div>
+    <div class="gamore"><button class="small hidden" id="gaMore">Show more</button></div>
+  </div>
   <div class="panel hidden" id="pfAccount" style="margin-top:16px">
     <h2 class="ph">Account recovery</h2>
     <div class="muted" id="pfRecTxt" style="font-size:.9rem;font-weight:600"></div>
@@ -735,8 +780,10 @@
       <div class="movenav">
         <button id="mvFirst" title="First move (Home)" aria-label="First move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ><path d="M19 20 9 12l10-8z"/><path d="M5 19V5"/></svg></button>
         <button id="mvPrev" title="Previous move (←)" aria-label="Previous move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ><path d="m15 18-6-6 6-6"/></svg></button>
+        <button id="mvPlay" class="hidden" title="Play through the game (Space)" aria-label="Play" aria-pressed="false"></button>
         <button id="mvNext" title="Next move (→)" aria-label="Next move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ><path d="m9 18 6-6-6-6"/></svg></button>
         <button id="mvLast" title="Back to live (End)" aria-label="Back to live game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ><path d="m5 4 10 8-10 8z"/><path d="M19 5v14"/></svg></button>
+        <button id="mvSpeed" class="hidden" title="Replay speed" aria-label="Replay speed">1×</button>
         <button id="sndBtn" title="Sound" aria-label="Toggle sound"></button>
         <button id="skinBtn" title="Board &amp; pieces" aria-label="Board and piece style"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg></button>
       </div>
@@ -800,6 +847,7 @@
 <div id="promo" class="hidden"><div class="box"></div></div>
 
 <script src="chess.js"></script>
+<script src="opening.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
@@ -843,7 +891,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'admin_overview', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
+const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 async function api(route, body) {
@@ -1108,7 +1156,8 @@ async function start() {
   if (params.get('coach') === 'game') { const b = botLoad('chess:coachgame'); if (b) return enterBot(b); }
   if (params.has('coach')) return enterCoach();
   if (params.has('admin')) wantAdmin = true;
-  const q = params.get('game');
+  const q = params.get('game'), aid = params.get('archive');
+  if (aid) return enterArchive(aid);
   if (params.has('bot')) { const b = botLoad(); if (b) return enterBot(b); }
   if (q) { const r = await api('join', { code: q }); if (r.ok) return enterGame(r.code, r.snap); }
   enterLobby();
@@ -1520,7 +1569,7 @@ $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); awai
 
 // ---------- game ----------
 function enterGame(code, seed) {
-  stopLobby(); stopAdmin(); botLeave(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
+  stopLobby(); stopAdmin(); botLeave(); leaveArchive(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; premoves = []; arrows = []; marks = []; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
   history.replaceState(null, '', '?game=' + code);
   show('game');
@@ -1547,11 +1596,11 @@ function gameSkeleton() {
   $('#arrows').innerHTML = ''; ovSig = '';
 }
 function stopGame() {
-  vcLeave(); resetAnalysis();
+  vcLeave(); resetAnalysis(); leaveArchive();
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
   if (rtRoomOff) { rtRoomOff(); rtRoomOff = null; } rtRoomLive = false;
 }
-$('#leave').onclick = () => (isCoach() ? enterCoach() : enterLobby());
+$('#leave').onclick = () => (isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
@@ -1563,7 +1612,7 @@ const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.prese
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
 let lastKick = 0;
-function kick() { if (isBot()) return; lastKick = Date.now(); pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
+function kick() { if (isBot() || isArchive()) return; lastKick = Date.now(); pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
 async function pollGame(gen) {
   if (view !== 'game' || gen !== pollGen) return;
   // heartbeat: send the version we have; the server answers with ~30 bytes unless something changed
@@ -1673,13 +1722,19 @@ function render() {
   }
   if (snap.paused && !status.over) { t = 'Game paused'; s = 'Both players must press Resume to continue'; }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
+  if (isArchive()) {
+    const n = (snap.hist || []).length;
+    if (!live) t = viewPly ? `Move ${Math.ceil(viewPly / 2)}${viewPly % 2 ? '' : '…'} · ${viewPly} of ${n}` : 'Starting position';
+    const res = status.result === 'draw' ? `Draw by ${status.reason}` : `${players[status.result].name} won by ${status.reason}`;
+    s = `${live ? '' : res + ' · '}${CAT_NAME[snap.cat] || ''} · ${tcLabel(snap.tc)} · ${snap.unrated ? 'unrated · ' : ''}${fmtWhen(snap.endedAt)}`;
+  }
   if (snap.watching) s += (s ? ' · ' : '') + snap.watching + ' watching';
   setText($('#status'), t); setText($('#sub'), s);
 
   $('#invite').classList.toggle('hidden', !!(players.w && players.b));
   $('#resign').classList.toggle('hidden', !mine || status.over || !players.w || !players.b);
   const rm = $('#rematch');
-  rm.classList.toggle('hidden', !mine || !status.over);
+  rm.classList.toggle('hidden', !mine || !status.over || isArchive());
   const asked = snap.rematch.includes(you);
   setText(rm, asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch');
   if (rm.disabled !== asked) rm.disabled = asked;
@@ -1716,16 +1771,19 @@ function render() {
   const cbCls = (mine ? you : 's') + (mine && !status.over && bothIn && snap.state.turn === you ? ' myturn' : '');
   if (cb.className !== cbCls) cb.className = cbCls;
   setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '');
-  setText($('#cbText'), mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating');
+  setText($('#cbText'), isArchive() ? (mine ? `Replay · you played ${you === 'w' ? 'White' : 'Black'}` : 'Replay') : mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating');
   const liveTurn = snap.state.turn;
-  setText($('#cbTurn'), status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
+  setText($('#cbTurn'), isArchive() ? (live ? 'Final position' : `Move ${upto} of ${(snap.hist || []).length}`) : status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
 
   renderMoves(moves, upto, live);
   paintOpening(H, upto);
   paintPendingMove();
   paintAnnotations(); paintReviewComment(upto);
+  if (AN.key && AN.n) paintAnalysis();
   paintBadge(false);
-  if (!isBot()) paintCall();
+  if (!isBot() && !isArchive()) paintCall();
+  setText($('#leave').lastChild, isArchive() ? ' Back to games' : ' Lobby');
+  paintReplay();
 }
 function paintPendingMove() {
   const ml = $('#moves'), cells = ml.querySelectorAll('.mv:not(.ph)'), lastCell = cells[cells.length - 1];
@@ -2371,32 +2429,55 @@ let anArrow = null;
 const gameKey = () => `${gameCode}:${(snap.hist || []).length}:${snap.startedAt || ''}`;
 function resetAnalysis() {
   if (AN.worker) AN.worker.terminate();
-  Object.assign(AN, { worker: null, key: null, res: [], cls: [], n: 0, done: false, states: null, hist: null });
+  clearTimeout(AN.retarget);
+  Object.assign(AN, { worker: null, key: null, res: [], cls: [], n: 0, done: false, states: null, hist: null, queue: [], got: 0 });
   anArrow = null;
   $('#anpanel').classList.add('hidden');
   document.querySelectorAll('#moves .mv[data-sym]').forEach((c) => { c.removeAttribute('data-sym'); c.style.removeProperty('--symc'); });
 }
-function startAnalysis() {
+// The engine starts with the move on the board (the one that led to it), then works through the rest of the game,
+// so analysis can begin from any move. Jumping to a move it hasn't reached yet moves that move to the front.
+function startAnalysis(scroll = true) {
   if (!snap || !snap.status.over) return;
   const hist = snap.hist || [];
   if (!hist.length) return;
-  if (AN.key === gameKey()) { $('#anpanel').classList.remove('hidden'); return; }
+  if (AN.key === gameKey()) { $('#anpanel').classList.remove('hidden'); anFocus(); return; }
   resetAnalysis();
   const H = buildStates(hist);
   if (H.states.length !== hist.length + 1) return;
-  Object.assign(AN, { key: gameKey(), states: H.states.slice(), hist: hist.slice(), n: hist.length, id: AN.id + 1 });
+  Object.assign(AN, { key: gameKey(), states: H.states.slice(), hist: hist.slice(), n: hist.length });
+  $('#anpanel').classList.remove('hidden');
+  anRun(Math.max(0, curPly() - 1));
+  paintAnalysis();
+  if (scroll) $('#anpanel').scrollIntoView({ block: 'nearest' });
+}
+function anRun(from) {
+  if (AN.worker) AN.worker.terminate();
+  AN.worker = null;
+  const order = [];
+  for (let k = 0; k <= AN.n; k++) { const i = (from + k) % (AN.n + 1); if (!AN.res[i]) order.push(i); }
+  if (!order.length) { AN.done = true; return; }
+  AN.id++; AN.queue = order; AN.got = 0;
   try { AN.worker = new Worker('bot.js'); } catch { setText($('#anStatus'), 'Not supported in this browser'); return; }
   AN.worker.onmessage = onAnalysis;
   AN.worker.onerror = () => setText($('#anStatus'), 'The review stopped unexpectedly.');
-  AN.worker.postMessage({ type: 'analyze', id: AN.id, states: AN.states, hist: AN.hist, ms: hist.length > 80 ? 120 : 180 });
-  $('#anpanel').classList.remove('hidden');
-  paintAnalysis();
-  $('#anpanel').scrollIntoView({ block: 'nearest' });
+  AN.worker.postMessage({ type: 'analyze', id: AN.id, states: AN.states, hist: AN.hist, ms: AN.n > 80 ? 120 : 180, order });
+}
+// the position on screen still needs the engine: analyze it next (unless it is already up next)
+function anFocus() {
+  if (!AN.key || AN.done || AN.key !== gameKey()) return;
+  clearTimeout(AN.retarget);
+  AN.retarget = setTimeout(() => {
+    if (!AN.key || AN.done) return;
+    const i = Math.max(0, curPly() - 1), need = [i, i + 1].filter((x) => x <= AN.n && !AN.res[x]);
+    if (need.length && !need.every((x) => AN.queue.slice(AN.got, AN.got + 3).includes(x))) anRun(need[0]);
+  }, 250);
 }
 function onAnalysis(e) {
   const d = e.data;
   if (d.id !== AN.id) return;
-  if (d.done) { AN.done = true; return paintAnalysis(); }
+  if (d.done) { AN.done = AN.res.filter(Boolean).length === AN.n + 1; return paintAnalysis(); }
+  AN.got++;
   AN.res[d.i] = d;
   if (d.i < AN.n) AN.cls[d.i] = classify(d.i);
   paintAnalysis();
@@ -2449,13 +2530,13 @@ function paintAnalysis() {
   for (const k of CLS_ORDER) h += `<span class="lbl"><span class="sym" style="background:${CLS[k].c}">${CLS[k].sym}</span>${CLS[k].label}</span><span class="c" style="color:${CLS[k].c}">${sides.w.n[k] || 0}</span><span class="c" style="color:${CLS[k].c}">${sides.b.n[k] || 0}</span>`;
   setHTML($('#anSummary'), h + '</div>');
   // evaluation graph (White's winning chances, like chess.com)
-  const pts = [];
-  for (let i = 0; i <= AN.n; i++) { const e = evalWhite(i); if (e == null) break; pts.push([i, 100 - WP(e) * 100]); }
+  const pts = [];                                   // positions can finish out of order: draw the ones that are done
+  for (let i = 0; i <= AN.n; i++) { const e = evalWhite(i); if (e != null) pts.push([i, 100 - WP(e) * 100]); }
   if (pts.length > 1) {
-    const W = Math.max(1, AN.n);
+    const W = Math.max(1, AN.n), cur = curPly();
     const line = pts.map(([x, y]) => `${x},${y.toFixed(1)}`).join(' ');
-    const marks = pts.slice(1).map(([x]) => { const c = AN.cls[x - 1]; return c === 'blunder' || c === 'mistake' || c === 'brilliant' || c === 'great' ? `<circle cx="${x}" cy="${pts[x][1].toFixed(1)}" r="2.2" fill="${CLS[c].c}" vector-effect="non-scaling-stroke"/>` : ''; }).join('');
-    setHTML($('#anGraph'), `<svg viewBox="0 0 ${W} 100" preserveAspectRatio="none"><polygon points="0,100 ${line} ${pts[pts.length - 1][0]},100" fill="#ebecd0"/><line x1="0" x2="${W}" y1="50" y2="50" stroke="#00000040" stroke-width="1" vector-effect="non-scaling-stroke"/>${marks}</svg>`);
+    const marks = pts.filter(([x]) => x > 0).map(([x, y]) => { const c = AN.cls[x - 1]; return c === 'blunder' || c === 'mistake' || c === 'brilliant' || c === 'great' ? `<circle cx="${x}" cy="${y.toFixed(1)}" r="2.2" fill="${CLS[c].c}" vector-effect="non-scaling-stroke"/>` : ''; }).join('');
+    setHTML($('#anGraph'), `<svg viewBox="0 0 ${W} 100" preserveAspectRatio="none"><polygon points="${pts[0][0]},100 ${line} ${pts[pts.length - 1][0]},100" fill="#ebecd0"/><line x1="0" x2="${W}" y1="50" y2="50" stroke="#00000040" stroke-width="1" vector-effect="non-scaling-stroke"/>${marks}<line x1="${cur}" x2="${cur}" y1="0" y2="100" stroke="#81b64c" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`);
   }
 }
 function paintAnnotations() {
@@ -2499,10 +2580,10 @@ function paintReviewComment(upto) {
 $('#anGraph').addEventListener('click', (e) => {
   if (!AN.n) return;
   const rc = e.currentTarget.getBoundingClientRect();
-  goPly(Math.round(((e.clientX - rc.left) / rc.width) * AN.n));
+  navTo(Math.round(((e.clientX - rc.left) / rc.width) * AN.n));
 });
 $('#anBtn').onclick = startAnalysis;
-$('#oAnalyze').onclick = () => { $('#over').classList.add('hidden'); if (snap && snap.status.over) { startAnalysis(); goPly(0); } };
+$('#oAnalyze').onclick = () => { $('#over').classList.add('hidden'); if (snap && snap.status.over) { goPly(0); startAnalysis(); } };
 
 
 // ---------- live move badges: each move is checked in a background worker right after it is played ----------
@@ -2548,43 +2629,9 @@ $('#badgeToggle').addEventListener('change', (e) => {
   if (!SKIN.badges) { LB.shown = null; paintBadge(true); }
 });
 
-// ---------- opening recognition (Lichess opening list, see scripts/build-openings.js) ----------
-// Positions are matched, not move orders, so transpositions are recognised. The name shown is that of the
-// latest book position reached; it stays once the game leaves theory, like "Sicilian Defense: Najdorf Variation".
-const OP = { map: null, depth: 0, open: false };
-const opKey = (st) => st.board.map((p) => p || '-').join('') + st.turn + (st.castle.wK ? 'K' : '') + (st.castle.wQ ? 'Q' : '') + (st.castle.bK ? 'k' : '') + (st.castle.bQ ? 'q' : '');
-function opApply(st, u) {   // book moves are known to be legal, so skip move generation
-  const sq = (q) => 'abcdefgh'.indexOf(q[0]) + (8 - +q[1]) * 8;
-  const from = sq(u.slice(0, 2)), to = sq(u.slice(2, 4)), pc = st.board[from][1], df = (to & 7) - (from & 7);
-  return Chess.apply(st, { from, to, promo: u[4] ? u[4].toUpperCase() : undefined,
-    castle: pc === 'K' && Math.abs(df) === 2 ? (df > 0 ? 'K' : 'Q') : undefined,
-    double: pc === 'P' && Math.abs((to >> 3) - (from >> 3)) === 2 || undefined,
-    enPassant: pc === 'P' && df !== 0 && !st.board[to] || undefined });
-}
-function openingIndex() {
-  if (OP.map || !self.OPENINGS_TSV) return OP.map;
-  const map = new Map(), seen = new Map();
-  for (const line of OPENINGS_TSV.split('\n')) {
-    const [eco, name, ucis] = line.split('\t'), moves = ucis.split(' ');
-    let st = Chess.initial(), pre = '';
-    for (const u of moves) { pre += u + ' '; let nx = seen.get(pre); if (!nx) seen.set(pre, nx = opApply(st, u)); st = nx; }
-    const k = opKey(st);
-    if (!map.has(k)) map.set(k, { eco, name, moves });
-    OP.depth = Math.max(OP.depth, moves.length);
-  }
-  return (OP.map = map);
-}
-// deepest named position among states[1..upto] -> { eco, name, moves, ply } or null
-function openingAt(states, upto) {
-  const map = openingIndex();
-  if (!map) return null;
-  for (let i = Math.min(upto, OP.depth); i >= 1; i--) {
-    const st = states[i];
-    if (st._op === undefined) st._op = map.get(opKey(st)) || null;
-    if (st._op) return { ...st._op, ply: i };
-  }
-  return null;
-}
+// ---------- opening recognition (Lichess opening list, see scripts/build-openings.js; matching lives in opening.js) ----------
+const OP = { open: false };
+const openingAt = (states, upto) => (Opening.index(self.OPENINGS_TSV), Opening.at(states, upto));
 function paintOpening(H, upto) {
   const o = openingAt(H.states, upto), btn = $('#opening');
   const [fam, vari] = o ? [o.name.split(': ')[0], o.name.split(': ').slice(1).join(': ')] : [];
@@ -2636,20 +2683,22 @@ function goPly(p) {
   if (p >= n) p = null; else if (p < 0) p = 0;
   viewPly = p; selected = null; legal = [];
   render();
+  anFocus();
 }
 const curPly = () => (viewPly === null ? (snap ? (snap.hist || []).length : 0) : viewPly);
-$('#mvFirst').onclick = () => goPly(0);
-$('#mvPrev').onclick = () => goPly(curPly() - 1);
-$('#mvNext').onclick = () => goPly(curPly() + 1);
-$('#mvLast').onclick = () => goPly(null);
-$('#moves').addEventListener('click', (e) => { const el = e.target.closest('.mv'); if (el && !el.classList.contains('ph')) goPly(+el.dataset.ply); });
+$('#mvFirst').onclick = () => navTo(0);
+$('#mvPrev').onclick = () => navTo(curPly() - 1);
+$('#mvNext').onclick = () => navTo(curPly() + 1);
+$('#mvLast').onclick = () => navTo(null);
+$('#moves').addEventListener('click', (e) => { const el = e.target.closest('.mv'); if (el && !el.classList.contains('ph')) navTo(+el.dataset.ply); });
 document.addEventListener('keydown', (e) => {
   if (view !== 'game' || !snap || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
   const k = e.key;
-  if (k === 'ArrowLeft') goPly(curPly() - 1);
-  else if (k === 'ArrowRight') goPly(curPly() + 1);
-  else if (k === 'Home') goPly(0);
-  else if (k === 'End') goPly(null);
+  if (k === 'ArrowLeft') navTo(curPly() - 1);
+  else if (k === 'ArrowRight') navTo(curPly() + 1);
+  else if (k === 'Home') navTo(0);
+  else if (k === 'End') navTo(null);
+  else if (k === ' ' && snap.status.over && !document.activeElement.closest('button')) toggleReplay();
   else return;
   e.preventDefault();
 });
@@ -2826,7 +2875,7 @@ function afterSnapshot(r) {
   if (!r.status.over) $('#over').classList.add('hidden');
   prevMoves = n; prevOver = r.status.over;
   const myTurn = (r.you === 'w' || r.you === 'b') && !r.status.over && r.players.w && r.players.b && r.state.turn === r.you;
-  document.title = myTurn ? '● Your move · Chess' : 'Chess With Friends';
+  document.title = isArchive() ? 'Game replay · Chess' : myTurn ? '● Your move · Chess' : 'Chess With Friends';
 }
 function showOver(r) {
   $('#over').classList.remove('hidden');
@@ -3043,6 +3092,96 @@ function enterBot(b) {
 }
 function hideGameChat() { $('#gchat').classList.add('hidden'); }
 function botRematch() { const b = botGame; if (!b) return; if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); enterBot(makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc)); }
+
+// ---------- archived games: replayed in the normal game screen from the saved record (read-only, no polling) ----------
+let archive = null;                                     // { id, back, game } while an archived game is open
+const isArchive = () => archive !== null && gameCode === 'ARCHIVE';
+function leaveArchive() {
+  stopReplay();
+  if (!archive) return;
+  archive = null; document.body.classList.remove('archive'); resetAnalysis();
+  setText($('#leave').lastChild, ' Lobby');
+}
+// The saved game becomes an ordinary finished-game snapshot, so the board, move list, opening panel and review all
+// work exactly as they do at the end of a live game. The position is rebuilt from the saved moves with the engine.
+function archiveSnap(g) {
+  const you = g.players.w.name === user.name ? 'w' : g.players.b.name === user.name ? 'b' : 's';
+  const H = buildStates(g.hist), n = H.states.length - 1, state = H.states[n];
+  return {
+    code: 'ARCHIVE', you, state, moves: g.moves.slice(0, n), last: n ? g.hist[n - 1] : null,
+    status: { over: true, result: g.result, reason: g.reason, check: Chess.inCheck(state, state.turn) },
+    players: g.players, present: { w: false, b: false }, tc: g.tc, clock: null,
+    delta: g.ratings ? { w: g.ratings.w.delta, b: g.ratings.b.delta } : null, rematch: [], hist: g.hist.slice(0, n), drawOffer: null, watching: 0,
+    cat: g.cat, ratings: g.ratings, unrated: !g.rated, startedAt: g.startedAt, endedAt: g.endedAt, v: 0, paused: false, pauseReq: null, resumeReady: [],
+  };
+}
+async function enterArchive(id, { analyze = false, back = null, at = 0 } = {}) {
+  stopLobby(); stopAdmin(); stopGame();
+  archive = { id, back, game: null }; view = 'game'; gameCode = 'ARCHIVE';
+  snap = null; sig = ''; selected = null; legal = []; premoves = []; arrows = []; marks = [];
+  viewPly = null; prevMoves = null; prevOver = false; prevCode = 'ARCHIVE'; pending = null; sending = false;
+  $('#over').classList.add('hidden'); document.title = 'Game replay · Chess';
+  history.replaceState(null, '', '?archive=' + encodeURIComponent(id));
+  document.body.classList.add('archive');
+  show('game'); hideGameChat(); gameSkeleton();
+  $('#leave').lastChild.textContent = ' Back to games';
+  const r = await gaFetch(id);
+  if (!isArchive() || archive.id !== id) return;          // the player moved on while it loaded
+  if (!r.ok) { setText($('#status'), r.status === 404 ? 'Game not found' : 'Could not load the game'); setText($('#sub'), r.error || ''); return; }
+  archive.game = r.game;
+  applySnapshot(archiveSnap(r.game));
+  goPly(at == null ? null : Math.min(at, r.game.hist.length));
+  if (analyze) startAnalysis(false);
+}
+
+// ---------- replay: play through a finished game (archived or just ended) at a chosen speed ----------
+const RP = { timer: null, speed: (() => { try { return +localStorage.getItem('chess:replaySpeed') || 1; } catch { return 1; } })() };
+const RP_SPEEDS = [0.5, 1, 2, 4];                         // moves per second
+const PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>';
+const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+const replayable = () => !!(snap && snap.status.over && (snap.hist || []).length);
+// move to ply p as the player asked (buttons, keys, move list, graph); keeps a running replay going from there
+function navTo(p) {
+  const from = curPly();
+  goPly(p);
+  const to = curPly();
+  if (to === from + 1 && snap) moveSound(to);
+  if (RP.timer) { clearTimeout(RP.timer); RP.timer = to >= (snap.hist || []).length ? null : setTimeout(stepReplay, 1000 / RP.speed); paintReplay(); }
+}
+function moveSound(ply) { const m = snap.moves[ply - 1]; if (m) sfx(/[+#]$/.test(m) ? 'check' : m.includes('x') ? 'capture' : 'move'); }
+function stepReplay() {
+  RP.timer = null;
+  if (!replayable() || view !== 'game') return paintReplay();
+  const n = snap.hist.length, p = curPly() + 1;
+  goPly(p); moveSound(p);
+  if (p < n) RP.timer = setTimeout(stepReplay, 1000 / RP.speed);
+  paintReplay();
+}
+function toggleReplay() {
+  if (RP.timer) return stopReplay();
+  if (!replayable()) return;
+  if (curPly() >= snap.hist.length) goPly(0);            // at the end: start over
+  RP.timer = setTimeout(stepReplay, Math.min(400, 1000 / RP.speed));
+  paintReplay();
+}
+function stopReplay() { clearTimeout(RP.timer); RP.timer = null; paintReplay(); }
+function paintReplay() {
+  const on = replayable(), b = $('#mvPlay'), sp = $('#mvSpeed'), playing = !!RP.timer;
+  b.classList.toggle('hidden', !on); sp.classList.toggle('hidden', !on);
+  if (!on) return;
+  setHTML(b, playing ? PAUSE_ICON : PLAY_ICON);
+  b.classList.toggle('on', playing);
+  b.setAttribute('aria-pressed', String(playing)); b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  b.title = playing ? 'Pause (Space)' : 'Play through the game (Space)';
+  setText(sp, RP.speed + '×'); sp.title = `Replay speed: ${RP.speed} move${RP.speed === 1 ? '' : 's'} per second`;
+}
+$('#mvPlay').onclick = toggleReplay;
+$('#mvSpeed').onclick = () => {
+  RP.speed = RP_SPEEDS[(RP_SPEEDS.indexOf(RP.speed) + 1) % RP_SPEEDS.length];
+  try { localStorage.setItem('chess:replaySpeed', RP.speed); } catch {}
+  if (RP.timer) { clearTimeout(RP.timer); RP.timer = setTimeout(stepReplay, 1000 / RP.speed); }
+  paintReplay();
+};
 
 // ----- lobby: mode switch, difficulty, resume -----
 function setLobbyMode(m) {
@@ -3360,7 +3499,7 @@ $('#navCoach').onclick = enterCoach;
 
 // ---------- player profile: ratings per time control, history graph, recent games ----------
 let pfData = null, pfCat = 'blitz', pfReq = 0;
-function enterProfile(name) {
+function enterProfile(name, opts = {}) {
   stopLobby(); stopGame(); stopAdmin();
   view = 'profile'; gameCode = null;
   history.replaceState(null, '', '/');
@@ -3377,10 +3516,12 @@ function enterProfile(name) {
   $('#pfCards').innerHTML = ['Bullet', 'Blitz', 'Rapid', 'Classical'].map((c) => `<div class="rcard"><div class="rc-l">${c}</div><div class="rc-r"><span class="sk" style="width:70px;height:.9em"></span></div><div class="rc-s"><span class="sk" style="width:90px;height:.8em"></span></div></div>`).join('');
   $('#pfCatName').textContent = CAT_NAME[pfCat];
   $('#pfGraph').innerHTML = '<span class="sk block" style="height:100%;border-radius:8px"></span>';
-  $('#pfGames').innerHTML = [0, 1, 2, 3].map(() => '<div class="grow"><span class="sk" style="width:30px;height:30px"></span><span><span class="sk" style="width:140px"></span><br><span class="sk" style="width:90px;height:.75em;margin-top:6px"></span></span><span></span><span class="sk" style="width:60px"></span></div>').join('');
+  $('#pfGamesBtn').textContent = name === user.name ? 'My games' : 'Games';
+  gaLoad(name, id);
+  if (opts.archive) requestAnimationFrame(() => $('#pfArchive').scrollIntoView({ block: 'start' }));
   api('profile', { name }).then((r) => {
     if (id !== pfReq || view !== 'profile') return;
-    if (!r.ok) { $('#pfSub').textContent = r.error || 'Could not load this profile.'; $('#pfCards').innerHTML = ''; $('#pfGraph').innerHTML = ''; $('#pfGames').innerHTML = ''; return; }
+    if (!r.ok) { $('#pfSub').textContent = r.error || 'Could not load this profile.'; $('#pfCards').innerHTML = ''; $('#pfGraph').innerHTML = ''; return; }
     pfData = r;
     if (r.recovery !== undefined) {                          // my own profile: recovery code status
       $('#pfAccount').classList.remove('hidden');
@@ -3404,14 +3545,96 @@ function paintProfile() {
   }).join('');
   $('#pfCatName').textContent = CAT_NAME[pfCat];
   drawGraph(r.ratings[pfCat].hist || []);
-  $('#pfGames').innerHTML = r.games.length ? r.games.map((g) => {
-    const ago = timeAgo(g.at), res = g.result;
-    return `<div class="grow"><span class="gres ${res}">${res === 'win' ? 'W' : res === 'loss' ? 'L' : 'D'}</span>
-      <span style="min-width:0"><div class="gopp">vs <span class="plink" data-name="${esc(g.opp)}">${esc(g.opp)}</span> <span class="muted">(${g.oppRating})</span></div>
-      <div class="gmeta">${CAT_NAME[g.cat]} · ${tcLabel(g.tc)} · ${g.reason} · ${Math.ceil(g.moves / 2)} moves · ${ago}</div></span>
-      <span></span><span class="grat">${g.after} <span class="${g.delta >= 0 ? 'pos' : 'neg'}">${g.delta >= 0 ? '+' : '−'}${Math.abs(g.delta)}</span></span></div>`;
-  }).join('') : '<div class="muted empty">No rated games yet.</div>';
 }
+
+// ---------- game archive: every finished game, listed from the server's index; filtered and sorted in the browser ----------
+const GA = { name: null, rows: null, shown: 25, lists: new Map(), full: new Map(), loading: new Map(),
+  f: { q: '', res: '', cat: '', when: '', op: '', sort: 'new' } };
+const GA_PAGE = 25, CAT_ORDER = { bullet: 0, blitz: 1, rapid: 2, classical: 3 }, RES_ORDER = { win: 0, draw: 1, loss: 2 };
+const opFamily = (op) => (op ? op.split(': ')[0] : '');
+const fmtWhen = (t) => new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+function gaSkeleton() {
+  $('#gaCount').textContent = '';
+  setHTML($('#pfGames'), [0, 1, 2, 3].map(() => '<div class="grow"><span class="sk" style="width:30px;height:30px"></span><span><span class="sk" style="width:140px"></span><br><span class="sk" style="width:200px;height:.75em;margin-top:6px"></span><br><span class="sk" style="width:110px;height:.7em;margin-top:6px"></span></span><span class="sk" style="width:60px"></span><span></span></div>').join(''));
+  $('#gaMore').classList.add('hidden');
+}
+function gaLoad(name, id) {
+  const key = name.toLowerCase();
+  GA.name = name; GA.shown = GA_PAGE;
+  GA.rows = GA.lists.get(key) || null;              // show what we had straight away, refresh behind it
+  if (GA.rows) paintArchive(); else gaSkeleton();
+  api('games', { name }).then((r) => {
+    if (id !== pfReq || view !== 'profile') return;
+    if (!r.ok) { if (!GA.rows) setHTML($('#pfGames'), `<div class="muted gempty">${esc(r.error || 'Could not load the games.')}</div>`); return; }
+    GA.lists.set(key, r.games);
+    if (GA.rows && JSON.stringify(GA.rows) === JSON.stringify(r.games)) return;
+    GA.rows = r.games; paintArchive();
+  });
+}
+function gaFiltered() {
+  const f = GA.f, q = f.q.trim().toLowerCase(), now = Date.now();
+  const rows = GA.rows.filter((g) => (!f.res || g.result === f.res) && (!f.cat || g.cat === f.cat) && (!f.when || now - g.at <= f.when * 86400e3)
+    && (!f.op || opFamily(g.op) === f.op)
+    && (!q || g.opp.toLowerCase().includes(q) || (g.op || '').toLowerCase().includes(q) || (g.eco || '').toLowerCase() === q));
+  const by = {
+    new: (a, b) => b.at - a.at, old: (a, b) => a.at - b.at,
+    opp: (a, b) => a.opp.localeCompare(b.opp, undefined, { sensitivity: 'base' }), res: (a, b) => RES_ORDER[a.result] - RES_ORDER[b.result],
+    tc: (a, b) => CAT_ORDER[a.cat] - CAT_ORDER[b.cat] || (a.tc ? a.tc.base + 40 * a.tc.inc : 1e9) - (b.tc ? b.tc.base + 40 * b.tc.inc : 1e9),
+    op: (a, b) => (!a.op) - (!b.op) || (a.op || '').localeCompare(b.op || ''), len: (a, b) => b.moves - a.moves,
+  }[f.sort] || ((a, b) => b.at - a.at);
+  return rows.sort((a, b) => by(a, b) || b.at - a.at);
+}
+function gaRow(g) {
+  const res = g.result, mine = GA.name === user.name;
+  const rating = g.delta != null ? `${g.after}${g.prov ? '?' : ''} <span class="${g.delta >= 0 ? 'pos' : 'neg'}">${g.delta >= 0 ? '+' : '−'}${Math.abs(g.delta)}</span>` : '<span class="unr">Unrated</span>';
+  const opening = g.op ? `<div class="gop" title="${esc(g.eco + ' ' + g.op)}"><span class="eco">${esc(g.eco)}</span>${esc(g.op)}</div>` : g.id ? '<div class="gop muted">Unclassified opening</div>' : '';
+  const acts = g.id ? `<button class="small" data-act="replay">Replay</button><button class="small" data-act="analyze">Analyze</button>` : '<span class="muted" title="Played before the archive saved moves">No replay</span>';
+  return `<div class="grow ga ${g.id ? '' : 'old'}" ${g.id ? `data-id="${esc(g.id)}" tabindex="0" role="link" aria-label="Replay ${esc(res)} against ${esc(g.opp)}"` : ''}>
+    <span class="gres ${res}" title="${mine ? (res === 'win' ? 'Won' : res === 'loss' ? 'Lost' : 'Draw') : res}">${res === 'win' ? 'W' : res === 'loss' ? 'L' : 'D'}</span>
+    <span style="min-width:0"><div class="gopp"><i class="gcol ${g.color}" title="Played ${g.color === 'w' ? 'White' : 'Black'}"></i>vs <span class="plink" data-name="${esc(g.opp)}">${esc(g.opp)}</span> <span class="muted">(${g.oppRating})</span></div>
+    ${opening}<div class="gmeta">${CAT_NAME[g.cat] || ''} · ${tcLabel(g.tc)} · ${esc(g.reason)} · ${Math.ceil(g.moves / 2)} move${g.moves > 2 ? 's' : ''} · <span title="${timeAgo(g.at)}">${fmtWhen(g.at)}</span></div></span>
+    <span class="grat">${rating}</span><span class="gact">${acts}</span></div>`;
+}
+function paintArchive() {
+  const all = GA.rows || [], f = GA.f;
+  // the opening menu lists the openings that occur in this player's games
+  const fams = [...new Set(all.map((g) => opFamily(g.op)).filter(Boolean))].sort();
+  if (f.op && !fams.includes(f.op)) fams.unshift(f.op);
+  setHTML($('#gaOp'), '<option value="">All openings</option>' + fams.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join(''));
+  for (const [k, sel] of [['res', '#gaRes'], ['cat', '#gaCat'], ['when', '#gaWhen'], ['op', '#gaOp'], ['sort', '#gaSort']]) { $(sel).value = f[k]; $(sel).classList.toggle('on', k !== 'sort' && !!f[k]); }
+  if ($('#gaQ').value !== f.q) $('#gaQ').value = f.q;
+  const rows = gaFiltered(), filtered = rows.length !== all.length;
+  $('#gaCount').textContent = all.length ? `· ${filtered ? `${rows.length} of ` : ''}${all.length} game${all.length === 1 ? '' : 's'}` : '';
+  if (!all.length) {
+    setHTML($('#pfGames'), `<div class="muted gempty">${GA.name === user.name ? 'No finished games yet. Every game you finish from now on is saved here, ready to replay and analyze.' : 'No finished games yet.'}</div>`);
+  } else if (!rows.length) {
+    setHTML($('#pfGames'), '<div class="muted gempty">No games match these filters.<br><button class="small" id="gaClear">Clear filters</button></div>');
+  } else setHTML($('#pfGames'), rows.slice(0, GA.shown).map(gaRow).join(''));
+  const left = rows.length - GA.shown;
+  $('#gaMore').classList.toggle('hidden', left <= 0);
+  if (left > 0) $('#gaMore').textContent = `Show more (${left} more)`;
+}
+for (const [k, sel] of [['res', '#gaRes'], ['cat', '#gaCat'], ['when', '#gaWhen'], ['op', '#gaOp'], ['sort', '#gaSort']])
+  $(sel).addEventListener('change', (e) => { GA.f[k] = e.target.value; GA.shown = GA_PAGE; if (GA.rows) paintArchive(); });
+let gaQTimer = null;
+$('#gaQ').addEventListener('input', (e) => { clearTimeout(gaQTimer); gaQTimer = setTimeout(() => { GA.f.q = e.target.value; GA.shown = GA_PAGE; if (GA.rows) paintArchive(); }, 120); });
+$('#gaMore').onclick = () => { GA.shown += GA_PAGE * 2; paintArchive(); };
+$('#pfGamesBtn').onclick = () => $('#pfArchive').scrollIntoView({ behavior: 'smooth', block: 'start' });
+// fetch a game the moment a row is pointed at, so opening it is instant
+function gaFetch(id) {
+  if (GA.full.has(id)) return Promise.resolve({ ok: true, game: GA.full.get(id) });
+  if (GA.loading.has(id)) return GA.loading.get(id);
+  const p = api('game_get', { id }).then((r) => {
+    GA.loading.delete(id);
+    if (r.ok) { GA.full.set(id, r.game); if (GA.full.size > 60) GA.full.delete(GA.full.keys().next().value); }
+    return r;
+  });
+  GA.loading.set(id, p);
+  return p;
+}
+$('#pfGames').addEventListener('pointerover', (e) => { const row = e.target.closest('[data-id]'); if (row) gaFetch(row.dataset.id); });
+$('#pfGames').addEventListener('focusin', (e) => { const row = e.target.closest('[data-id]'); if (row) gaFetch(row.dataset.id); });
+$('#pfGames').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('[data-id]')) enterArchive(e.target.dataset.id, { back: GA.name }); });
 const timeAgo = (t) => { const s = (Date.now() - t) / 1000; return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : `${Math.floor(s / 86400)}d ago`; };
 function drawGraph(hist) {
   const box = $('#pfGraph');
@@ -3440,7 +3663,13 @@ function drawGraph(hist) {
   svg.addEventListener('mouseleave', () => tip.classList.add('hidden'));
 }
 $('#pfCards').addEventListener('click', (e) => { const c = e.target.closest('[data-cat]'); if (c && pfData) { pfCat = c.dataset.cat; paintProfile(); } });
-$('#pfGames').addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n) enterProfile(n.dataset.name); });
+$('#pfGames').addEventListener('click', (e) => {
+  if (e.target.closest('#gaClear')) { Object.assign(GA.f, { q: '', res: '', cat: '', when: '', op: '' }); GA.shown = GA_PAGE; return paintArchive(); }
+  const n = e.target.closest('.plink'); if (n) return enterProfile(n.dataset.name);
+  const row = e.target.closest('[data-id]'); if (!row) return;
+  const act = e.target.closest('[data-act]');
+  enterArchive(row.dataset.id, { analyze: !!act && act.dataset.act === 'analyze', back: GA.name });
+});
 $('#pfChallenge').onclick = () => { const name = pfData ? pfData.name : $('#pfName').textContent; enterLobby(); challenge(name); };
 $('#navProfile').onclick = () => enterProfile(user.name);
 $('#pfRecNew').onclick = async () => {

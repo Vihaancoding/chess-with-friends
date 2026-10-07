@@ -172,7 +172,9 @@ if (typeof importScripts === 'function') {
   self.onmessage = (e) => {
     if (e.data.type === 'analyze') {
       const { id, states, hist, ms, skipFinal } = e.data;
-      for (let i = 0; i <= hist.length - (skipFinal ? 1 : 0); i++) {
+      // positions to analyze, in this order (default: the whole game from the start)
+      const order = e.data.order || Array.from({ length: hist.length + (skipFinal ? 0 : 1) }, (_, i) => i);
+      for (const i of order) {
         anT0 = now();
         const r = analyzePosition(states[i], ms);
         const h = hist[i];
