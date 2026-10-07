@@ -813,7 +813,7 @@ let viewPly = null;                       // null = live position; otherwise ply
 let stCache = { hist: [], states: [Chess.initial()], caps: [null] };
 let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
-let pollGen = 0, sending = false, pending = null;
+let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
 const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'admin_overview', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
@@ -1481,7 +1481,7 @@ async function pollGame(gen) {
     } else if (snap) patchSnap({ present: { w: !!r.p[0], b: !!r.p[1] }, watching: r.n });
     const s0 = r.full || snap, mine = s0 && (s0.you === 'w' || s0.you === 'b');
     delay = rtRoomLive ? (s0 && s0.status.over ? 8000 : 4000)                   // push is healthy: light heartbeat only
-      : !s0 || s0.status.over ? 2500 : mine && s0.state.turn !== s0.you ? 500 : 1000;   // push is down: recover fast
+      : !s0 || s0.status.over ? 2500 : mine && s0.state.turn !== s0.you ? (premoves.length ? 250 : 500) : 1000;   // push is down: recover fast
     if (document.hidden) delay = Math.max(delay, 2500);
     if (r.c && Date.now() - gchatLoad > 1500 && gchatMissing(r.c)) loadGameChat(gameCode);   // a chat message never arrived: fetch it
   } else if (r.status === 404 || r.status === 401) { return enterLobby(); }
@@ -1740,7 +1740,7 @@ function runPremove() {
   if (!premoves.length || !snap) return;
   if (snap.status.over) { clearPremoves(); paintBoard(); return; }
   if (premoveTurn() || snap.paused) return;
-  if (sending) { setTimeout(runPremove, 50); return; }
+  if (sending && pending) { setTimeout(runPremove, 20); return; }
   const pm = premoves.shift();
   const m = Chess.legalMoves(snap.state).find((x) => x.from === pm.from && x.to === pm.to && (x.promo || undefined) === pm.promo);
   if (!m) { premoves = []; drawOverlay(); paintBoard(); return; }
@@ -1853,11 +1853,14 @@ function finishArrow() {
 async function send(from, to, promo) {
   if (isBot()) return botHumanMove(from, to, promo);
   if (snap && snap.paused) return;
-  if (sending || !snap) return;
+  // A request still in flight only blocks a new move while that move is unconfirmed. Once the opponent has replied,
+  // the server clearly has it, so the next move (usually a premove) goes out now instead of waiting for the old reply.
+  if ((sending && pending) || !snap) return;
   const m = Chess.legalMoves(snap.state).find((x) => x.from === from && x.to === to && (x.promo || undefined) === promo);
   selected = null; legal = [];
   if (!m) { paintBoard(); return; }
   sending = true;
+  const id = ++sendSeq;
   const base = snap, baseAt = snapAt, baseSig = sig;
   applyOptimistic(m);
   // in the background: the board already moved. Network blips are retried (the server's ply check makes retries safe).
@@ -1867,6 +1870,7 @@ async function send(from, to, promo) {
     if (r.status !== undefined || tries >= 8 || view !== 'game') break;
     await new Promise((ok) => setTimeout(ok, Math.min(250 * 2 ** tries++, 2000)));
   }
+  if (id !== sendSeq) { if (!r.ok) kick(); return; }   // a newer move has been sent since: it owns the board now
   sending = false;
   if (!r.ok) {
     if (tries && r.status !== undefined) { pending = null; return kick(); }   // an earlier attempt may have landed: let the server decide

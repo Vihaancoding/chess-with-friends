@@ -183,6 +183,27 @@ const ok = (name, cond, got) => { if (cond) { passed++; console.log('  ✓', nam
   const t2 = await page.evaluate(() => { clickSquare(T.sq('d2')); const r = legal.filter((m) => m.from === T.sq('d2')).length; clickSquare(T.sq('d2')); return r; });
   ok('…and on the opponent\'s turn the same pawn shows premove targets', t2 === 4, t2);
 
+  console.log('\nOnline speed (two players, slow server replies)');
+  // Black's move confirmations come back 400ms late (a slow connection). A queued premove must still go out as soon
+  // as White's move arrives, not wait for the confirmation of Black's previous move.
+  const mk = async () => { const c = await br.newContext(); const p = await c.newPage(); await p.route(/cdn\.jsdelivr\.net/, (r) => r.abort()); await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(400); return p; };
+  const A = await mk(), W = await mk(), tag = Date.now() % 1e6;
+  for (const [p, nm] of [[A, 'pa' + tag], [W, 'pw' + tag]]) await p.evaluate(async (nm) => finishAuth(await api('signup', { email: nm + '@x.io', password: 'password1', username: nm })), nm);
+  const code = await A.evaluate(async () => { const r = await api('create', { color: 'b' }); enterGame(r.code, r.snap); return r.code; });
+  await W.evaluate(async (code) => { const r = await api('join', { code }); enterGame(r.code, r.snap); }, code);
+  await A.waitForTimeout(1200);
+  await A.route(/r=move/, async (r) => { const res = await r.fetch(); await new Promise((ok) => setTimeout(ok, 400)); r.fulfill({ response: res }); });
+  await A.evaluate(() => { for (const [a, b] of [[12, 28], [1, 18], [5, 26], [6, 21]]) { clickSquare(a); clickSquare(b); } });   // e5 Nc6 Bc5 Nf6
+  const waits = [];
+  for (const [i, [f, t]] of [[52, 36], [62, 45], [61, 34], [60, 62]].entries()) {                                   // e4 Nf3 Bc4 O-O
+    const t0 = Date.now();
+    await W.evaluate(([f, t]) => send(f, t), [f, t]);
+    await W.waitForFunction((k) => snap.moves.length >= k, 2 * i + 2, { polling: 5, timeout: 5000 });
+    waits.push(Date.now() - t0);
+  }
+  ok('all four premoves are played online', (await W.evaluate(() => snap.moves.join(' '))) === 'e4 e5 Nf3 Nc6 Bc4 Bc5 O-O Nf6', await W.evaluate(() => snap.moves.join(' ')));
+  ok(`premove replies do not wait for the previous move's confirmation (ms: ${waits.join(', ')})`, waits.slice(1).every((ms) => ms < 300), waits);
+
   await br.close(); srv.kill();
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
