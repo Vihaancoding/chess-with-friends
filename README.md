@@ -16,6 +16,8 @@ Open http://localhost:3000. With no database configured, everything is stored in
 
 Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (see below).
 
+To test emailed password resets locally with `SMTP_USER` / `SMTP_PASS` set, run `npm install` once first (it adds `nodemailer`). Everything else needs no install.
+
 ## Deploy (Vercel + Supabase, both free tiers)
 
 1. **Supabase:** create a project, open **SQL Editor**, and run [`supabase.sql`](supabase.sql).
@@ -28,7 +30,8 @@ Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (s
    | `ADMIN_KEY` | A long passphrase of your choice (enables the admin panel) |
    | `TURN_URL`, `TURN_USER`, `TURN_PASS` | Optional: a TURN relay for voice calls on networks that block direct connections |
    | `SUPABASE_ANON_KEY` | Optional: the *publishable / anon* key (Project Settings → API). Turns on instant live updates; without it the app polls |
-   | `RESEND_API_KEY`, `MAIL_FROM` | Optional: a [Resend](https://resend.com) API key and sender (e.g. `Chess <noreply@yourdomain.com>`). Turns on "email me a reset link" |
+   | `SMTP_USER`, `SMTP_PASS` | Optional: turns on "email me a reset link", sent from this mailbox. For Gmail: your address and a [Google app password](https://myaccount.google.com/apppasswords) (needs 2-Step Verification). Other providers: also set `SMTP_HOST` / `SMTP_PORT` |
+   | `RESEND_API_KEY`, `MAIL_FROM` | Optional alternative to SMTP: a [Resend](https://resend.com) API key and a sender on a domain you own (e.g. `Chess <noreply@yourdomain.com>`) |
    | `APP_URL` | Optional: your site's address for links in emails (defaults to the Vercel production URL) |
 
 3. Deploy. Pushing to `main` redeploys automatically.
@@ -45,7 +48,7 @@ log in, open `https://your-site/?admin=1`, and enter `ADMIN_KEY`. An **Admin** l
 Players who forget their password have three ways back in. Each one sets a new password and signs out every other device.
 
 - **Recovery code:** shown once at sign-up (and again after it is used). Email + code + new password on the "Forgot password?" screen. Players can make a new code from their own profile page; the old one stops working. Only a hash of the code is stored.
-- **Email link:** with `RESEND_API_KEY` and `MAIL_FROM` set, players can ask for a one-time reset link that works for 30 minutes. In local development with no email service (in-memory storage), the link is printed in the server console instead.
+- **Email link:** with an email service set up (`SMTP_USER` + `SMTP_PASS`, or `RESEND_API_KEY` + `MAIL_FROM`), players can ask for a one-time reset link that works for 30 minutes. In local development with no email service (in-memory storage), the link is printed in the server console instead.
 - **Admin link:** in the admin panel, **Password link** creates a one-time reset link (valid 24 hours) to pass on by hand. Emails aren't verified, so check who you're talking to first.
 
 Players who signed up before recovery codes existed can create one from their profile.
