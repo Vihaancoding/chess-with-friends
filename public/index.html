@@ -204,8 +204,13 @@
   .liverow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
   .liverow:first-child { border-top: 0; }
   .liverow .lv { flex: 1; min-width: 160px; } .liverow i { color: var(--muted); font-style: normal; font-size: .85rem; } .liverow .lm { font-size: .8rem; }
-  .tomove { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 5px 0 2px; vertical-align: 1px; box-shadow: 0 0 0 1px #0006; }   /* side to move */
-  .tomove.w { background: #f0efed; } .tomove.b { background: #2a2926; box-shadow: 0 0 0 1px #8a8987; }
+  /* each player: a chip in their piece colour; the side to move gets a softly pulsing green ring, the other is dimmed */
+  .lp { white-space: nowrap; transition: opacity .3s; } .lp.wait { opacity: .55; }
+  .pc { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-shadow: inset 0 0 0 1px #0005; }
+  .pc.w { background: #f0efed; } .pc.b { background: #1c1b19; box-shadow: inset 0 0 0 1px #6d6c6a; }
+  .lp.turn .pc { box-shadow: 0 0 0 2px var(--green); animation: tomove 2s ease-in-out infinite; }
+  @keyframes tomove { 50% { box-shadow: 0 0 0 2px var(--green), 0 0 0 5px #81b64c33; } }
+  @media (prefers-reduced-motion: reduce) { .lp.turn .pc { animation: none; } }
   #chatlog { height: 250px; overflow-y: auto; background: #1f1e1b; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-size: .92rem; scrollbar-width: thin; }
   .msg { padding: 2px 0; word-break: break-word; position: relative; padding-right: 22px; }
   .msg .mt { color: #6d6c6a; font-size: .72rem; margin-right: 4px; }
@@ -1471,8 +1476,9 @@ function renderLive(list, me) {
   if (!list.length) { el.innerHTML = '<div class="muted empty">No games in progress right now.</div>'; return; }
   el.innerHTML = list.map((g) => {
     const mine = g.w.name === me || g.b.name === me;
-    const dot = (c) => (g.turn === c ? `<span class="tomove ${c}" title="${c === 'w' ? 'White' : 'Black'} to move"></span>` : '');
-    return `<div class="liverow"><span class="lv">${dot('w')}<b>${esc(g.w.name)}</b> <i>(${g.w.elo})</i> vs ${dot('b')}<b>${esc(g.b.name)}</b> <i>(${g.b.elo})</i></span>
+    const side = (c) => { const p = g[c], st = !g.turn ? '' : g.turn === c ? ' turn' : ' wait';
+      return `<span class="lp${st}"${st === ' turn' ? ` title="${c === 'w' ? 'White' : 'Black'} to move"` : ''}><span class="pc ${c}"></span><b>${esc(p.name)}</b> <i>(${p.elo})</i></span>`; };
+    return `<div class="liverow"><span class="lv">${side('w')} <i>vs</i> ${side('b')}</span>
       <span class="muted lm">${tcLabel(g.tc)} · move ${g.full || Math.floor(g.moves / 2) + 1}</span>
       <button class="small ${mine ? 'primary' : ''}" data-watch="${g.code}">${mine ? 'Rejoin' : 'Watch'}</button></div>`;
   }).join('');
