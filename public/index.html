@@ -267,7 +267,6 @@
   #cbText { font-size: 1.05rem; }
   #cbTurn { font-size: .8rem; font-weight: 700; opacity: .7; }
   #colorbar.myturn #cbTurn { opacity: 1; }
-  #cbPre { font-size: .75rem; font-weight: 700; color: #6f9cff; }
   #colorbar.w.myturn #cbTurn { color: #2e6a1d; } #colorbar.b.myturn #cbTurn { color: #95cf5b; }
   #colorbar.myturn { box-shadow: 0 0 0 3px #81b64c88, 0 8px 24px -8px #000c; }
   .banner button:disabled, #lb button:disabled, #livelist button:disabled { opacity: .55; }
@@ -768,7 +767,7 @@
   </div>
 </div></div>
 <div id="busybar" aria-hidden="true"></div>
-<div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span><span id="cbPre" class="hidden"></span></span></div>
+<div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span></span></div>
 
 <div id="promo" class="hidden"><div class="box"></div></div>
 
@@ -1672,32 +1671,34 @@ function premoveBoard() {
   }
   return board;
 }
-// squares a piece could go to once the opponent has moved: pieces move by shape alone (blockers may move away,
-// a pawn may capture whatever arrives on its diagonal), so recaptures and planned sequences can be queued.
+// squares a piece could go to once the opponent has moved. Own pieces (on the premove board) stay where they are,
+// so they block; opponent pieces may move or be traded off, so a slider sees through them and a pawn may capture
+// on either diagonal. That lets recaptures and planned sequences be queued.
 function premoveTargets(board, sq) {
   const p = board[sq], you = snap.you, out = [];
   if (!p || p[0] !== you) return out;
   const r = sq >> 3, c = sq & 7, t = p[1], ok = (rr, cc) => rr >= 0 && rr < 8 && cc >= 0 && cc < 8;
-  const add = (rr, cc, x) => { if (ok(rr, cc)) out.push({ from: sq, to: rr * 8 + cc, ...x }); };
+  const own = (rr, cc) => { const q = board[rr * 8 + cc]; return !!q && q[0] === you; };
+  const add = (rr, cc, x) => { if (ok(rr, cc) && !own(rr, cc)) out.push({ from: sq, to: rr * 8 + cc, ...x }); };
   if (t === 'P') {
     const dir = you === 'w' ? -1 : 1, promo = r + dir === (you === 'w' ? 0 : 7) ? { promo: 'Q' } : {};
     add(r + dir, c, promo); add(r + dir, c - 1, promo); add(r + dir, c + 1, promo);
-    if (r === (you === 'w' ? 6 : 1)) add(r + 2 * dir, c);
+    if (r === (you === 'w' ? 6 : 1) && !own(r + dir, c)) add(r + 2 * dir, c);
   } else if (t === 'N') {
     for (const [dr, dc] of [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]) add(r + dr, c + dc);
   } else if (t === 'K') {
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (dr || dc) add(r + dr, c + dc);
-    const home = you === 'w' ? 60 : 4, moved = (q) => premoves.some((m) => m.from === q);
+    const home = you === 'w' ? 60 : 4, moved = (q) => premoves.some((m) => m.from === q), free = (a, z) => { for (let q = a; q <= z; q++) if (board[q] && board[q][0] === you) return false; return true; };
     if (sq === home && !moved(home)) {
-      if (snap.state.castle[you + 'K'] && board[home + 3] === you + 'R' && !moved(home + 3)) add(r, c + 2, { castle: 'K' });
-      if (snap.state.castle[you + 'Q'] && board[home - 4] === you + 'R' && !moved(home - 4)) add(r, c - 2, { castle: 'Q' });
+      if (snap.state.castle[you + 'K'] && board[home + 3] === you + 'R' && !moved(home + 3) && free(home + 1, home + 2)) add(r, c + 2, { castle: 'K' });
+      if (snap.state.castle[you + 'Q'] && board[home - 4] === you + 'R' && !moved(home - 4) && free(home - 3, home - 1)) add(r, c - 2, { castle: 'Q' });
     }
   } else {
     const dirs = t === 'B' ? [[-1, -1], [-1, 1], [1, -1], [1, 1]] : t === 'R' ? [[-1, 0], [1, 0], [0, -1], [0, 1]]
       : [[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (const [dr, dc] of dirs) for (let k = 1; ok(r + dr * k, c + dc * k); k++) add(r + dr * k, c + dc * k);
+    for (const [dr, dc] of dirs) for (let k = 1; ok(r + dr * k, c + dc * k) && !own(r + dr * k, c + dc * k); k++) add(r + dr * k, c + dc * k);
   }
-  return out;   // own-occupied squares stay: that piece may be captured first, and this one recaptures
+  return out;
 }
 // moves to offer for a picked-up piece: real legal moves on my turn, premove shapes otherwise
 const movesFor = (sn, sq) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.state) : premoves.length >= MAX_PREMOVES ? [] : premoveTargets(premoveBoard(), sq));
@@ -1790,9 +1791,6 @@ function paintBoard() {
     if (sq === dragFrom) f += ' dragging';
     if (el._f !== f) { el.className = el._base + f; el._f = f; }
   }
-  const pc = $('#cbPre');
-  pc.classList.toggle('hidden', !pre);
-  setText(pc, pre ? `Premoves ${premoves.length}/${MAX_PREMOVES}` + (premoves.length >= MAX_PREMOVES ? ' (full)' : '') : '');
 }
 const paintSelection = paintBoard;
 $('#board').addEventListener('click', (e) => {
