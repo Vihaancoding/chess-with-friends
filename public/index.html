@@ -851,7 +851,7 @@
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
       <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
       <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
-      <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button><button class="small" data-play="challenge">Challenge</button><button class="small" data-play="chAccepted">Accepted</button><button class="small" data-play="chDeclined">Declined</button></div>
+      <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button><button class="small" data-play="challenge">Challenge</button><button class="small" data-play="chAccepted">Accepted</button><button class="small" data-play="chDeclined">Declined</button><button class="small" data-play="turn">Your turn</button></div>
     </div>
   </div>
 </div></div>
@@ -1072,6 +1072,7 @@ function onRtMove(ev) {
     drawOffer: s0.drawOffer && s0.drawOffer !== mover ? null : s0.drawOffer,
   });
   if (ev.e || st.over) kick();                                        // game over: fetch the final state (ratings follow)
+  else if (document.hidden && ns.turn === s0.you) turnAlert((s0.players[mover] || {}).name || 'Your opponent');   // tab in the background
 }
 
 // ---------- sign in ----------
@@ -1663,7 +1664,7 @@ function stopGame() {
   vcLeave(); resetAnalysis(); leaveArchive(); hideChatToast();
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
   rtRoomLive = false;
-  if (live && rtRoomOff) watchAway(gameCode); else roomUnsubscribe();
+  if (live && rtRoomOff) watchAway(gameCode, (snap.players[snap.you === 'w' ? 'b' : 'w'] || {}).name || 'Your opponent'); else roomUnsubscribe();
 }
 // ----- the room's live channel. Handlers are swappable so that leaving a game still in progress keeps listening for its chat -----
 let roomH = {}, roomSubCode = null, roomConn = false, awayGame = null;
@@ -1676,11 +1677,12 @@ function roomSubscribe(code) {
   return true;
 }
 function roomUnsubscribe() { if (rtRoomOff) rtRoomOff(); rtRoomOff = null; roomSubCode = null; roomConn = false; roomH = {}; awayGame = null; }
-// away from a live game (lobby, coach, profile…): a pop-up when the opponent chats; stop once the game is over
-function watchAway(code) {
-  awayGame = { code, t: null };
+// away from a live game (lobby, coach, profile…): a pop-up when the opponent chats or moves; stop once the game is over
+function watchAway(code, opp) {
+  awayGame = { code, opp, t: null };
   roomH = {
     c: (m) => { if (awayGame && m && m.n !== user.name) { sfx('move'); chatToast(m, code); } },
+    m: (ev) => { if (!awayGame) return; if (ev.e) return checkAway(code); turnAlert(opp, code); },   // you're away, so the move is theirs
     s: () => { clearTimeout(awayGame && awayGame.t); if (awayGame) awayGame.t = setTimeout(() => checkAway(code), 1500); },
   };
 }
@@ -2207,11 +2209,25 @@ function chatToast(m, awayCode) {
     const live = snap && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');   // only while you're playing a game in progress
     if (!live || document.activeElement === $('#gcIn')) return;
   }
+  showToast('💬', `<span class="ct-n">${esc(m.n)}</span>${m.s === 's' ? ' <span class="muted">(spectator)</span>' : ''}: <span class="ct-t">${esc(m.t)}</span>`, awayCode ? 'Tap to go back to your game' : 'Tap to reply', awayCode);
+}
+function showToast(icon, html, more, awayCode) {
   const t = $('#chatToast');
   t.dataset.code = awayCode || '';
-  t.innerHTML = `<span class="ct-i">💬</span><div><span class="ct-n">${esc(m.n)}</span>${m.s === 's' ? ' <span class="muted">(spectator)</span>' : ''}: <span class="ct-t">${esc(m.t)}</span><div class="ct-more">${awayCode ? 'Tap to go back to your game' : 'Tap to reply'}</div></div>`;
+  t.innerHTML = `<span class="ct-i">${icon}</span><div>${html}<div class="ct-more">${more}</div></div>`;
   t.classList.add('show');
   clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
+}
+// it's your move in a live game you're not looking at: on-page pop-up when you're elsewhere on the site, system notification when the tab is hidden
+function turnAlert(opp, awayCode) {
+  sfx('turn');
+  if (awayCode) showToast('♟', `<span class="ct-n">${esc(opp)}</span> moved — <span class="ct-t">it's your turn</span>`, 'Tap to go back to your game', awayCode);
+  if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const code = awayCode || gameCode;
+    const n = new Notification(`Your move vs ${opp}`, { body: `${opp} made a move. It's your turn.`, tag: 'chess-turn-' + code });
+    n.onclick = () => { window.focus(); n.close(); if (view !== 'game' || gameCode !== code) enterGame(code); };
+  } catch {}
 }
 function hideChatToast() { clearTimeout(chatToastTimer); $('#chatToast').classList.remove('show'); }
 $('#chatToast').onclick = () => {
@@ -2954,6 +2970,7 @@ function sfx(kind) {
   if (!audible()) return;
   if (kind === 'challenge') return challengeChime();
   if (kind === 'chAccepted') return [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, { vol: 0.12, delay: i * 0.09 }));
+  if (kind === 'turn') { tone(784, 0.18, { vol: 0.1 }); tone(1047, 0.3, { vol: 0.1, delay: 0.12 }); return; }
   if (kind === 'chDeclined') { tone(523, 0.25, { vol: 0.1 }); tone(392, 0.4, { vol: 0.1, delay: 0.16 }); return; }
   const fn = PACKS[SND.pack][1][kind];
   if (fn) fn();
