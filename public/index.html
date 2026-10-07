@@ -98,6 +98,11 @@
   .authtabs button:active { transform: none; }
   .authtabs button.on { background: #3b4a2b; color: #fff; box-shadow: inset 0 -3px 0 var(--green); }
   #welcome #go { margin-top: 6px; }
+  button.link { background: none; box-shadow: none; min-height: 0; padding: 4px 0; color: var(--muted); font-weight: 600; font-size: .88rem; text-decoration: underline; }
+  button.link:active { transform: none; }
+  #authLinks { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .recode { font: 800 1.25rem/1.2 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; background: #1f1e1b; border-radius: 8px; padding: 14px; text-align: center; margin: 12px 0; user-select: all; overflow-wrap: anywhere; }
+  .okmsg { color: var(--green); min-height: 1.3em; margin-top: 10px; font-size: .88rem; font-weight: 600; } .okmsg:empty { display: none; }
 
   /* ---------- lobby ---------- */
   #lobby { max-width: 1060px; margin: 0 auto; padding: 22px 18px 50px; }
@@ -528,19 +533,36 @@
   <div class="brand"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="muted" style="font-weight:600">Play your friends. Climb the leaderboard.</div>
   <div class="panel">
-    <div class="authtabs"><button id="tabUp" class="on">Sign up</button><button id="tabIn">Log in</button></div>
+    <div class="authtabs" id="authTabs"><button id="tabUp" class="on">Sign up</button><button id="tabIn">Log in</button></div>
     <form id="authForm" novalidate>
+      <div id="authIntro" class="muted hidden" style="font-size:.9rem;font-weight:600;margin-top:10px"></div>
       <div id="nameRow">
         <label class="label" for="nameIn">Username</label>
         <input id="nameIn" maxlength="16" placeholder="Shown to other players" autocomplete="username">
       </div>
-      <label class="label" for="emailIn">Email</label>
-      <input id="emailIn" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
-      <label class="label" for="passIn">Password</label>
-      <input id="passIn" type="password" placeholder="At least 8 characters" autocomplete="new-password">
+      <div id="emailRow">
+        <label class="label" for="emailIn">Email</label>
+        <input id="emailIn" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+      </div>
+      <div id="codeRow" class="hidden">
+        <label class="label" for="recIn">Recovery code</label>
+        <input id="recIn" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <div id="passRow">
+        <label class="label" for="passIn" id="passLbl">Password</label>
+        <input id="passIn" type="password" placeholder="At least 8 characters" autocomplete="new-password">
+      </div>
       <div id="werr" role="alert"></div>
+      <div id="wok" class="okmsg" role="status"></div>
       <button class="primary big" id="go" type="submit">Sign up</button>
+      <div id="authLinks"><button type="button" class="link" id="forgotLink">Forgot password?</button><button type="button" class="link hidden" id="mailLink">Email me a reset link instead</button><button type="button" class="link hidden" id="backLink">Back to log in</button></div>
     </form>
+    <div id="recoverBox" class="hidden">
+      <h2 class="ph">Save your recovery code</h2>
+      <div class="muted" style="font-size:.9rem;font-weight:600">If you ever forget your password, this code (with your email) lets you set a new one. It's shown only now. Write it down or keep it in a password manager.</div>
+      <div class="recode" id="recCode"></div>
+      <div class="row"><button id="recCopy" type="button">Copy</button><button class="primary" id="recDone" type="button">I've saved it</button></div>
+    </div>
   </div>
 </div>
 
@@ -659,6 +681,12 @@
   <div class="rcards" id="pfCards"></div>
   <div class="panel" style="margin-bottom:16px"><h2 class="ph"><span>Rating history · <span id="pfCatName"></span></span></h2><div id="pfGraph"></div></div>
   <div class="panel"><h2 class="ph">Recent games</h2><div id="pfGames"></div></div>
+  <div class="panel hidden" id="pfAccount" style="margin-top:16px">
+    <h2 class="ph">Account recovery</h2>
+    <div class="muted" id="pfRecTxt" style="font-size:.9rem;font-weight:600"></div>
+    <div class="recode hidden" id="pfRecCode"></div>
+    <div class="row" style="margin-top:12px"><button class="small" id="pfRecNew">Create a new recovery code</button></div>
+  </div>
 </div>
 
 <!-- admin -->
@@ -978,33 +1006,82 @@ async function login(name, token) {
   if (r.ok) finishAuth(r);
   return r;
 }
-let authMode = 'up';
+// modes: 'up' sign up · 'in' log in · 'forgot' recovery code + new password · 'mail' email a reset link · 'reset' from a reset link
+let authMode = 'up', resetToken = null, mailReset = null;
 let wantAdmin = false;
+const AUTH_GO = { up: 'Sign up', in: 'Log in', forgot: 'Set new password', mail: 'Email me a link', reset: 'Set new password' };
+const AUTH_INTRO = {
+  forgot: 'Enter your email and the recovery code you saved when you signed up, then choose a new password.',
+  mail: "We'll email you a link to choose a new password.",
+  reset: 'Choose a new password for your account.',
+};
 function setMode(m) {
   authMode = m;
-  $('#tabUp').classList.toggle('on', m === 'up'); $('#tabIn').classList.toggle('on', m === 'in');
+  const recovering = m === 'forgot' || m === 'mail' || m === 'reset';
+  $('#authTabs').classList.toggle('hidden', m === 'reset');
+  $('#tabUp').classList.toggle('on', m === 'up'); $('#tabIn').classList.toggle('on', m !== 'up');
+  $('#authIntro').classList.toggle('hidden', !recovering); $('#authIntro').textContent = AUTH_INTRO[m] || '';
   $('#nameRow').classList.toggle('hidden', m !== 'up');
-  $('#passIn').autocomplete = m === 'up' ? 'new-password' : 'current-password';
-  $('#go').textContent = m === 'up' ? 'Sign up' : 'Log in';
-  $('#werr').textContent = '';
+  $('#emailRow').classList.toggle('hidden', m === 'reset');
+  $('#codeRow').classList.toggle('hidden', m !== 'forgot');
+  $('#passRow').classList.toggle('hidden', m === 'mail');
+  $('#passLbl').textContent = recovering ? 'New password' : 'Password';
+  $('#passIn').autocomplete = m === 'in' ? 'current-password' : 'new-password';
+  $('#go').textContent = AUTH_GO[m];
+  $('#forgotLink').classList.toggle('hidden', m !== 'in');
+  $('#backLink').classList.toggle('hidden', !recovering);
+  $('#mailLink').classList.toggle('hidden', m !== 'forgot' || !mailReset);
+  $('#mailLink').textContent = 'Email me a reset link instead';
+  $('#werr').textContent = ''; $('#wok').textContent = '';
 }
 $('#tabUp').onclick = () => setMode('up');
 $('#tabIn').onclick = () => setMode('in');
+$('#backLink').onclick = () => { resetToken = null; history.replaceState(null, '', '/'); setMode('in'); };
+$('#mailLink').onclick = () => setMode('mail');
+$('#forgotLink').onclick = async () => {
+  setMode('forgot');
+  if (mailReset === null) {                              // is email reset available on this server?
+    const c = await api('config');
+    mailReset = !!(c.ok && c.mail);
+    if (authMode === 'forgot') $('#mailLink').classList.toggle('hidden', !mailReset);
+  }
+};
 $('#authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const m = authMode;
   const body = { email: $('#emailIn').value, password: $('#passIn').value };
-  if (authMode === 'up') body.username = $('#nameIn').value;
-  $('#go').disabled = true;
-  const r = await api(authMode === 'up' ? 'signup' : 'login', body);
+  if (m === 'up') body.username = $('#nameIn').value;
+  if (m === 'forgot') body.code = $('#recIn').value;
+  if (m === 'reset') body.token = resetToken;
+  $('#go').disabled = true; $('#werr').textContent = ''; $('#wok').textContent = '';
+  const r = await api({ up: 'signup', in: 'login', forgot: 'recover', mail: 'forgot', reset: 'reset_password' }[m], body);
   $('#go').disabled = false;
   if (!r.ok) return ($('#werr').textContent = r.error);
-  $('#passIn').value = '';
+  if (m === 'mail') return ($('#wok').textContent = r.msg);
+  $('#passIn').value = ''; $('#recIn').value = '';
   finishAuth(r);
+  if (m === 'reset') { resetToken = null; history.replaceState(null, '', '/'); }
+  if (r.recovery) return showRecovery(r.recovery);       // new account, or the old code was just used up
   start();
 });
+// Show a freshly made recovery code once, then carry on into the app.
+function showRecovery(code) {
+  $('#authForm').classList.add('hidden'); $('#authTabs').classList.add('hidden');
+  $('#recCode').textContent = code;
+  $('#recCopy').textContent = 'Copy';
+  $('#recoverBox').classList.remove('hidden');
+}
+$('#recCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#recCode').textContent); $('#recCopy').textContent = 'Copied'; } catch { $('#recCopy').textContent = 'Select and copy it'; } };
+$('#recDone').onclick = () => {
+  $('#recoverBox').classList.add('hidden'); $('#authForm').classList.remove('hidden'); $('#recCode').textContent = '';
+  setMode('in');
+  start();
+};
 $('#signout').onclick = () => { localStorage.removeItem('chess:user'); location.href = '/'; };
 
 async function boot() {
+  const rt = new URLSearchParams(location.search).get('reset');
+  if (rt) { resetToken = rt; setMode('reset'); return show('welcome'); }
   const saved = (() => { try { return JSON.parse(localStorage.getItem('chess:user')); } catch { return null; } })();
   if (saved && (await login(saved.name, saved.token)).ok) return start();
   show('welcome');
@@ -1402,6 +1479,7 @@ async function loadAdmin() {
       <td class="muted">${esc(u.email || '—')}</td><td class="r">${u.elo}</td><td class="r muted">${u.w}-${u.l}-${u.d}</td>
       <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>
       <button class="small" data-act="reset" data-name="${esc(u.name)}">Reset rating</button>
+      <button class="small" data-act="resetlink" data-name="${esc(u.name)}">Password link</button>
       <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
 }
 $('#admin').addEventListener('click', async (e) => {
@@ -1413,6 +1491,13 @@ $('#admin').addEventListener('click', async (e) => {
   if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
   if (act === 'delete') { if (!confirm(`Permanently delete ${name}'s account?`)) return; await api('admin_delete', { name }); }
   if (act === 'abort') { if (!confirm('End this game with no rating change?')) return; await api('admin_abort', { code }); }
+  if (act === 'resetlink') {
+    if (!confirm(`Create a one-time password reset link for ${name}? Only give it to them once you're sure it's really them.`)) return;
+    const r = await api('admin_reset_link', { name });
+    if (r.ok) prompt(`Password reset link for ${name} (works once, for 24 hours):`, location.origin + r.path);
+    else alert(r.error || 'Could not create a link.');
+    return;
+  }
   loadAdmin();
 });
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
@@ -3207,6 +3292,7 @@ function enterProfile(name) {
   $('#pfSub').innerHTML = '<span class="sk" style="width:160px;height:.85em"></span>';
   $('#pfChallenge').classList.toggle('hidden', name === user.name);
   $('#pfChallenge').disabled = false; $('#pfChallenge').textContent = 'Challenge';
+  $('#pfAccount').classList.add('hidden'); $('#pfRecCode').classList.add('hidden');
   $('#pfCards').innerHTML = ['Bullet', 'Blitz', 'Rapid', 'Classical'].map((c) => `<div class="rcard"><div class="rc-l">${c}</div><div class="rc-r"><span class="sk" style="width:70px;height:.9em"></span></div><div class="rc-s"><span class="sk" style="width:90px;height:.8em"></span></div></div>`).join('');
   $('#pfCatName').textContent = CAT_NAME[pfCat];
   $('#pfGraph').innerHTML = '<span class="sk block" style="height:100%;border-radius:8px"></span>';
@@ -3215,6 +3301,12 @@ function enterProfile(name) {
     if (id !== pfReq || view !== 'profile') return;
     if (!r.ok) { $('#pfSub').textContent = r.error || 'Could not load this profile.'; $('#pfCards').innerHTML = ''; $('#pfGraph').innerHTML = ''; $('#pfGames').innerHTML = ''; return; }
     pfData = r;
+    if (r.recovery !== undefined) {                          // my own profile: recovery code status
+      $('#pfAccount').classList.remove('hidden');
+      $('#pfRecTxt').textContent = r.recovery
+        ? 'You have a recovery code. With your email it lets you set a new password if you forget yours. Lost it? Make a new one; the old one stops working.'
+        : "You don't have a recovery code yet. Make one now so you can get back in if you forget your password.";
+    }
     const most = Object.entries(r.ratings).sort((a, b) => b[1].n - a[1].n)[0];
     if (most && most[1].n) pfCat = most[0];
     paintProfile();
@@ -3270,6 +3362,14 @@ $('#pfCards').addEventListener('click', (e) => { const c = e.target.closest('[da
 $('#pfGames').addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n) enterProfile(n.dataset.name); });
 $('#pfChallenge').onclick = () => { const name = pfData ? pfData.name : $('#pfName').textContent; enterLobby(); challenge(name); };
 $('#navProfile').onclick = () => enterProfile(user.name);
+$('#pfRecNew').onclick = async () => {
+  if (pfData && pfData.recovery && !confirm('Make a new recovery code? Your old one will stop working.')) return;
+  const r = await api('recovery_new');
+  if (!r.ok) return ($('#pfRecTxt').textContent = r.error || 'Could not make a new code.');
+  if (pfData) pfData.recovery = true;
+  $('#pfRecTxt').textContent = "Your new recovery code. It's shown only now, so write it down or keep it in a password manager.";
+  $('#pfRecCode').textContent = r.recovery; $('#pfRecCode').classList.remove('hidden');
+};
 $('#meName').onclick = () => enterProfile(user.name);
 document.querySelectorAll('#tcgrid button').forEach((b) => b.onclick = () => {
   $('#tc').value = b.dataset.v; paintMyRating();
