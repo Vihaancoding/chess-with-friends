@@ -2163,10 +2163,11 @@ function onGameChat(m) {
   if (view !== 'game' || isBot()) return;
   if (addGameMsg(m) && snap && m.n !== user.name) { sfx('move'); chatToast(m); }
 }
-// on-page pop-up for a new chat message (skipped while you're typing in the chat); click it to jump to the chat
+// on-page pop-up for a new chat message, only during a live game you're playing (and not while typing in the chat); click it to jump to the chat
 let chatToastTimer = null;
 function chatToast(m) {
-  if (document.activeElement === $('#gcIn')) return;
+  const live = snap && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');   // only while you're playing a game in progress
+  if (!live || document.activeElement === $('#gcIn')) return;
   const t = $('#chatToast');
   t.innerHTML = `<span class="ct-i">💬</span><div><span class="ct-n">${esc(m.n)}</span>${m.s === 's' ? ' <span class="muted">(spectator)</span>' : ''}: <span class="ct-t">${esc(m.t)}</span><div class="ct-more">Tap to reply</div></div>`;
   t.classList.add('show');
