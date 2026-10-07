@@ -1421,7 +1421,7 @@ $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); awai
 // ---------- game ----------
 function enterGame(code, seed) {
   stopLobby(); stopAdmin(); botLeave(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
-  viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; premove = null; arrows = []; marks = []; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
+  viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; premoves = []; arrows = []; marks = []; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
   history.replaceState(null, '', '?game=' + code);
   show('game');
   $('#gcode').textContent = code;
@@ -1495,9 +1495,9 @@ function applySnapshot(r) {
   if (s === sig) return;
   if (!sig || sig.split('|')[0] !== String(r.moves.length) || sig.split('|')[1] !== r.you) { selected = null; legal = []; }
   sig = s; afterSnapshot(r);
-  if (r.status.over) premove = null;
+  if (r.status.over) premoves = [];
   render();
-  runPremove();
+  queueMicrotask(runPremove);   // after the caller has finished reacting to this position
 }
 function fmt(ms) {
   if (ms == null) return '';
@@ -1654,40 +1654,88 @@ function renderMoves(moves, upto, live) {
   if (live) { if (added) ml.scrollTop = ml.scrollHeight; } else if (want) want.scrollIntoView({ block: 'nearest' });
 }
 
-// legal moves for the player: real ones on my turn, "if it were my turn" ones for a premove
-const movesFor = (sn) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.state) : Chess.legalMoves({ ...sn.state, turn: sn.you, ep: null }));
-let premove = null, arrows = [], marks = [], rdrag = null;
+// Premoves: on the opponent's turn moves are queued (chess.com style) and played one per turn when it comes back to me.
+// Queued moves are shown already made on a "premove board"; each is checked for legality only when it is played.
+let premoves = [], arrows = [], marks = [], rdrag = null;
+const premoveTurn = () => !!snap && snap.state.turn !== snap.you;
+// the board as it will look once every queued premove has been played (opponent replies unknown)
+function premoveBoard() {
+  const board = snap.state.board.slice();
+  for (const m of premoves) {
+    const p = board[m.from];
+    if (!p || p[0] !== snap.you) break;                    // the piece was captured: the rest of the queue will be dropped
+    board[m.to] = m.promo ? p[0] + m.promo : p; board[m.from] = null;
+    if (m.castle === 'K') { board[m.to - 1] = board[m.to + 1]; board[m.to + 1] = null; }
+    if (m.castle === 'Q') { board[m.to + 1] = board[m.to - 2]; board[m.to - 2] = null; }
+  }
+  return board;
+}
+// squares a piece could go to once the opponent has moved: pieces move by shape alone (blockers may move away,
+// a pawn may capture whatever arrives on its diagonal), so recaptures and planned sequences can be queued.
+function premoveTargets(board, sq) {
+  const p = board[sq], you = snap.you, out = [];
+  if (!p || p[0] !== you) return out;
+  const r = sq >> 3, c = sq & 7, t = p[1], ok = (rr, cc) => rr >= 0 && rr < 8 && cc >= 0 && cc < 8;
+  const add = (rr, cc, x) => { if (ok(rr, cc)) out.push({ from: sq, to: rr * 8 + cc, ...x }); };
+  if (t === 'P') {
+    const dir = you === 'w' ? -1 : 1, promo = r + dir === (you === 'w' ? 0 : 7) ? { promo: 'Q' } : {};
+    add(r + dir, c, promo); add(r + dir, c - 1, promo); add(r + dir, c + 1, promo);
+    if (r === (you === 'w' ? 6 : 1)) add(r + 2 * dir, c);
+  } else if (t === 'N') {
+    for (const [dr, dc] of [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]) add(r + dr, c + dc);
+  } else if (t === 'K') {
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (dr || dc) add(r + dr, c + dc);
+    const home = you === 'w' ? 60 : 4, moved = (q) => premoves.some((m) => m.from === q);
+    if (sq === home && !moved(home)) {
+      if (snap.state.castle[you + 'K'] && board[home + 3] === you + 'R' && !moved(home + 3)) add(r, c + 2, { castle: 'K' });
+      if (snap.state.castle[you + 'Q'] && board[home - 4] === you + 'R' && !moved(home - 4)) add(r, c - 2, { castle: 'Q' });
+    }
+  } else {
+    const dirs = t === 'B' ? [[-1, -1], [-1, 1], [1, -1], [1, 1]] : t === 'R' ? [[-1, 0], [1, 0], [0, -1], [0, 1]]
+      : [[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
+    for (const [dr, dc] of dirs) for (let k = 1; ok(r + dr * k, c + dc * k); k++) add(r + dr * k, c + dc * k);
+  }
+  return out;   // own-occupied squares stay: that piece may be captured first, and this one recaptures
+}
+// moves to offer for a picked-up piece: real legal moves on my turn, premove shapes otherwise
+const movesFor = (sn, sq) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.state) : premoveTargets(premoveBoard(), sq));
+// the board the player is acting on: the real one on my turn, the premove board otherwise
+const actBoard = () => (premoveTurn() && premoves.length ? premoveBoard() : snap.state.board);
 
 function clickSquare(sq) {
   if (!snap || snap.status.over || snap.paused || !snap.players.w || !snap.players.b || viewPly !== null) return;
-  const { state, you } = snap;
+  const { you } = snap;
   if (you !== 'w' && you !== 'b') return;
-  const myTurn = state.turn === you;
+  const myTurn = !premoveTurn();
   if (selected !== null) {
     const cand = legal.filter((m) => m.from === selected && m.to === sq);
     if (cand.length) {
       if (!myTurn) {                                             // queue a premove (promotes to a queen)
-        premove = { from: selected, to: sq, promo: cand[0].promo ? 'Q' : undefined };
+        const m = cand[0];
+        premoves.push({ from: m.from, to: m.to, promo: m.promo, castle: m.castle });
         selected = null; legal = []; drawOverlay(); paintBoard(); return;
       }
       return cand[0].promo ? askPromo(selected, sq) : send(selected, sq);
     }
   }
-  const p = state.board[sq];
-  if (p && p[0] === you && sq !== selected) { selected = sq; legal = movesFor(snap); }
-  else { selected = null; legal = []; if (!myTurn && premove) { premove = null; drawOverlay(); } }
+  const p = actBoard()[sq];
+  if (p && p[0] === you && sq !== selected) { selected = sq; legal = movesFor(snap, sq); }
+  else { const had = selected !== null; selected = null; legal = []; if (!myTurn && !had) clearPremoves(); }   // a click away first drops the pick, then the queue
   paintBoard();
 }
-function clearPremove() { if (premove) { premove = null; drawOverlay(); } }
-// Called after every new position: if a premove is queued and it is now my turn, play it (if still legal).
+function clearPremoves() { if (premoves.length) { premoves = []; drawOverlay(); } }
+// Called after every new position: if premoves are queued and it is now my turn, play the first (if still legal).
+// An illegal one cancels the whole queue, since the moves after it were planned on top of it.
 function runPremove() {
-  if (!premove || !snap) return;
-  if (snap.status.over) { clearPremove(); return; }
-  if (snap.state.turn !== snap.you) return;
-  const pm = premove; premove = null; drawOverlay();
-  const ok = Chess.legalMoves(snap.state).some((x) => x.from === pm.from && x.to === pm.to && (x.promo || undefined) === pm.promo);
-  paintBoard();
-  if (ok) send(pm.from, pm.to, pm.promo);
+  if (!premoves.length || !snap) return;
+  if (snap.status.over) { clearPremoves(); paintBoard(); return; }
+  if (premoveTurn() || snap.paused) return;
+  if (sending) { setTimeout(runPremove, 50); return; }
+  const pm = premoves.shift();
+  const m = Chess.legalMoves(snap.state).find((x) => x.from === pm.from && x.to === pm.to && (x.promo || undefined) === pm.promo);
+  if (!m) { premoves = []; drawOverlay(); paintBoard(); return; }
+  if (!premoves.length) drawOverlay();
+  send(pm.from, pm.to, pm.promo);
 }
 
 // ----- persistent board: squares are built once; a paint only touches what changed -----
@@ -1713,6 +1761,8 @@ function paintBoard() {
   if (boardFlip !== flip || !sqEls[0]) buildBoard(flip);
   const { state, last, live } = viewInfo();
   const you = snap.you, status = snap.status;
+  const pre = live && premoves.length ? new Set(premoves.flatMap((m) => [m.from, m.to])) : null;
+  const shown = pre ? premoveBoard() : state.board;      // queued premoves are shown as already made
   const inChk = live ? status.check : Chess.inCheck(state, state.turn);
   const kingSq = inChk ? state.board.indexOf(state.turn + 'K') : -1;
   const active = live && !status.over && !!(snap.players.w && snap.players.b) && (you === 'w' || you === 'b');
@@ -1720,7 +1770,7 @@ function paintBoard() {
   const targets = live && selected !== null ? new Map(legal.filter((m) => m.from === selected).map((m) => [m.to, m])) : new Map();
   const dragFrom = drag && drag.moved ? drag.from : -1;
   for (let sq = 0; sq < 64; sq++) {
-    const el = sqEls[sq], p = state.board[sq] || '';
+    const el = sqEls[sq], p = shown[sq] || '';
     if (el._p !== p) {
       const old = el.querySelector('.piece, .glyph');
       if (old) old.remove();
@@ -1734,7 +1784,7 @@ function paintBoard() {
     const t = targets.get(sq);
     if (t) f += ' hint' + (p || t.enPassant ? ' cap' : '') + (myTurn ? '' : ' pre');
     if (active && p && p[0] === you) f += ' mine';
-    if (premove && live && (sq === premove.from || sq === premove.to)) f += ' premove';
+    if (pre && pre.has(sq)) f += ' premove';
     if (sq === dragFrom) f += ' dragging';
     if (el._f !== f) { el.className = el._base + f; el._f = f; }
   }
@@ -1748,7 +1798,7 @@ $('#board').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || view !== 'game' || drag) return;
   if (selected !== null) { selected = null; legal = []; paintBoard(); }
-  else if (premove) clearPremove(), paintBoard();
+  else if (premoves.length) clearPremoves(), paintBoard();
   else if (arrows.length || marks.length) { arrows = []; marks = []; drawOverlay(); }
 });
 
@@ -1768,7 +1818,6 @@ function drawOverlay() {
   let h = '';
   for (const m of marks) h += circleSVG(m.sq, ARROW[m.color], 0.8);
   for (const a of arrows) h += arrowSVG(a.from, a.to, ARROW[a.color], 0.8);
-  if (premove && viewPly === null) h += arrowSVG(premove.from, premove.to, ARROW.blue, 0.75);
   if (anArrow && AN.key) h += arrowSVG(anArrow.from, anArrow.to, '#5fb030', 0.85);
   if (isCoach() && viewPly === null) { if (CO.mark != null) h += circleSVG(CO.mark, '#5fb030', 0.9); if (CO.arrow) h += arrowSVG(CO.arrow.from, CO.arrow.to, '#5fb030', 0.85); }
   if (rdrag) h += rdrag.from === rdrag.to ? circleSVG(rdrag.from, ARROW[rdrag.color], 0.55) : arrowSVG(rdrag.from, rdrag.to, ARROW[rdrag.color], 0.55);
@@ -2497,6 +2546,9 @@ board.addEventListener('contextmenu', (e) => e.preventDefault());
 const sqAt = (x, y) => { const el = document.elementFromPoint(x, y), q = el && el.closest ? el.closest('#board .sq') : null; return q ? +q.dataset.sq : null; };
 board.addEventListener('pointerdown', (e) => {
   if (e.button === 2) {
+    if (premoves.length || (selected !== null && premoveTurn())) {   // right-click cancels premoves (and a premove being picked)
+      selected = null; legal = []; clearPremoves(); paintBoard(); return;
+    }
     const sq = sqAt(e.clientX, e.clientY);
     if (sq === null) return;
     rdrag = { from: sq, to: sq, color: e.shiftKey ? 'red' : e.ctrlKey || e.metaKey ? 'blue' : e.altKey ? 'yellow' : 'green' };
@@ -2508,7 +2560,7 @@ board.addEventListener('pointerdown', (e) => {
   if (!snap || viewPly !== null || snap.status.over || snap.paused || !snap.players.w || !snap.players.b) return;
   const sqEl = e.target.closest('.sq');
   if (!sqEl) return;
-  const sq = +sqEl.dataset.sq, p = snap.state.board[sq];
+  const sq = +sqEl.dataset.sq, p = actBoard()[sq];
   if (!p || p[0] !== snap.you) return;                // my pieces only (on the opponent's turn this drags a premove)
   drag = { from: sq, x: e.clientX, y: e.clientY, moved: false, ghost: null, size: sqEl.getBoundingClientRect().width, piece: p };
 });
@@ -2518,7 +2570,7 @@ window.addEventListener('pointermove', (e) => {
   if (!drag.moved) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
     drag.moved = true;
-    selected = drag.from; legal = movesFor(snap);
+    selected = drag.from; legal = movesFor(snap, drag.from);
     const g = document.createElement('div');
     g.className = 'dragghost'; g.style.width = g.style.height = drag.size * 1.1 + 'px';
     g.innerHTML = pieceHTML(drag.piece);
@@ -2816,7 +2868,7 @@ function botHumanMove(from, to, promo) {
   const m = Chess.legalMoves(b.state).find((x) => x.from === from && x.to === to && (x.promo || undefined) === promo);
   selected = null; legal = [];
   if (!m) { paintBoard(); return; }
-  viewPly = null; premove = null;
+  viewPly = null;
   const before = b.state, ply = b.moves.length;
   applyBotMove(b, m, true); botSave(); pushBot();
   if (b.coach) coachUserMove(before, m, ply); else liveBadge(before, m, ply, true);
@@ -2866,7 +2918,7 @@ function botLeave() {            // leaving the game screen: stop thinking, keep
 function enterBot(b) {
   stopLobby(); stopAdmin(); stopGame(); resetAnalysis();
   botGame = b; view = 'game'; gameCode = 'BOT';
-  snap = null; sig = ''; selected = null; legal = []; premove = null; arrows = []; marks = [];
+  snap = null; sig = ''; selected = null; legal = []; premoves = []; arrows = []; marks = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = 'BOT'; pending = null; sending = false;
   $('#over').classList.add('hidden'); document.title = baseTitle;
   history.replaceState(null, '', b.coach ? '?coach=game' : '?bot=1');
