@@ -648,6 +648,7 @@
       <div class="row" style="margin-top:10px"><input id="code" class="code" maxlength="5" placeholder="ABCDE" autocomplete="off"><button class="primary" id="join">Join</button></div>
       <div class="label">Challenge a friend</div>
       <div class="row"><input id="chName" placeholder="Their username" maxlength="16" autocomplete="off"><button id="chBtn">Challenge</button></div>
+      <div class="row" id="notifyRow" style="margin-top:8px"><button class="small" id="notifyBtn">🔔 Enable challenge alerts</button><span class="muted" id="notifyNote" style="font-size:.8rem;font-weight:600"></span></div>
       </div>
       <div id="botOnly" class="hidden">
         <div class="label">Difficulty</div>
@@ -1224,9 +1225,20 @@ function alertChallenge(c) {
     n.onclick = () => { window.focus(); if (view !== 'lobby' && view !== 'game') enterLobby(); n.close(); };
   } catch {}
 }
-function askNotifyPermission() {   // asked once, from a click, so browsers allow the prompt
-  if ('Notification' in window && Notification.permission === 'default') { try { Notification.requestPermission(); } catch {} }
+// "Enable challenge alerts": browsers only show the permission prompt from a click, so it lives on a button
+function paintNotify() {
+  const has = 'Notification' in window, perm = has ? Notification.permission : 'unsupported';
+  $('#notifyRow').classList.toggle('hidden', perm === 'granted' || perm === 'unsupported');
+  $('#notifyBtn').disabled = perm === 'denied';
+  $('#notifyNote').textContent = perm === 'denied' ? 'Blocked — allow notifications for this site in your browser settings.' : 'Get a pop-up when someone challenges you.';
 }
+$('#notifyBtn').onclick = async () => {
+  if (!('Notification' in window)) return;
+  try { await Notification.requestPermission(); } catch {}
+  paintNotify();
+  if (Notification.permission === 'granted') { try { new Notification('Challenge alerts are on', { body: "You'll get a pop-up when someone challenges you." }); } catch {} }
+};
+paintNotify();
 function renderBanners() {
   const o = curOut;
   const sig = JSON.stringify([curInbox.map((c) => c.id), o && [o.status, o.to], [...busyIds]]);
@@ -1279,7 +1291,7 @@ let lobbyBusy = false, lobbyRerun = false, lobbyTick = 0;
 function enterLobby() {
   stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
-  show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume();
+  show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume(); paintNotify();
   lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot();
   // with live updates on, polling is only a safety net
   lobbyTimer = setInterval(() => {
@@ -2864,10 +2876,6 @@ function sfx(kind) {
 }
 function preview(kind) { sndForce = true; try { sfx(kind); } finally { sndForce = false; } }
 document.addEventListener('pointerdown', () => ac(), { once: true });
-document.addEventListener('pointerdown', function notifyAsk() {   // once signed in, the first click asks for challenge notifications
-  if (!user) return;
-  document.removeEventListener('pointerdown', notifyAsk); askNotifyPermission();
-});
 
 // sounds panel (inside the Board & pieces modal)
 function paintSounds() {
