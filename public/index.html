@@ -1678,7 +1678,7 @@ function watchAway(code) {
 async function checkAway(code) {
   const r = await api('sync', { code, v: null });
   if (!awayGame || awayGame.code !== code || view === 'game') return;
-  if (!r.ok || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();
+  if (r.status === 404 || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();   // a network blip keeps watching
 }
 $('#leave').onclick = () => (isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
