@@ -2,7 +2,7 @@
 
 Multiplayer chess in the browser. Make a game, share the 5-letter code (or challenge a username), and play.
 
-**Features:** email accounts · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · **opening recognition** (ECO code and named variation, updated live and on transpositions) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
+**Features:** email accounts with **account recovery** (recovery codes, emailed or admin-issued reset links) · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · **opening recognition** (ECO code and named variation, updated live and on transpositions) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
 
 No framework and no build step: a vanilla JS client, a small Node API, and an optional Supabase database.
 
@@ -16,6 +16,8 @@ Open http://localhost:3000. With no database configured, everything is stored in
 
 Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (see below).
 
+To test emailed password resets locally with `SMTP_USER` / `SMTP_PASS` set, run `npm install` once first (it adds `nodemailer`). Everything else needs no install.
+
 ## Deploy (Vercel + Supabase, both free tiers)
 
 1. **Supabase:** create a project, open **SQL Editor**, and run [`supabase.sql`](supabase.sql).
@@ -28,6 +30,9 @@ Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (s
    | `ADMIN_KEY` | A long passphrase of your choice (enables the admin panel) |
    | `TURN_URL`, `TURN_USER`, `TURN_PASS` | Optional: a TURN relay for voice calls on networks that block direct connections |
    | `SUPABASE_ANON_KEY` | Optional: the *publishable / anon* key (Project Settings → API). Turns on instant live updates; without it the app polls |
+   | `SMTP_USER`, `SMTP_PASS` | Optional: turns on "email me a reset link", sent from this mailbox. For Gmail: your address and a [Google app password](https://myaccount.google.com/apppasswords) (needs 2-Step Verification). Other providers: also set `SMTP_HOST` / `SMTP_PORT` |
+   | `RESEND_API_KEY`, `MAIL_FROM` | Optional alternative to SMTP: a [Resend](https://resend.com) API key and a sender on a domain you own (e.g. `Chess <noreply@yourdomain.com>`) |
+   | `APP_URL` | Optional: your site's address for links in emails (defaults to the Vercel production URL) |
 
 3. Deploy. Pushing to `main` redeploys automatically.
 
@@ -37,6 +42,16 @@ See [`.env.example`](.env.example) for the same list.
 
 Emails are not verified, so admin is unlocked with a secret instead of an email address:
 log in, open `https://your-site/?admin=1`, and enter `ADMIN_KEY`. An **Admin** link then appears in the sidebar. From there you can mute, reset or delete players, end live games, post an announcement and moderate chat.
+
+## Account recovery
+
+Players who forget their password have three ways back in. Each one sets a new password and signs out every other device.
+
+- **Recovery code:** shown once at sign-up (and again after it is used). Email + code + new password on the "Forgot password?" screen. Players can make a new code from their own profile page; the old one stops working. Only a hash of the code is stored.
+- **Email link:** with an email service set up (`SMTP_USER` + `SMTP_PASS`, or `RESEND_API_KEY` + `MAIL_FROM`), players can ask for a one-time reset link that works for 30 minutes. In local development with no email service (in-memory storage), the link is printed in the server console instead.
+- **Admin link:** in the admin panel, **Password link** creates a one-time reset link (valid 24 hours) to pass on by hand. Emails aren't verified, so check who you're talking to first.
+
+Players who signed up before recovery codes existed can create one from their profile.
 
 ## How it works
 
@@ -63,7 +78,7 @@ The server is authoritative: every move is validated with the shared engine, and
 
 ## Known limitations / ideas
 
-- No email verification or password reset (needs an email service such as Resend or Supabase Auth).
+- No email verification, and no "change password" while signed in (use a recovery code).
 - Read-modify-write on the key-value store can race under heavy concurrency; fine for friends, not for thousands of players.
 - No per-player game history or opening explorer yet.
 - Abandoned untimed games are never cleaned up automatically.
