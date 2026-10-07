@@ -530,12 +530,18 @@
   #coMsg { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; line-height: 1.45; min-height: 2.9em; }
   #coMsg .sym { flex: none; margin-top: 2px; }
   #coachpanel .row button.hidden { display: none; }
+  .codiff { margin: 4px 0 6px; }
+  .codiff-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 700; }
+  .codiff-h .muted { font-size: .85rem; }
+  .codiff input[type=range] { width: 100%; min-height: 0; margin: 8px 0 2px; accent-color: var(--green); }
+  .codiff-ends { display: flex; justify-content: space-between; font-size: .75rem; font-weight: 600; }
+  .codiff-help { font-size: .82rem; font-weight: 600; margin-top: 4px; }
   .sktoggle { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 700; cursor: pointer; }
   #sndPacks button { min-height: 40px; }
   .sndvol { display: flex; align-items: center; gap: 12px; margin: 12px 0 6px; font-weight: 700; }
   .sndvol input { flex: 1; min-height: 0; accent-color: var(--green); }
   .sndtest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-weight: 700; }
-  .sktoggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--green); }
+  .sktoggle input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--green); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -697,7 +703,14 @@
   <div class="cogrid">
     <div class="panel">
       <h2 class="ph">Play with the coach</h2>
-      <div class="muted" style="font-weight:600;margin-bottom:10px">After every move, the coach tells you if it was a blunder, a mistake or a great move, and shows you the better one. Its strength adapts to you.</div>
+      <div class="muted" style="font-weight:600;margin-bottom:10px">After every move, the coach tells you if it was a blunder, a mistake or a great move, and shows you the better one.</div>
+      <div class="codiff">
+        <div class="codiff-h"><label for="coLevel">Difficulty</label><span><b id="coLevelVal"></b> <span class="muted" id="coLevelName"></span></span></div>
+        <input type="range" id="coLevel" min="425" max="2000" step="25" aria-describedby="coLevelHelp">
+        <div class="codiff-ends muted"><span>Beginner</span><span>Expert</span></div>
+        <label class="sktoggle" style="justify-content:flex-start;margin-top:8px"><input type="checkbox" id="coAdapt"> Adapt to my results</label>
+        <div class="muted codiff-help" id="coLevelHelp"></div>
+      </div>
       <div class="colorpick" id="coColor"><button data-c="w">White</button><button data-c="r">Random</button><button data-c="b">Black</button></div>
       <label class="sktoggle" style="justify-content:flex-start"><input type="checkbox" id="coHelp"> Hints and takebacks</label>
       <button class="primary big" id="coStart" style="margin-top:14px">Start coached game</button>
@@ -3223,12 +3236,14 @@ const COACH_MS = 700;
 const PV = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 };
 const PNAME = { P: 'pawn', N: 'knight', B: 'bishop', R: 'rook', Q: 'queen', K: 'king' };
 const coachRating = (s) => Math.round((400 + s * 1600) / 25) * 25;
+const coachLevelName = (r) => (r < 700 ? 'Beginner' : r < 1100 ? 'Casual' : r < 1500 ? 'Intermediate' : r < 1800 ? 'Advanced' : 'Expert');
 function coachData() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem('chess:coach')); } catch {}
   if (!d || typeof d.s !== 'number') d = { s: Math.max(0.05, Math.min(0.9, ((myElo || 1200) - 500) / 1600)), games: [], help: true };
   if (!Array.isArray(d.games)) d.games = [];
   if (d.help === undefined) d.help = true;
+  if (d.adapt === undefined) d.adapt = true;
   return d;
 }
 function saveCoach(d) { try { localStorage.setItem('chess:coach', JSON.stringify(d)); } catch {} }
@@ -3405,7 +3420,7 @@ function coachFinish() {
   const n = {}; for (const x of b.coach.log) n[x.c] = (n[x.c] || 0) + 1;
   const tags = {}; for (const x of b.coach.log) if (x.tag) tags[x.tag] = (tags[x.tag] || 0) + 1;
   const d = coachData(), before = d.s;
-  if (b.coach.log.length >= 5) {
+  if (d.adapt && b.coach.log.length >= 5) {
     // results move the level most; accuracy nudges it; heavy use of takebacks and hints counts as help
     let delta = 0.08 * (score - 0.5) * 2 + (acc != null ? (acc - 72) / 900 : 0);
     if (score === 1 && b.coach.takebacks + b.coach.hints > 4) delta *= 0.5;
@@ -3454,13 +3469,14 @@ function paintCoachHome() {
   else {
     const prev = g.slice(10, 20).filter((x) => x.acc != null), pa = prev.length ? prev.reduce((x, y) => x + y.acc, 0) / prev.length : null;
     if (pa != null && avgAcc !== '–' && +avgAcc > pa + 3) greet = `Welcome back! Your accuracy is up from ${pa.toFixed(0)}% to ${avgAcc}% recently. That's real progress.`;
+    else if (!d.adapt) greet = `Welcome back! I'm set to play at about ${coachRating(d.s)}. Change my difficulty any time below.`;
     else if (g[0].res === 'win') greet = 'Welcome back! You won our last game, so I\'ve turned up the difficulty a little.';
     else if (g[0].res === 'loss') greet = 'Welcome back! I took it a bit easier after last game. Let\'s go again.';
     else greet = 'Welcome back! Ready for another game?';
   }
   $('#coGreet').innerHTML = greet;
   setHTML($('#coCards'), [
-    ['Coach level', coachRating(d.s), 'adapts after every game'],
+    ['Coach level', coachRating(d.s), d.adapt ? 'adapts after every game' : 'fixed difficulty'],
     ['Games', g.length, `${w} W · ${l} L · ${dr} D`],
     ['Accuracy', avgAcc === '–' ? '–' : avgAcc + '%', 'last 10 games'],
     ['Blunders', bpg, 'per game, last 10'],
@@ -3475,10 +3491,18 @@ function paintCoachHome() {
   setHTML($('#coFocus'), fh);
   setHTML($('#coGames'), g.length ? `<table><thead><tr><th>Result</th><th>Color</th><th class="r">Accuracy</th><th class="r">Blunders</th><th class="r">Mistakes</th><th class="r">Coach</th><th class="r">Moves</th></tr></thead><tbody>${g.slice(0, 15).map((x) => `<tr><td><b class="cores ${x.res}">${x.res === 'win' ? 'Won' : x.res === 'loss' ? 'Lost' : 'Draw'}</b> <span class="muted">${esc(x.reason || '')}</span></td><td>${x.you === 'w' ? 'White' : 'Black'}</td><td class="r">${x.acc == null ? '–' : x.acc.toFixed(1) + '%'}</td><td class="r">${x.n.blunder || 0}</td><td class="r">${x.n.mistake || 0}</td><td class="r">${x.lvl}</td><td class="r">${x.moves}</td></tr>`).join('')}</tbody></table>` : '<div class="muted">No coach games yet.</div>');
   $('#coHelp').checked = d.help;
+  paintCoachLevel(d);
   document.querySelectorAll('#coColor button').forEach((x) => x.classList.toggle('on', x.dataset.c === coColor));
   let sv = null; try { sv = JSON.parse(localStorage.getItem('chess:coachgame')); } catch {}
   $('#coResume').classList.toggle('hidden', !(sv && Array.isArray(sv.hist)));
   if (sv && Array.isArray(sv.hist)) $('#coResumeText').textContent = `Game in progress · move ${Math.floor(sv.hist.length / 2) + 1}`;
+}
+function paintCoachLevel(d) {
+  const r = coachRating(d.s);
+  $('#coLevel').value = r;
+  setText($('#coLevelVal'), String(r)); setText($('#coLevelName'), coachLevelName(r));
+  $('#coAdapt').checked = d.adapt;
+  setText($('#coLevelHelp'), d.adapt ? 'Starts here, then goes up when you win and down when you lose.' : 'Stays at this level until you change it.');
 }
 function startCoachGame(you) {
   const d = coachData();
@@ -3487,6 +3511,12 @@ function startCoachGame(you) {
   enterBot(b);
 }
 document.querySelectorAll('#coColor button').forEach((x) => x.onclick = () => { coColor = x.dataset.c; paintCoachHome(); });
+$('#coLevel').addEventListener('input', (e) => {
+  const d = coachData(), r = +e.target.value;
+  d.s = Math.max(0.02, Math.min(1, (r - 400) / 1600)); saveCoach(d);
+  paintCoachHome();
+});
+$('#coAdapt').addEventListener('change', (e) => { const d = coachData(); d.adapt = e.target.checked; saveCoach(d); paintCoachHome(); });
 $('#coHelp').addEventListener('change', (e) => { const d = coachData(); d.help = e.target.checked; saveCoach(d); });
 $('#coStart').onclick = () => startCoachGame();
 $('#coResumeBtn').onclick = () => { const b = botLoad('chess:coachgame'); if (b) enterBot(b); else { botClear('chess:coachgame'); paintCoachHome(); } };
