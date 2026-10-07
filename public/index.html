@@ -837,7 +837,7 @@
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
       <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
       <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
-      <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button></div>
+      <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button><button class="small" data-play="challenge">Challenge</button></div>
     </div>
   </div>
 </div></div>
@@ -1207,9 +1207,25 @@ function syncChallenges(inbox, outbox) {
   if (o) { if (o.status !== 'pending' || !localOut || o.id === localOut.id || !localOut.id) localOut = null; }
   if (!o && localOut) { if (Date.now() - localOut.ts < 6000) o = { status: 'pending', to: localOut.to, local: true }; else localOut = null; }
   curOut = o;
+  const fresh = curInbox.filter((c) => !seenChIds.has(c.id));
+  fresh.forEach((c) => seenChIds.add(c.id));
+  if (fresh.length) alertChallenge(fresh[fresh.length - 1]);
   document.title = curInbox.length ? `(${curInbox.length}) Challenge · Chess` : baseTitle;
   renderBanners();
   paintChallengeButtons();
+}
+// a new incoming challenge: chime (unless sound is off) and, if the tab is in the background, a system notification
+const seenChIds = new Set();
+function alertChallenge(c) {
+  sfx('challenge');
+  if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(`${c.from} challenges you`, { body: `${c.fromElo} · ${tcLabel(c.tc)} — open Chess With Friends to accept`, tag: 'chess-challenge-' + c.id });
+    n.onclick = () => { window.focus(); if (view !== 'lobby' && view !== 'game') enterLobby(); n.close(); };
+  } catch {}
+}
+function askNotifyPermission() {   // asked once, from a click, so browsers allow the prompt
+  if ('Notification' in window && Notification.permission === 'default') { try { Notification.requestPermission(); } catch {} }
 }
 function renderBanners() {
   const o = curOut;
@@ -2838,13 +2854,20 @@ const PACKS = {
 if (!PACKS[SND.pack]) SND.pack = 'classic';
 try { if (window.indexedDB) indexedDB.deleteDatabase('chess-sounds'); } catch {}   // uploaded clips from an earlier version
 
+// challenge chime: the same in every pack (even Silent), so it stands out from move sounds; the speaker button still mutes it
+function challengeChime() { [659, 880, 1175].forEach((f, i) => tone(f, 0.35, { vol: 0.13, delay: i * 0.12 })); tone(1175, 0.5, { vol: 0.09, delay: 0.5 }); }
 function sfx(kind) {
   if (!audible()) return;
+  if (kind === 'challenge') return challengeChime();
   const fn = PACKS[SND.pack][1][kind];
   if (fn) fn();
 }
 function preview(kind) { sndForce = true; try { sfx(kind); } finally { sndForce = false; } }
 document.addEventListener('pointerdown', () => ac(), { once: true });
+document.addEventListener('pointerdown', function notifyAsk() {   // once signed in, the first click asks for challenge notifications
+  if (!user) return;
+  document.removeEventListener('pointerdown', notifyAsk); askNotifyPermission();
+});
 
 // sounds panel (inside the Board & pieces modal)
 function paintSounds() {
