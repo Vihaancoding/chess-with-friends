@@ -422,6 +422,12 @@
   #callctl .cstate.live { color: var(--green); }
   button.decline { background: #6b2a24; box-shadow: 0 2px 0 #3d1815; }
   #callctl svg { width: 15px; height: 15px; }
+  #chatToast { position: fixed; top: 14px; left: 50%; transform: translate(-50%, -20px); z-index: 25; max-width: min(420px, calc(100vw - 32px)); display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 14px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: 10px; box-shadow: 0 8px 24px #0008;
+    cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+  #chatToast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  #chatToast .ct-i { font-size: 1.1rem; line-height: 1.3; } #chatToast .ct-n { font-weight: 800; } #chatToast .ct-t { word-break: break-word; font-weight: 600; }
+  #chatToast .ct-more { color: var(--muted); font-size: .75rem; font-weight: 700; margin-top: 2px; }
   #gclog { height: 170px; overflow-y: auto; padding: 8px 12px; font-size: .9rem; scrollbar-width: thin; }
   #gclog .gm { padding: 2px 0; word-break: break-word; }
   #gclog .gm b.w { color: #e9e6d3; } #gclog .gm b.b { color: #8fc1ff; }
@@ -850,6 +856,7 @@
   </div>
 </div></div>
 <div id="busybar" aria-hidden="true"></div>
+<div id="chatToast" role="status" aria-live="polite"></div>
 <div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span></span></div>
 
 <div id="promo" class="hidden"><div class="box"></div></div>
@@ -1631,9 +1638,11 @@ function enterGame(code, seed) {
   gameSkeleton();
   if (seed) applySnapshot(seed);                       // board and players straight from the response/push
   openGameChat(code);
-  if (rtRoomOff) rtRoomOff();
+  awayGame = null; hideChatToast();
   rtRoomLive = false;
-  rtRoomOff = rtSubscribe('room:' + code, { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } });
+  const st = (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } };
+  roomH = { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal, st };
+  if (!roomSubscribe(code) && roomConn) st(true);           // came back to a game we kept listening to while away
   kick();
   clockTimer = setInterval(drawClocks, 200);
 }
@@ -1650,9 +1659,35 @@ function gameSkeleton() {
   $('#arrows').innerHTML = ''; ovSig = '';
 }
 function stopGame() {
-  vcLeave(); resetAnalysis(); leaveArchive();
+  const live = gameCode && !isBot() && !isArchive() && view === 'game' && snap && snap.code === gameCode && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');
+  vcLeave(); resetAnalysis(); leaveArchive(); hideChatToast();
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
-  if (rtRoomOff) { rtRoomOff(); rtRoomOff = null; } rtRoomLive = false;
+  rtRoomLive = false;
+  if (live && rtRoomOff) watchAway(gameCode); else roomUnsubscribe();
+}
+// ----- the room's live channel. Handlers are swappable so that leaving a game still in progress keeps listening for its chat -----
+let roomH = {}, roomSubCode = null, roomConn = false, awayGame = null;
+function roomSubscribe(code) {
+  if (rtRoomOff && roomSubCode === code) return false;      // already subscribed (kept while away)
+  roomUnsubscribe();
+  roomSubCode = code;
+  const call = (k) => (p) => roomH[k] && roomH[k](p);
+  rtRoomOff = rtSubscribe('room:' + code, { m: call('m'), s: call('s'), c: call('c'), r: call('r') }, (ok) => { roomConn = ok; if (roomH.st) roomH.st(ok); });
+  return true;
+}
+function roomUnsubscribe() { if (rtRoomOff) rtRoomOff(); rtRoomOff = null; roomSubCode = null; roomConn = false; roomH = {}; awayGame = null; }
+// away from a live game (lobby, coach, profile…): a pop-up when the opponent chats; stop once the game is over
+function watchAway(code) {
+  awayGame = { code, t: null };
+  roomH = {
+    c: (m) => { if (awayGame && m && m.n !== user.name) { sfx('move'); chatToast(m, code); } },
+    s: () => { clearTimeout(awayGame && awayGame.t); if (awayGame) awayGame.t = setTimeout(() => checkAway(code), 1500); },
+  };
+}
+async function checkAway(code) {
+  const r = await api('sync', { code, v: null });
+  if (!awayGame || awayGame.code !== code || view === 'game') return;
+  if (r.status === 404 || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();   // a network blip keeps watching
 }
 $('#leave').onclick = () => (isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
@@ -2163,8 +2198,29 @@ function sysGameMsg(text) {
 }
 function onGameChat(m) {
   if (view !== 'game' || isBot()) return;
-  if (addGameMsg(m) && snap && m.n !== user.name) sfx('move');
+  if (addGameMsg(m) && snap && m.n !== user.name) { sfx('move'); chatToast(m); }
 }
+// on-page pop-up for a new chat message, only during a live game you're playing (and not while typing in the chat); click it to jump to the chat
+let chatToastTimer = null;
+function chatToast(m, awayCode) {
+  if (!awayCode) {
+    const live = snap && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');   // only while you're playing a game in progress
+    if (!live || document.activeElement === $('#gcIn')) return;
+  }
+  const t = $('#chatToast');
+  t.dataset.code = awayCode || '';
+  t.innerHTML = `<span class="ct-i">💬</span><div><span class="ct-n">${esc(m.n)}</span>${m.s === 's' ? ' <span class="muted">(spectator)</span>' : ''}: <span class="ct-t">${esc(m.t)}</span><div class="ct-more">${awayCode ? 'Tap to go back to your game' : 'Tap to reply'}</div></div>`;
+  t.classList.add('show');
+  clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
+}
+function hideChatToast() { clearTimeout(chatToastTimer); $('#chatToast').classList.remove('show'); }
+$('#chatToast').onclick = () => {
+  hideChatToast();
+  const code = $('#chatToast').dataset.code;
+  if (code) { enterGame(code); setTimeout(() => $('#gcIn').focus({ preventScroll: true }), 300); return; }
+  $('#gchat').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('#gcIn').focus({ preventScroll: true });
+};
 $('#gcForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = $('#gcIn'), text = input.value.trim(), code = gameCode;
@@ -3149,7 +3205,7 @@ function enterBot(b) {
   botTimer = setInterval(botTick, 250);
   botSave(); pushBot(); paintCoach(); botThink();
 }
-function hideGameChat() { $('#gchat').classList.add('hidden'); }
+function hideGameChat() { $('#gchat').classList.add('hidden'); hideChatToast(); }
 function botRematch() { const b = botGame; if (!b) return; if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); enterBot(makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc)); }
 
 // ---------- archived games: replayed in the normal game screen from the saved record (read-only, no polling) ----------
