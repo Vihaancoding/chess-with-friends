@@ -92,6 +92,20 @@ async function until(fn, ms = 3000) { const t = Date.now(); for (;;) { const v =
   ok('both games of the room are kept', rm && rm.games[0].code === c4 && rm.games[1].code === c4 && rm.games[0].id !== rm.games[1].id, rm && rm.games.map((x) => x.id));
   ok('draw by agreement, alice as black', rm && rm.games[0].result === 'draw' && rm.games[0].color === 'b' && rm.games[0].reason === 'agreement', rm && rm.games[0]);
 
+  console.log('a game listed before the archive existed is not duplicated');
+  const c5 = await newGame(alice, bob, null);
+  await play(c5, ['c2c4', 'e7e5'], [alice, bob]);
+  await call('resign', { code: c5 }, bob);
+  const r5 = await until(async () => { const r = await store.get('room:' + c5); return r && r.archived ? r : null; });
+  const ga5 = await call('games', { name: 'alice' }, alice);
+  const old = { ...ga5.games[0], at: ga5.games[0].at - 5000 }; delete old.id;   // the old-style row the server used to write (same end time as the room below)
+  await store.set('games:alice', [old, ...ga5.games.slice(1)]);
+  r5.archived = null; r5.endedAt -= 5000; await store.set('room:' + c5, r5); handler.archiveTried.clear();
+  await call('room', { code: c5 }, alice);
+  await until(async () => { const r = await store.get('room:' + c5); return r && r.archived; });
+  const ga6 = await call('games', { name: 'alice' }, alice);
+  ok('legacy row replaced by the replayable one', ga6.games.length === ga5.games.length && ga6.games[0].id === ga5.games[0].id, ga6.games.map((x) => x.id || 'legacy'));
+
   console.log('bad requests');
   ok('unknown id is a 404', (await call('game_get', { id: 'ABCDE-zz' }, alice)).status === 404);
   ok('malformed id is a 400', (await call('game_get', { id: '../user:alice' }, alice)).status === 400);
