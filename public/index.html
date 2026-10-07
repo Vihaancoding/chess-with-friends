@@ -1629,9 +1629,11 @@ function enterGame(code, seed) {
   gameSkeleton();
   if (seed) applySnapshot(seed);                       // board and players straight from the response/push
   openGameChat(code);
-  if (rtRoomOff) rtRoomOff();
+  awayGame = null; hideChatToast();
   rtRoomLive = false;
-  rtRoomOff = rtSubscribe('room:' + code, { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal }, (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } });
+  const st = (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } };
+  roomH = { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal, st };
+  if (!roomSubscribe(code) && roomConn) st(true);           // came back to a game we kept listening to while away
   kick();
   clockTimer = setInterval(drawClocks, 200);
 }
@@ -1648,9 +1650,35 @@ function gameSkeleton() {
   $('#arrows').innerHTML = ''; ovSig = '';
 }
 function stopGame() {
+  const live = gameCode && !isBot() && !isArchive() && view === 'game' && snap && snap.code === gameCode && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');
   vcLeave(); resetAnalysis(); leaveArchive(); hideChatToast();
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
-  if (rtRoomOff) { rtRoomOff(); rtRoomOff = null; } rtRoomLive = false;
+  rtRoomLive = false;
+  if (live && rtRoomOff) watchAway(gameCode); else roomUnsubscribe();
+}
+// ----- the room's live channel. Handlers are swappable so that leaving a game still in progress keeps listening for its chat -----
+let roomH = {}, roomSubCode = null, roomConn = false, awayGame = null;
+function roomSubscribe(code) {
+  if (rtRoomOff && roomSubCode === code) return false;      // already subscribed (kept while away)
+  roomUnsubscribe();
+  roomSubCode = code;
+  const call = (k) => (p) => roomH[k] && roomH[k](p);
+  rtRoomOff = rtSubscribe('room:' + code, { m: call('m'), s: call('s'), c: call('c'), r: call('r') }, (ok) => { roomConn = ok; if (roomH.st) roomH.st(ok); });
+  return true;
+}
+function roomUnsubscribe() { if (rtRoomOff) rtRoomOff(); rtRoomOff = null; roomSubCode = null; roomConn = false; roomH = {}; awayGame = null; }
+// away from a live game (lobby, coach, profile…): a pop-up when the opponent chats; stop once the game is over
+function watchAway(code) {
+  awayGame = { code, t: null };
+  roomH = {
+    c: (m) => { if (awayGame && m && m.n !== user.name) { sfx('move'); chatToast(m, code); } },
+    s: () => { clearTimeout(awayGame && awayGame.t); if (awayGame) awayGame.t = setTimeout(() => checkAway(code), 1500); },
+  };
+}
+async function checkAway(code) {
+  const r = await api('sync', { code, v: null });
+  if (!awayGame || awayGame.code !== code || view === 'game') return;
+  if (!r.ok || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();
 }
 $('#leave').onclick = () => (isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
@@ -2165,17 +2193,22 @@ function onGameChat(m) {
 }
 // on-page pop-up for a new chat message, only during a live game you're playing (and not while typing in the chat); click it to jump to the chat
 let chatToastTimer = null;
-function chatToast(m) {
-  const live = snap && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');   // only while you're playing a game in progress
-  if (!live || document.activeElement === $('#gcIn')) return;
+function chatToast(m, awayCode) {
+  if (!awayCode) {
+    const live = snap && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');   // only while you're playing a game in progress
+    if (!live || document.activeElement === $('#gcIn')) return;
+  }
   const t = $('#chatToast');
-  t.innerHTML = `<span class="ct-i">💬</span><div><span class="ct-n">${esc(m.n)}</span>${m.s === 's' ? ' <span class="muted">(spectator)</span>' : ''}: <span class="ct-t">${esc(m.t)}</span><div class="ct-more">Tap to reply</div></div>`;
+  t.dataset.code = awayCode || '';
+  t.innerHTML = `<span class="ct-i">💬</span><div><span class="ct-n">${esc(m.n)}</span>${m.s === 's' ? ' <span class="muted">(spectator)</span>' : ''}: <span class="ct-t">${esc(m.t)}</span><div class="ct-more">${awayCode ? 'Tap to go back to your game' : 'Tap to reply'}</div></div>`;
   t.classList.add('show');
   clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
 }
 function hideChatToast() { clearTimeout(chatToastTimer); $('#chatToast').classList.remove('show'); }
 $('#chatToast').onclick = () => {
   hideChatToast();
+  const code = $('#chatToast').dataset.code;
+  if (code) { enterGame(code); setTimeout(() => $('#gcIn').focus({ preventScroll: true }), 300); return; }
   $('#gchat').scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('#gcIn').focus({ preventScroll: true });
 };
