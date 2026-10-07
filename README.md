@@ -2,7 +2,7 @@
 
 Multiplayer chess in the browser. Make a game, share the 5-letter code (or challenge a username), and play.
 
-**Features:** email accounts with **account recovery** (recovery codes, emailed or admin-issued reset links) · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · **opening recognition** (ECO code and named variation, updated live and on transpositions) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
+**Features:** email accounts with **account recovery** (recovery codes, emailed or admin-issued reset links) · Glicko-2 ratings per time control (bullet/blitz/rapid/classical) with provisional ratings, history graph and recent games · live move push (Supabase Realtime) · in-game chat and a voice room for players and spectators (WebRTC) · post-game review (move ratings, accuracy, eval graph) · **game archive**: every finished game is saved for good, with search, filters and sorting, a replay with play/pause and speed control, and engine analysis from any move · **opening recognition** (ECO code and named variation, updated live and on transpositions) · mutual pause · **Learn**: interactive opening, middlegame and endgame courses · **Coach**: an adaptive opponent that grades every move you make (blunders, mistakes, best moves), shows the better move, offers hints and takebacks, and tracks what to work on · time controls (bullet → classical) · challenges · **play the computer** (4 levels, runs in your browser) · premoves · planning arrows (right-click drag) · draw offers, threefold repetition · drag-and-drop and click-to-move · move review · live games you can spectate · lobby chat with a "who's online" panel (lobby / playing / watching, one-click challenge) · admin panel · sound packs (Classic, Marble, Wooden, Soft, Retro, Glass).
 
 No framework and no build step: a vanilla JS client, a small Node API, and an optional Supabase database.
 
@@ -13,6 +13,8 @@ node server.js          # needs Node 18+
 ```
 
 Open http://localhost:3000. With no database configured, everything is stored in memory and resets when the server restarts. That's fine for development.
+
+Tests: `node scripts/test-archive.js` (game archive API, no dependencies). The browser tests `node scripts/test-archive-ui.js` and `node scripts/test-premoves.js` need Playwright.
 
 Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (see below).
 
@@ -59,6 +61,7 @@ Players who signed up before recovery codes existed can create one from their pr
 |---|---|
 | `public/index.html` | The whole client (UI, polling, drag and drop, sounds) |
 | `public/lessons.js` | Course content (openings, middlegame, endgames). Validate edits with `node scripts/check-lessons.js` |
+| `public/opening.js` | Opening recognition shared by browser and server (matches positions, so transpositions count) |
 | `public/openings.js` | Opening names (ECO, name, moves) generated from the [Lichess opening list](https://github.com/lichess-org/chess-openings) (CC0). Rebuild with `node scripts/build-openings.js` |
 | `public/bot.js` | Computer opponent: alpha-beta search with quiescence, runs in a Web Worker |
 | `public/chess.js` | Chess engine shared by browser and server (legal moves, check/mate, castling, en passant, promotion, repetition key) |
@@ -74,13 +77,15 @@ The server is authoritative: every move is validated with the shared engine, and
 
 **Performance notes:** functions are pinned to Mumbai (`bom1` in `vercel.json`) to sit next to the Supabase database. A move costs one database write on the critical path (warm instances cache the room; a version check keeps that safe), rating updates run after the push, and every API response carries a `Server-Timing` header with per-stage timings. While push is connected the client only sends a tiny version heartbeat every 4 s.
 
+**Game archive:** when a game ends, the server saves it as `game:<id>` (no expiry) straight from the room's own record: the moves it validated, the result, the rating change and the opening. Each player gets a summary row in `games:<name>` (newest 1,000 kept in the list; the games themselves are never deleted). Saving is idempotent and is retried from the game's heartbeat until the room is marked archived, so a lost background task can't lose a game. Games need both players and at least one move to be saved. The profile lists, filters and sorts the rows in the browser. Opening a game loads the saved record and replays it in the normal game screen, using the same engine, opening matcher and review as a live game. Nothing there can change a game or an account. Computer and coach games stay on the device, as before.
+
 **Ratings:** Glicko-2 (`lib/rating.js`), one game per rating period, separate ratings for bullet/blitz/rapid/classical (category = base + 40×increment seconds). New players are provisional (shown with `?`) until their rating deviation drops below 110. Games that end before both players have moved are not rated.
 
 ## Known limitations / ideas
 
 - No email verification, and no "change password" while signed in (use a recovery code).
 - Read-modify-write on the key-value store can race under heavy concurrency; fine for friends, not for thousands of players.
-- No per-player game history or opening explorer yet.
+- No opening explorer yet. Games finished before the archive existed show in the list without a replay (their moves were never stored).
 - Abandoned untimed games are never cleaned up automatically.
 
 ## Credits
