@@ -267,6 +267,7 @@
   #cbText { font-size: 1.05rem; }
   #cbTurn { font-size: .8rem; font-weight: 700; opacity: .7; }
   #colorbar.myturn #cbTurn { opacity: 1; }
+  #cbPre { font-size: .75rem; font-weight: 700; color: #6f9cff; }
   #colorbar.w.myturn #cbTurn { color: #2e6a1d; } #colorbar.b.myturn #cbTurn { color: #95cf5b; }
   #colorbar.myturn { box-shadow: 0 0 0 3px #81b64c88, 0 8px 24px -8px #000c; }
   .banner button:disabled, #lb button:disabled, #livelist button:disabled { opacity: .55; }
@@ -767,7 +768,7 @@
   </div>
 </div></div>
 <div id="busybar" aria-hidden="true"></div>
-<div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span></span></div>
+<div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span><span id="cbPre" class="hidden"></span></span></div>
 
 <div id="promo" class="hidden"><div class="box"></div></div>
 
@@ -1657,6 +1658,7 @@ function renderMoves(moves, upto, live) {
 // Premoves: on the opponent's turn moves are queued (chess.com style) and played one per turn when it comes back to me.
 // Queued moves are shown already made on a "premove board"; each is checked for legality only when it is played.
 let premoves = [], arrows = [], marks = [], rdrag = null;
+const MAX_PREMOVES = 10;                                   // how far ahead a player can plan
 const premoveTurn = () => !!snap && snap.state.turn !== snap.you;
 // the board as it will look once every queued premove has been played (opponent replies unknown)
 function premoveBoard() {
@@ -1698,7 +1700,7 @@ function premoveTargets(board, sq) {
   return out;   // own-occupied squares stay: that piece may be captured first, and this one recaptures
 }
 // moves to offer for a picked-up piece: real legal moves on my turn, premove shapes otherwise
-const movesFor = (sn, sq) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.state) : premoveTargets(premoveBoard(), sq));
+const movesFor = (sn, sq) => (sn.state.turn === sn.you ? Chess.legalMoves(sn.state) : premoves.length >= MAX_PREMOVES ? [] : premoveTargets(premoveBoard(), sq));
 // the board the player is acting on: the real one on my turn, the premove board otherwise
 const actBoard = () => (premoveTurn() && premoves.length ? premoveBoard() : snap.state.board);
 
@@ -1788,6 +1790,9 @@ function paintBoard() {
     if (sq === dragFrom) f += ' dragging';
     if (el._f !== f) { el.className = el._base + f; el._f = f; }
   }
+  const pc = $('#cbPre');
+  pc.classList.toggle('hidden', !pre);
+  setText(pc, pre ? `Premoves ${premoves.length}/${MAX_PREMOVES}` + (premoves.length >= MAX_PREMOVES ? ' (full)' : '') : '');
 }
 const paintSelection = paintBoard;
 $('#board').addEventListener('click', (e) => {
