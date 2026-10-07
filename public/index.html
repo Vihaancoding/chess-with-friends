@@ -838,7 +838,7 @@
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
       <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
       <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
-      <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button><button class="small" data-play="challenge">Challenge</button></div>
+      <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button><button class="small" data-play="challenge">Challenge</button><button class="small" data-play="chAccepted">Accepted</button><button class="small" data-play="chDeclined">Declined</button></div>
     </div>
   </div>
 </div></div>
@@ -1017,6 +1017,7 @@ function ensureSessionSubs() {
 function onUserPing(d) {
   if (d.why === 'challenge' && d.ch && !curInbox.some((c) => c.id === d.ch.id)) syncChallenges(curInbox.concat([d.ch]), curOut);   // banner straight from the push
   if (d.why === 'accepted' && d.code && curOut && curOut.status === 'pending' && view !== 'game') {
+    answerAlert('accepted', curOut.to, d.code);
     localOut = null; curOut = null; api('cancel');
     return enterGame(d.code, d.g ? seedSnap(d.code, d.g) : null);                // the push carries everything needed to draw the game
   }
@@ -1203,7 +1204,8 @@ $('#lb').addEventListener('click', (e) => { const b = e.target.closest('[data-ch
 function syncChallenges(inbox, outbox) {
   curInbox = inbox.filter((c) => !goneIds.has(c.id));
   let o = outbox;
-  if (o && o.status === 'accepted' && view !== 'game') { localOut = null; api('cancel'); return enterGame(o.code); }  // jump straight in
+  if (o && o.status === 'accepted' && view !== 'game') { answerAlert('accepted', o.to, o.code); localOut = null; api('cancel'); return enterGame(o.code); }  // jump straight in
+  if (o && o.status === 'declined' && !(o.id && hiddenOut.has(o.id))) answerAlert('declined', o.to, o.id);
   if (o && o.id && hiddenOut.has(o.id)) o = null;
   if (o) { if (o.status !== 'pending' || !localOut || o.id === localOut.id || !localOut.id) localOut = null; }
   if (!o && localOut) { if (Date.now() - localOut.ts < 6000) o = { status: 'pending', to: localOut.to, local: true }; else localOut = null; }
@@ -1214,6 +1216,21 @@ function syncChallenges(inbox, outbox) {
   document.title = curInbox.length ? `(${curInbox.length}) Challenge · Chess` : baseTitle;
   renderBanners();
   paintChallengeButtons();
+}
+// my challenge was answered: a sound, plus a system notification when the tab is in the background (once per answer)
+const answeredSeen = new Set();
+function answerAlert(kind, who, key) {
+  const k = kind + ':' + (key || who);
+  if (answeredSeen.has(k)) return;
+  answeredSeen.add(k);
+  sfx(kind === 'accepted' ? 'chAccepted' : 'chDeclined');
+  if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = kind === 'accepted'
+      ? new Notification(`${who} accepted your challenge`, { body: 'The game has started — your clock may be running!', tag: 'chess-answer' })
+      : new Notification(`${who} declined your challenge`, { body: 'Challenge someone else from the lobby.', tag: 'chess-answer' });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch {}
 }
 // a new incoming challenge: chime (unless sound is off) and, if the tab is in the background, a system notification
 const seenChIds = new Set();
@@ -2871,6 +2888,8 @@ function challengeChime() { [659, 880, 1175].forEach((f, i) => tone(f, 0.35, { v
 function sfx(kind) {
   if (!audible()) return;
   if (kind === 'challenge') return challengeChime();
+  if (kind === 'chAccepted') return [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, { vol: 0.12, delay: i * 0.09 }));
+  if (kind === 'chDeclined') { tone(523, 0.25, { vol: 0.1 }); tone(392, 0.4, { vol: 0.1, delay: 0.16 }); return; }
   const fn = PACKS[SND.pack][1][kind];
   if (fn) fn();
 }
