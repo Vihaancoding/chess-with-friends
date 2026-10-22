@@ -98,6 +98,10 @@
   .authtabs button { box-shadow: none; background: #1f1e1b; min-height: 40px; color: var(--muted); }
   .authtabs button:active { transform: none; }
   .authtabs button.on { background: #3b4a2b; color: #fff; box-shadow: inset 0 -3px 0 var(--green); }
+  #modeTabs { grid-template-columns: repeat(3, 1fr); margin-top: 10px; }
+  #modeTabs button { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 8px; min-height: 44px; white-space: nowrap; font-size: .92rem; }
+  #modeTabs svg { width: 18px; height: 18px; flex: none; }
+  @media (max-width: 420px) { #modeTabs button { flex-direction: column; gap: 2px; padding: 6px 4px; font-size: .8rem; } }
   #welcome #go { margin-top: 6px; }
   button.link { background: none; box-shadow: none; min-height: 0; padding: 4px 0; color: var(--muted); font-weight: 600; font-size: .88rem; text-decoration: underline; }
   button.link:active { transform: none; }
@@ -651,7 +655,7 @@
     </div>
     <div class="panel">
       <h1 class="ptitle">Play Chess</h1>
-      <div class="authtabs" id="modeTabs" style="margin-top:10px;grid-template-columns:repeat(3,1fr)"><button id="modeFriends" class="on">Play friends</button><button id="modeBot">Play computer</button><button id="modeLocal">Pass &amp; play</button></div>
+      <div class="authtabs" id="modeTabs"><button id="modeFriends" class="on" title="Play friends online"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg><span>Friends</span></button><button id="modeBot" title="Play the computer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><span>Computer</span></button><button id="modeLocal" title="Two players on this device"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/></svg><span>Pass &amp; play</span></button></div>
       <div class="label" style="margin-top:12px">Time control</div>
       <select id="tc" hidden>
         <option value="60,0">1 min</option><option value="120,1">2 | 1</option>
