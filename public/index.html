@@ -305,6 +305,7 @@
   .levels button:active { transform: none; }
   .levels button.on { border-color: var(--green); background: #3b4a2b; }
   #botResume, #localResume { justify-content: space-between; }
+  .checkline { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-weight: 600; font-size: .9rem; color: var(--muted); cursor: pointer; }
   /* skeletons: invisible for the first 120ms (so fast loads never flicker), then a soft shimmer */
   .sk { display: inline-block; vertical-align: middle; height: 1em; border-radius: 6px; background: linear-gradient(90deg, #3a3835 0%, #4a4845 50%, #3a3835 100%); background-size: 200% 100%;
     animation: skin .2s ease-out .12s both, shim 1.5s ease-in-out .12s infinite; }
@@ -632,6 +633,7 @@
     <div id="claimErr" role="alert"></div>
   </form>
   <div id="banners"></div>
+  <div id="resultBanners"></div>
   <div class="lobby-grid">
     <div class="leftcol">
       <div id="previewwrap"><div id="preview"></div></div>
@@ -683,12 +685,22 @@
         <div class="muted" style="font-size:.8rem;margin-top:12px">Practice games are not rated and do not touch the leaderboard.</div>
       </div>
       <div id="localOnly" class="hidden">
-        <div class="label">Players</div>
-        <div class="row"><input id="localW" maxlength="16" placeholder="White" autocomplete="off"><input id="localB" maxlength="16" placeholder="Black" autocomplete="off"></div>
-        <label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-weight:600;font-size:.9rem"><input type="checkbox" id="localFlip" checked style="width:18px;height:18px;min-height:0;flex:none;accent-color:var(--green)"> Turn the board for each player</label>
+        <label class="checkline" style="margin-top:14px"><input type="checkbox" id="localRated" style="width:18px;height:18px;min-height:0;flex:none;accent-color:var(--green)"> Count for ratings (your opponent has an account)</label>
+        <div id="localNames">
+          <div class="label">Players</div>
+          <div class="row"><input id="localW" maxlength="16" placeholder="White" autocomplete="off"><input id="localB" maxlength="16" placeholder="Black" autocomplete="off"></div>
+        </div>
+        <div id="localRatedBox" class="hidden">
+          <div class="label">You play</div>
+          <div class="authtabs" id="localSide"><button data-s="w" class="on">White</button><button data-s="b">Black</button></div>
+          <div class="label">Opponent's username</div>
+          <input id="localOpp" maxlength="16" placeholder="Their username" autocomplete="off">
+          <div class="muted" style="font-size:.8rem;margin-top:6px;font-weight:600">When the game ends, they get the result to accept or decline the next time they log in. Ratings only change if they accept.</div>
+        </div>
+        <label class="checkline"><input type="checkbox" id="localFlip" checked style="width:18px;height:18px;min-height:0;flex:none;accent-color:var(--green)"> Turn the board for each player</label>
         <div style="margin-top:10px"><button class="primary big" id="localStart">Start pass &amp; play</button></div>
         <div id="localResume" class="banner hidden" style="margin-top:14px"><span id="localResumeText"></span><span><button class="primary small" id="localResumeBtn">Resume</button> <button class="small" id="localDiscardBtn">Discard</button></span></div>
-        <div class="muted" style="font-size:.8rem;margin-top:12px">Two players, one device: take turns moving on this screen. Not rated.</div>
+        <div class="muted" style="font-size:.8rem;margin-top:12px">Two players, one device: take turns moving on this screen.</div>
       </div>
       <div id="err"></div>
     </div>
@@ -1055,6 +1067,7 @@ function ensureSessionSubs() {
   rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
 }
 function onUserPing(d) {
+  if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'challenge' && d.ch && !curInbox.some((c) => c.id === d.ch.id)) syncChallenges(curInbox.concat([d.ch]), curOut);   // banner straight from the push
   if (d.why === 'accepted' && d.code && curOut && curOut.status === 'pending' && view !== 'game') {
     answerAlert('accepted', curOut.to, d.code);
@@ -1316,6 +1329,40 @@ function renderBanners() {
     html += `<div class="banner warn"><span><b>${esc(o.to)}</b> declined your challenge.</span><button class="small" data-a="dismiss">OK</button></div>`;
   $('#banners').innerHTML = html;
 }
+let resultSig = '';
+const resultBusy = new Set();
+function renderResults(inc, out) {
+  const sig = JSON.stringify([inc.map((x) => x.id), out.map((x) => x.id + x.status), [...resultBusy]]);
+  if (sig === resultSig) return;
+  resultSig = sig;
+  const side = (c) => (c === 'w' ? 'White' : 'Black');
+  let html = '';
+  for (const x of inc) {
+    const them = esc(x.from), mine = other(x.color), busy = resultBusy.has(x.id);
+    const what = x.result === 'draw' ? `drew with you (${esc(x.reason)})` : x.result === x.color ? `beat you by ${esc(x.reason)}` : `lost to you by ${esc(x.reason)}`;
+    html += `<div class="banner"><span>Pass &amp; play result from <b>${them}</b>: you played ${side(mine)}, and ${them} ${what} · ${Math.ceil(x.n / 2)} moves · ${tcLabel(x.tc)}. Count it for both your ratings?</span>
+      <span><button class="primary small" data-r="accept" data-id="${x.id}" ${busy ? 'disabled' : ''}>Accept</button> <button class="small" data-r="decline" data-id="${x.id}" ${busy ? 'disabled' : ''}>Decline</button></span></div>`;
+  }
+  for (const x of out) {
+    const d = x.rating ? ` Your ${CAT_NAME[x.cat] || ''} rating: ${x.rating.before} → ${x.rating.after} (${x.rating.delta >= 0 ? '+' : ''}${x.rating.delta}).` : '';
+    html += x.status === 'accepted'
+      ? `<div class="banner"><span><b>${esc(x.to)}</b> accepted your pass &amp; play result.${d}</span><button class="small" data-r="dismiss" data-id="${x.id}">OK</button></div>`
+      : `<div class="banner warn"><span><b>${esc(x.to)}</b> declined your pass &amp; play result. No ratings changed.</span><button class="small" data-r="dismiss" data-id="${x.id}">OK</button></div>`;
+  }
+  $('#resultBanners').innerHTML = html;
+}
+$('#resultBanners').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-r]');
+  if (!b || b.disabled) return;
+  const id = b.dataset.id, a = b.dataset.r;
+  if (a === 'dismiss') { b.closest('.banner').remove(); await api('result_dismiss', { id }); return; }
+  resultBusy.add(id); resultSig = ''; b.closest('.banner').querySelectorAll('button').forEach((x) => x.disabled = true);
+  const r = await api('result_answer', { id, accept: a === 'accept' });
+  resultBusy.delete(id);
+  if (!r.ok) $('#err').textContent = r.error || 'Something went wrong.';
+  else if (r.rating) $('#err').textContent = '';
+  resultSig = ''; pollLobby(true);
+});
 function paintChallengeButtons() {
   const pending = !!(curOut && curOut.status === 'pending');
   $('#chBtn').disabled = pending;
@@ -1435,6 +1482,7 @@ async function pollLobby(full = true) {
       renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
+    if (full) renderResults(r.results || [], r.resultsOut || []);
   } finally {
     lobbyBusy = false;
     if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
@@ -3076,7 +3124,14 @@ function paintOver(r) {
   $('#oRematch').classList.toggle('hidden', !mine);
   // rating line: before -> after (+X), counted up once; skeleton while the server is still settling
   const el = $('#orating');
-  if (isBot()) el.innerHTML = `<div class="onote">${botGame.coach ? 'Coach game · your coach\'s summary is next to the board' : botGame.local ? 'Pass & play · not rated' : 'Practice game · not rated'}</div>`;
+  if (isBot() && botGame.local && botGame.local.rate) {
+    const L = botGame.local, opp = esc(L.rate.opp);
+    el.innerHTML = r.moves.length < 2 ? '<div class="onote">Not rated · the game ended before both players moved</div>'
+      : L.sent === 'sent' ? `<div class="onote">Sent to <b>${opp}</b>. Ratings change when they accept it.</div>`
+      : L.sent === 'failed' ? `<div class="onote">${esc(L.err)} <button class="small" id="oResend">Try again</button></div>`
+      : `<div class="onote">Sending the result to <b>${opp}</b>…</div>`;
+    const rs = $('#oResend'); if (rs) rs.onclick = () => sendLocalResult(botGame);
+  } else if (isBot()) el.innerHTML = `<div class="onote">${botGame.coach ? 'Coach game · your coach\'s summary is next to the board' : botGame.local ? 'Pass & play · not rated' : 'Practice game · not rated'}</div>`;
   else if (!mine) el.innerHTML = '';
   else if (r.unrated) el.innerHTML = '<div class="onote">Not rated · the game ended before both players moved</div>';
   else if (r.status.reason === 'ended by an admin') el.innerHTML = '<div class="onote">Ended by an admin · not rated</div>';
@@ -3133,6 +3188,7 @@ let botLevel = (() => { try { return +localStorage.getItem('chess:botLevel') || 
 const isBot = () => botGame !== null && gameCode === 'BOT';
 // pass & play: two people on one device. A bot game with no computer, where "you" is always the side to move.
 const isLocal = () => isBot() && !!botGame.local;
+const other = (c) => (c === 'w' ? 'b' : 'w');
 function makeLocal(names, flip, tc) { const b = makeBot(2, 'w', tc); b.local = { w: names.w, b: names.b, flip }; return b; }
 
 function makeBot(level, you, tc) {
@@ -3174,7 +3230,23 @@ function botSnap() {
     startedAt: b.startedAt || null, endedAt: st.over ? (b.endedAt = b.endedAt || now) : null, cat: null, ratings: null,
   };
 }
-function pushBot() { const sn = botSnap(); applySnapshot(sn); if (sn.status.over) botClear(); if (botGame && botGame.coach) coachAfterPush(); }
+function pushBot() {
+  const b = botGame, sn = botSnap();
+  if (sn.status.over && b.local && b.local.rate && !b.local.sent) sendLocalResult(b);   // before painting, so the result card shows "sending"
+  applySnapshot(sn); if (sn.status.over) botClear(); if (botGame && botGame.coach) coachAfterPush();
+}
+// a rated pass & play game: the result goes to the opponent, who accepts or declines it from their lobby
+async function sendLocalResult(b) {
+  const L = b.local, st = botStatusOf(b), sq = (i) => 'abcdefgh'[i & 7] + (8 - (i >> 3));
+  L.sent = 'sending'; L.err = '';
+  const r = await api('result_send', {
+    opp: L.rate.opp, color: L.rate.me, gid: L.gid, tc: b.tc, startedAt: b.startedAt, endedAt: b.endedAt || Date.now(),
+    moves: b.hist.map((h) => sq(h.from) + sq(h.to) + (h.promo ? h.promo.toLowerCase() : '')),
+    end: b.override ? { result: b.override.result, reason: b.override.reason } : null,
+  });
+  L.sent = r.ok ? 'sent' : 'failed'; L.err = r.ok ? '' : r.error || 'Could not send the result.';
+  if (botGame === b && snap) updateOver();
+}
 
 function botWorkerGet() {
   if (botWorker) return botWorker;
@@ -3272,7 +3344,7 @@ function enterBot(b) {
   botSave(); pushBot(); paintCoach(); botThink();
 }
 function hideGameChat() { $('#gchat').classList.add('hidden'); hideChatToast(); }
-function botRematch() { const b = botGame; if (!b) return; if (b.local) return enterBot(makeLocal({ w: b.local.b, b: b.local.w }, b.local.flip, b.tc)); if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); enterBot(makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc)); }
+function botRematch() { const b = botGame; if (!b) return; if (b.local) { const n = makeLocal({ w: b.local.b, b: b.local.w }, b.local.flip, b.tc); if (b.local.rate) { n.local.rate = { me: other(b.local.rate.me), opp: b.local.rate.opp }; n.local.gid = Math.random().toString(36).slice(2, 12); } return enterBot(n); } if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); enterBot(makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc)); }
 
 // ---------- archived games: replayed in the normal game screen from the saved record (read-only, no polling) ----------
 let archive = null;                                     // { id, back, game } while an archived game is open
@@ -3396,13 +3468,29 @@ function paintBotResume() {
 $('#botResumeBtn').onclick = () => { const b = botLoad(); if (b) enterBot(b); else { botClear(); paintBotResume(); } };
 $('#botDiscardBtn').onclick = () => { botClear(); paintBotResume(); };
 $('#modeLocal').onclick = () => setLobbyMode('local');
-(() => { try { const d = JSON.parse(localStorage.getItem('chess:localNames')) || {}; $('#localW').value = d.w || ''; $('#localB').value = d.b || ''; $('#localFlip').checked = d.flip !== false; } catch {} })();
-$('#localStart').onclick = () => {
-  const names = { w: $('#localW').value.trim() || 'White', b: $('#localB').value.trim() || 'Black' };
-  if (names.w === names.b) { names.w += ' (W)'; names.b += ' (B)'; }
-  const flip = $('#localFlip').checked;
-  try { localStorage.setItem('chess:localNames', JSON.stringify({ w: $('#localW').value.trim(), b: $('#localB').value.trim(), flip })); } catch {}
-  enterBot(makeLocal(names, flip, tcOf()));
+let localSide = 'w';
+const paintLocalRated = () => { const on = $('#localRated').checked; $('#localRatedBox').classList.toggle('hidden', !on); $('#localNames').classList.toggle('hidden', on); };
+$('#localRated').onchange = paintLocalRated;
+document.querySelectorAll('#localSide button').forEach((b) => b.onclick = () => {
+  localSide = b.dataset.s; document.querySelectorAll('#localSide button').forEach((x) => x.classList.toggle('on', x === b));
+});
+$('#localStart').onclick = async () => {
+  const flip = $('#localFlip').checked, rated = $('#localRated').checked;
+  let names = { w: $('#localW').value.trim() || 'White', b: $('#localB').value.trim() || 'Black' }, rate = null;
+  if (rated) {
+    const opp = $('#localOpp').value.trim();
+    if (!opp) { $('#err').textContent = "Type your opponent's username."; return; }
+    const r = await api('profile', { name: opp });
+    if (!r.ok) { $('#err').textContent = r.status === 404 ? `There's no player called ${opp}.` : r.error || 'Could not check that player.'; return; }
+    if (r.name === user.name) { $('#err').textContent = "Your opponent can't be you."; return; }
+    rate = { me: localSide, opp: r.name };
+    names = localSide === 'w' ? { w: user.name, b: r.name } : { w: r.name, b: user.name };
+  } else if (names.w === names.b) { names.w += ' (W)'; names.b += ' (B)'; }
+  $('#err').textContent = '';
+  try { localStorage.setItem('chess:localNames', JSON.stringify({ w: $('#localW').value.trim(), b: $('#localB').value.trim(), flip, rated, opp: $('#localOpp').value.trim(), side: localSide })); } catch {}
+  const b = makeLocal(names, flip, tcOf());
+  if (rate) { b.local.rate = rate; b.local.gid = Math.random().toString(36).slice(2, 12); }
+  enterBot(b);
 };
 function paintLocalResume() {
   let d = null;
@@ -3413,6 +3501,15 @@ function paintLocalResume() {
 }
 $('#localResumeBtn').onclick = () => { const b = botLoad('chess:local'); if (b) enterBot(b); else { botClear('chess:local'); paintLocalResume(); } };
 $('#localDiscardBtn').onclick = () => { botClear('chess:local'); paintLocalResume(); };
+(() => {
+  try {
+    const d = JSON.parse(localStorage.getItem('chess:localNames')) || {};
+    $('#localW').value = d.w || ''; $('#localB').value = d.b || ''; $('#localFlip').checked = d.flip !== false;
+    $('#localRated').checked = !!d.rated; $('#localOpp').value = d.opp || '';
+    if (d.side === 'b') $('#localSide [data-s="b"]').click();
+  } catch {}
+  paintLocalRated();
+})();
 paintLevels();
 
 
