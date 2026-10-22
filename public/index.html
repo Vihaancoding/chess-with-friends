@@ -1397,7 +1397,7 @@ let lobbyBusy = false, lobbyRerun = false, lobbyTick = 0;
 function enterLobby() {
   stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
-  show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume(); paintLocalResume(); paintNotify();
+  show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume(); paintLocalResume(); paintNotify(); resendResults();
   lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot();
   // with live updates on, polling is only a safety net
   lobbyTimer = setInterval(() => {
@@ -1946,8 +1946,10 @@ function render() {
   if (isLocal()) {
     setText($('#cbText'), 'Pass & play');
     setText($('#cbTurn'), status.over ? 'Game over' : `${players[liveTurn].name} · ${liveTurn === 'w' ? 'White' : 'Black'} to move`);
-  } else setText($('#cbText'), isArchive() ? (mine ? `Replay · you played ${you === 'w' ? 'White' : 'Black'}` : 'Replay') : mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating');
-  if (!isLocal()) setText($('#cbTurn'), isArchive() ? (live ? 'Final position' : `Move ${upto} of ${(snap.hist || []).length}`) : status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
+  } else {
+    setText($('#cbText'), isArchive() ? (mine ? `Replay · you played ${you === 'w' ? 'White' : 'Black'}` : 'Replay') : mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating');
+    setText($('#cbTurn'), isArchive() ? (live ? 'Final position' : `Move ${upto} of ${(snap.hist || []).length}`) : status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
+  }
 
   renderMoves(moves, upto, live);
   paintOpening(H, upto);
@@ -3128,7 +3130,7 @@ function paintOver(r) {
     const L = botGame.local, opp = esc(L.rate.opp);
     el.innerHTML = r.moves.length < 2 ? '<div class="onote">Not rated · the game ended before both players moved</div>'
       : L.sent === 'sent' ? `<div class="onote">Sent to <b>${opp}</b>. Ratings change when they accept it.</div>`
-      : L.sent === 'failed' ? `<div class="onote">${esc(L.err)} <button class="small" id="oResend">Try again</button></div>`
+      : L.sent === 'failed' ? `<div class="onote">${esc(L.err)} <button class="small" id="oResend">Try again</button><br>It is also retried when you go back to the lobby.</div>`
       : `<div class="onote">Sending the result to <b>${opp}</b>…</div>`;
     const rs = $('#oResend'); if (rs) rs.onclick = () => sendLocalResult(botGame);
   } else if (isBot()) el.innerHTML = `<div class="onote">${botGame.coach ? 'Coach game · your coach\'s summary is next to the board' : botGame.local ? 'Pass & play · not rated' : 'Practice game · not rated'}</div>`;
@@ -3223,7 +3225,7 @@ function botSnap() {
   const players = b.local ? { w: { name: b.local.w, elo: 'White', local: true }, b: { name: b.local.b, elo: 'Black', local: true } } : b.you === 'w' ? { w: me, b: cpu } : { w: cpu, b: me };
   return {
     code: 'BOT', you: b.you, state: b.state, moves: b.moves, last: b.last, status: st, local: !!b.local,
-    pov: b.local ? (!b.local.flip ? 'w' : st.over ? (b.state.turn === 'w' ? 'b' : 'w') : b.state.turn) : undefined,   // the board stays put after the final move
+    pov: b.local ? (!b.local.flip ? 'w' : st.over && !b.override ? other(b.state.turn) : b.state.turn) : undefined,   // the board stays put after the final move
     players, present: { w: true, b: true },
     tc: b.tc, clock: b.clock ? { w: left('w'), b: left('b'), running: run } : null,
     delta: null, rematch: [], hist: b.hist, drawOffer: null, watching: 0,
@@ -3237,15 +3239,46 @@ function pushBot() {
 }
 // a rated pass & play game: the result goes to the opponent, who accepts or declines it from their lobby
 async function sendLocalResult(b) {
-  const L = b.local, st = botStatusOf(b), sq = (i) => 'abcdefgh'[i & 7] + (8 - (i >> 3));
+  const L = b.local;
+  if (b.hist.length < 2) { L.sent = 'skipped'; return; }               // not rated: the card says so
+  if (!L.payload) {
+    L.payload = {
+      opp: L.rate.opp, color: L.rate.me, gid: L.gid, tc: b.tc, startedAt: b.startedAt, endedAt: b.endedAt || Date.now(),
+      moves: b.hist.map((h) => Chess.sqName(h.from) + Chess.sqName(h.to) + (h.promo ? h.promo.toLowerCase() : '')),
+      end: b.override ? { result: b.override.result, reason: b.override.reason } : null,
+    };
+    unsentResults((list) => [...list.filter((x) => x.gid !== L.gid), L.payload]);
+  }
   L.sent = 'sending'; L.err = '';
-  const r = await api('result_send', {
-    opp: L.rate.opp, color: L.rate.me, gid: L.gid, tc: b.tc, startedAt: b.startedAt, endedAt: b.endedAt || Date.now(),
-    moves: b.hist.map((h) => sq(h.from) + sq(h.to) + (h.promo ? h.promo.toLowerCase() : '')),
-    end: b.override ? { result: b.override.result, reason: b.override.reason } : null,
-  });
+  const r = await postResult(L.payload);
   L.sent = r.ok ? 'sent' : 'failed'; L.err = r.ok ? '' : r.error || 'Could not send the result.';
   if (botGame === b && snap) updateOver();
+}
+// results that haven't reached the server yet, kept per device and retried from the lobby
+function unsentResults(fn) {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem('chess:unsentResults')) || []; } catch {}
+  if (!fn) return list;
+  list = fn(list);
+  try { if (list.length) localStorage.setItem('chess:unsentResults', JSON.stringify(list)); else localStorage.removeItem('chess:unsentResults'); } catch {}
+  return list;
+}
+async function postResult(p) {
+  const r = await api('result_send', p);
+  // kept for another try only when it may still go through (offline, server busy, too many waiting)
+  if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 429 && r.status !== 401)) unsentResults((list) => list.filter((x) => x.gid !== p.gid));
+  return r;
+}
+let resendBusy = false;
+async function resendResults() {
+  if (resendBusy) return;
+  resendBusy = true;
+  try {
+    for (const p of unsentResults()) {
+      const r = await postResult(p);
+      if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 429) $('#err').textContent = `Your pass & play result for ${p.opp} could not be sent: ${r.error}`;
+    }
+  } finally { resendBusy = false; }
 }
 
 function botWorkerGet() {
@@ -3307,7 +3340,7 @@ function botSave() {
   const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
   let clock = null;
   if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
-  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined })); } catch {}
+  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, startedAt: b.startedAt })); } catch {}
 }
 function botClear(key = botKey(botGame)) { try { localStorage.removeItem(key); } catch {} }
 function botLoad(key = 'chess:bot') {
@@ -3323,6 +3356,7 @@ function botLoad(key = 'chess:bot') {
       applyBotMove(b, m, false);
     }
     if (b.tc && d.clock) b.clock = { w: d.clock.w, b: d.clock.b, ts: Date.now() };   // time spent away is not counted
+    if (d.startedAt) b.startedAt = d.startedAt;
     return botStatusOf(b).over ? null : b;
   } catch { return null; }
 }

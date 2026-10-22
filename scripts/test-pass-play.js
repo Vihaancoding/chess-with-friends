@@ -68,6 +68,19 @@ const blitz = (r) => r.user.ratings.blitz;
   ok('no rating changed', blitz(mb2).n === 1 && blitz(ma2).n === 1, [blitz(ma2), blitz(mb2)]);
   ok('the sender sees it was declined', ma2.resultsOut[0].status === 'declined', ma2.resultsOut);
 
+  console.log('retries and odd input');
+  r = await call('result_send', { opp: 'bob', color: 'w', gid: 'g1', tc, moves: MATE }, ann);
+  ok('a game that was already answered is not sent again', r.ok && (await call('me', {}, bob)).results.length === 0, r);
+  r = await call('result_send', { opp: 'bob', color: 'w', gid: 'g4', tc, moves: MATE, startedAt: -5, endedAt: 1.5 }, ann);
+  me = await call('me', {}, bob);
+  ok('a bad start time is replaced', r.ok && Number.isSafeInteger(me.results[0].startedAt) && me.results[0].startedAt > 0, me.results[0]);
+  const [first, second] = await Promise.all([true, true].map((accept) => call('result_answer', { id: me.results[0].id, accept }, bob)));
+  ok('two answers at once: one counts, the other is told it is busy', [first, second].filter((x) => x.ok).length === 1 && [first, second].some((x) => x.status === 409 || x.status === 404), [first, second]);
+  const mb3 = await call('me', {}, bob);
+  ok('rated exactly once', blitz(mb3).n === 2, blitz(mb3));
+  const gb3 = await call('games', { name: 'bob' }, bob), g3 = await call('game_get', { id: gb3.games[0].id }, bob);
+  ok('its archived game opens', !!g3.game, g3);
+
   console.log('limits');
   for (const id of ['a', 'b', 'c']) await call('result_send', { opp: 'bob', color: 'w', gid: id, tc, moves: MATE }, ann);
   r = await call('result_send', { opp: 'bob', color: 'w', gid: 'd', tc, moves: MATE }, ann);
