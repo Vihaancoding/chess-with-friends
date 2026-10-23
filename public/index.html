@@ -300,6 +300,17 @@
   .sq.dragging img.piece { opacity: .35; }
 
   #boardwrap { position: relative; }
+  /* evaluation bar: White's share of the bar grows from White's side of the board */
+  .boardrow { display: flex; gap: 8px; align-items: stretch; }
+  .boardrow > #boardwrap { flex: 1; min-width: 0; }
+  #evalbar { position: relative; width: 22px; flex: none; border-radius: 4px; overflow: hidden; background: #403d39; box-shadow: 0 8px 24px -10px #0009; }
+  #evfill { position: absolute; left: 0; right: 0; bottom: 0; height: 50%; background: #f1f1f1; transition: height .45s ease; }
+  #evalbar.flip #evfill { bottom: auto; top: 0; }
+  #evtxt { position: absolute; left: 0; right: 0; text-align: center; font-size: .62rem; font-weight: 800; letter-spacing: -.02em; z-index: 1; }
+  #evtxt.w { bottom: 4px; color: #403d39; } #evtxt.b { top: 4px; color: #f1f1f1; }
+  #evalbar.flip #evtxt.w { bottom: auto; top: 4px; } #evalbar.flip #evtxt.b { top: auto; bottom: 4px; }
+  #evalbar.busy #evtxt { opacity: .55; }
+  @media (max-width: 600px) { #evalbar { width: 16px; } #evtxt { font-size: .52rem; } .boardrow { gap: 5px; } }
   #arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
   .sq.premove { box-shadow: inset 0 0 0 200px rgba(30, 86, 200, .42); }
   .sq.hint.pre::after { background: rgba(30, 86, 200, .5); }
@@ -811,7 +822,8 @@
 <div id="game" class="hidden">
   <div class="boardcol">
     <div class="player" id="top"></div>
-    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg><div id="pausedOv" class="hidden"><div><b>Game paused</b><span id="pausedTxt">Clocks are stopped</span><button class="primary" id="resumeBtn">Resume</button></div></div></div>
+    <div class="boardrow"><div id="evalbar" class="hidden" title="Engine evaluation"><div id="evfill"></div><span id="evtxt"></span></div>
+    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg><div id="pausedOv" class="hidden"><div><b>Game paused</b><span id="pausedTxt">Clocks are stopped</span><button class="primary" id="resumeBtn">Resume</button></div></div></div></div>
     <div class="player" id="bottom"></div>
   </div>
   <aside class="side-panel">
@@ -890,6 +902,7 @@
       <div class="label" style="margin-top:0">Board</div><div class="swatches" id="boardSwatches"></div>
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
+      <label class="sktoggle"><input type="checkbox" id="evalToggle"> Show the evaluation bar in computer and pass &amp; play games</label>
       <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
       <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
       <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button><button class="small" data-play="challenge">Challenge</button><button class="small" data-play="chAccepted">Accepted</button><button class="small" data-play="chDeclined">Declined</button><button class="small" data-play="turn">Your turn</button></div>
@@ -1434,7 +1447,7 @@ function paintSkinModal() {
   for (let sq = 0; sq < 64; sq++) h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}">${st.board[sq] ? pieceHTML(st.board[sq]) : ''}</div>`;
   setHTML($('#skinPreview'), h);
 }
-function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; paintSkinModal(); paintSounds(); }
+function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; $('#evalToggle').checked = SKIN.evalbar !== false; paintSkinModal(); paintSounds(); }
 $('#navSkin').onclick = openSkins;
 $('#skinBtn').onclick = openSkins;
 $('#skinDone').onclick = () => $('#skinModal').classList.add('hidden');
@@ -1960,7 +1973,7 @@ function render() {
   paintPendingMove();
   paintAnnotations(); paintReviewComment(upto);
   if (AN.key && AN.n) paintAnalysis();
-  paintBadge(false);
+  paintBadge(false); paintEval(state, flip);
   if (!isBot() && !isArchive()) paintCall();
   setText($('#leave').lastChild, isArchive() ? ' Back to games' : ' Lobby');
   paintReplay();
@@ -2849,6 +2862,62 @@ $('#badgeToggle').addEventListener('change', (e) => {
   SKIN.badges = e.target.checked;
   try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
   if (!SKIN.badges) { LB.shown = null; paintBadge(true); }
+});
+
+// ---------- evaluation bar: the engine scores the position on the board (games against the computer, pass & play) ----------
+// Scores come from bot.js in its own worker, from the side to move's point of view, and are shown from White's.
+const EV = { worker: null, id: 0, key: null, cache: new Map(), busy: false };
+const evShown = () => SKIN.evalbar !== false && !!window.Worker && isBot() && !!snap;
+function evWorker() {
+  if (EV.worker) return EV.worker;
+  try {
+    EV.worker = new Worker('bot.js');
+    EV.worker.onmessage = (e) => {
+      const d = e.data;
+      if (d.done || d.id !== EV.id) return;
+      EV.busy = false;
+      const cp = d.terminal ? (d.bestScore ? (EV.turn === 'w' ? -100000 : 100000) : 0) : EV.turn === 'w' ? d.bestScore : -d.bestScore;
+      EV.cache.set(EV.key, { cp, end: d.terminal });
+      if (EV.cache.size > 400) EV.cache.delete(EV.cache.keys().next().value);
+      drawEval(EV.cache.get(EV.key));
+    };
+    EV.worker.onerror = (ev) => { ev.preventDefault(); EV.worker = null; EV.busy = false; };
+  } catch { EV.worker = null; }
+  return EV.worker;
+}
+function paintEval(state, flip) {
+  const bar = $('#evalbar'), on = evShown();
+  bar.classList.toggle('hidden', !on);
+  if (!on) return;
+  bar.classList.toggle('flip', flip);
+  const key = Chess.key(state);
+  if (key === EV.key) return;
+  EV.key = key; EV.turn = state.turn;
+  const hit = EV.cache.get(key);
+  if (hit) { EV.id++; return drawEval(hit); }            // any answer still on its way is for another position
+  bar.classList.add('busy');                              // keeps the old value on screen until the new one is in
+  // the worker answers in order, so a search for a position already left behind would delay this one: drop it
+  if (EV.busy && EV.worker) { EV.worker.terminate(); EV.worker = null; }
+  const w = evWorker();
+  if (w) { EV.busy = true; w.postMessage({ type: 'analyze', id: ++EV.id, states: [state], hist: [], ms: 350 }); }
+}
+function drawEval(v) {
+  const bar = $('#evalbar'), t = $('#evtxt');
+  bar.classList.remove('busy');
+  const { cp, end } = v, mate = Math.abs(cp) > 90000;
+  // White's share: a smooth curve, so +1 is a visible lead and +5 is nearly all of it; mates fill the bar
+  const pct = mate ? (cp > 0 ? 100 : 0) : Math.min(95, Math.max(5, 100 / (1 + Math.exp(-cp / 250))));
+  $('#evfill').style.height = pct + '%';
+  const txt = end ? (cp > 0 ? '1-0' : cp < 0 ? '0-1' : '½-½') : mate ? 'M' + fmtEval(Math.abs(cp)).slice(1) : (Math.abs(cp) / 100).toFixed(1);
+  setText(t, txt);
+  t.className = cp >= 0 ? 'w' : 'b';
+  bar.title = end ? 'Game over' : `Evaluation ${fmtEval(cp)} (White's view)`;
+}
+$('#evalToggle').addEventListener('change', (e) => {
+  SKIN.evalbar = e.target.checked;
+  try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
+  EV.key = null;
+  if (snap && view === 'game') { const { state } = viewInfo(); paintEval(state, (snap.pov || snap.you) === 'b'); }
 });
 
 // ---------- opening recognition (Lichess opening list, see scripts/build-openings.js; matching lives in opening.js) ----------
