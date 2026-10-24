@@ -153,55 +153,59 @@ function analyzePosition(state, ms, maxDepth = 12) {
   if (!moves.length) return { terminal: true, best: null, scores: [], depth: 0, score: C.inCheck(state, state.turn) ? -MATE : 0 };
   order(state, moves);
   let scored = null, depth = 0;
+  const layers = [];                                       // every move's score at each completed depth
   for (let d = 1; d <= maxDepth; d++) {
     nodes = 0;
     deadline = d === 1 ? Infinity : anT0 + ms;             // depth 1 always completes
     try {
       const sc = moves.map((m) => ({ m, s: -negamax(C.apply(state, m), d - 1, -INF, INF, 1) }));
       sc.sort((a, b) => b.s - a.s);
-      scored = sc; depth = d;
+      scored = sc; depth = d; layers.push(sc);
       moves.sort((a, b) => sc.findIndex((x) => x.m === a) - sc.findIndex((x) => x.m === b));
       if (Math.abs(sc[0].s) > MATE - 1000) break;          // forced mate found
     } catch (e) { if (e !== STOP) throw e; break; }
   }
-  return { best: plain(scored[0].m), score: scored[0].s, scores: scored.map((x) => ({ ...plain(x.m), s: x.s })), depth, legal: moves.length };
+  return { best: plain(scored[0].m), score: scored[0].s, scores: scored.map((x) => ({ ...plain(x.m), s: x.s })), depth, legal: moves.length, layers };
 }
 var anT0 = 0;
 
 // ---------- play against a style (the playstyle logic is in style.js; this file supplies the engine scores) ----------
 const uciOf = (m) => C.sqName(m.from) + C.sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '');
-// every legal move with its score, for profiles and comparisons
+// every legal move with its score, for profiles and comparisons; layers: { uci: score } after search depths 1, 2, 3…
+// (how the position looks to a player who sees one move ahead, two, three)
 function scoreAll(state, ms, depth) {
   anT0 = now();
   const r = analyzePosition(state, ms, depth);
-  return { bestScore: r.score, best: r.best ? uciOf(r.best) : null, legal: r.legal || 0, scores: r.scores.map((x) => ({ uci: uciOf(x), s: x.s })) };
+  if (r.terminal) return { bestScore: r.score, best: null, legal: 0, scores: [], layers: [] };
+  const layers = r.layers.map((L) => { const o = {}; for (const x of L) o[uciOf(x.m)] = x.s; return o; });
+  return { bestScore: r.score, best: uciOf(r.best), legal: r.legal, scores: r.scores.map((x) => ({ uci: uciOf(x), s: x.s })), layers };
 }
-// a profile from archived games; ms per position (0 = skip the engine: style without mistakes)
+// a profile from archived games; ms per position (0 = skip the engine: no move model, no mistakes)
 function buildProfile(name, games, ms, onProgress) {
-  return Style.profile(name, games, ms ? (st) => scoreAll(st, ms, 3) : null, onProgress);
+  return Style.profile(name, games, ms ? (st) => scoreAll(st, ms, Style.DEPTH) : null, onProgress);
 }
-// the clone's move: engine scores for every move, then the player's habits pick one
+// the clone's move: engine scores at depths 1-3, then the player's learned model picks one (and says how long to think)
 function styledMove(state, P, opts = {}) {
-  const cfg = Style.engine(P, opts.diff);
-  anT0 = now();
-  const r = analyzePosition(state, cfg.ms * (opts.msScale || 1), cfg.depth);
-  if (r.terminal) return null;
-  const legal = C.legalMoves(state);
-  let scored = r.scores.map((x) => ({ m: legal.find((y) => y.from === x.from && y.to === x.to && (y.promo || undefined) === (x.promo || undefined)), s: x.s }));
+  const a = scoreAll(state, Style.engineMs(P, opts.diff) * (opts.msScale || 1), Style.DEPTH);
+  if (!a.legal) return null;
   if (opts.seen) {                                    // like the other bots: avoid a repetition draw when ahead, aim for one when losing
-    scored = scored.map((x) => { const n = opts.seen[C.key(C.apply(state, x.m))] || 0; return n >= 2 ? { ...x, s: x.s > 30 ? x.s - 250 : x.s < -150 ? x.s + 250 : x.s } : x; });
-    scored.sort((a, b) => b.s - a.s);
+    const legal = C.legalMoves(state);
+    for (const m of legal) {
+      if ((opts.seen[C.key(C.apply(state, m))] || 0) < 2) continue;
+      for (const L of a.layers) { const u = uciOf(m), x = L[u]; if (x != null) L[u] = x > 30 ? x - 250 : x < -150 ? x + 250 : x; }
+    }
   }
-  const c = Style.choose(state, scored, P, opts);
-  return c && { move: plain(c.move), why: c.why, depth: r.depth };
+  const c = Style.choose(state, a, P, opts);
+  return c && { move: plain(c.move), why: c.why, think: c.think };
 }
 // after a clone game: score every position, and for the human's moves also what the profiled player would have played
 function compareGame(states, hist, side, P, ms, onPly) {
   for (let i = 0; i < hist.length; i++) {
+    // grading uses a deeper search; the prediction uses the profile's own search budget, like the model was trained on
     const a = scoreAll(states[i], ms, 4), h = hist[i], u = uciOf(h), played = a.scores.find((x) => x.uci === u);
     const out = { i, best: a.best, bestScore: a.bestScore, played: played ? played.s : null, legal: a.legal };
-    if (states[i].turn === side && a.scores.length) {
-      const p = Style.predict(states[i], a.scores, P, i);
+    if (states[i].turn === side && a.legal) {
+      const p = Style.predict(states[i], scoreAll(states[i], Style.PROFILE_MS, Style.DEPTH), P, { ply: i, lastTo: i ? hist[i - 1].to : null, ownTo: i > 1 ? hist[i - 2].to : null });
       out.pred = p.move; out.top = p.top; out.predScore = (a.scores.find((x) => x.uci === p.move) || {}).s;
     }
     onPly(out);
@@ -234,7 +238,7 @@ if (typeof importScripts === 'function') {
     if (e.data.type === 'styled') {
       const { id, state, profile, opts } = e.data, t0 = now();
       const r = styledMove(state, profile, opts);
-      self.postMessage({ id, move: r && r.move, why: r && r.why, depth: r && r.depth, ms: Math.round(now() - t0) });
+      self.postMessage({ id, move: r && r.move, why: r && r.why, think: r && r.think, ms: Math.round(now() - t0) });
       return;
     }
     if (e.data.type === 'compare') {
