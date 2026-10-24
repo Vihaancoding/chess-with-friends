@@ -3563,11 +3563,17 @@ function cloneReady(P, id) {
   const re = $('#clRebuild'); if (re) re.onclick = () => cloneAnalyze(P.name, { force: true });
 }
 
+// Weak spots (mistakes, time trouble, results by opening and endgame) are shown only to the player themselves.
+// Others can still play the bot, which plays with those weaknesses, but don't get them spelled out.
+const WEAK_TAGS = ['Blunder-prone', 'Gets into time trouble'];
+const ownStyle = (P) => P.name === user.name;
+const shownTags = (P) => (ownStyle(P) ? P.tags : P.tags.filter((t) => !WEAK_TAGS.includes(t)));
 // the profile card: summary tags and bars up front, the details folded away
 function profileHTML(P) {
+  const own = ownStyle(P), hidden = `<div class="clnote">Only ${esc(P.name)} can see this.</div>`;
   const bar = (label, v, lo, hi) => `<div class="clbar" title="${lo} ← → ${hi}"><span>${label}</span><i><b style="width:${v}%"></b></i><em>${v}</em></div>`;
   const list = (rows, empty) => (rows.length ? `<div class="cllist">${rows.map(([a, b]) => `<div><span>${a}</span><span>${b}</span></div>`).join('')}</div>` : `<div class="clnote">${empty}</div>`);
-  const opn = (c) => list(P.openings[c].map((o) => [`<span class="eco">${esc(o.eco || '')}</span> ${esc(o.name)}`, `${o.n}× · ${o.score}%`]), 'No named openings yet.');
+  const opn = (c) => list(P.openings[c].map((o) => [`<span class="eco">${esc(o.eco || '')}</span> ${esc(o.name)}`, own ? `${o.n}× · ${o.score}%` : `${o.n}×`]), 'No named openings yet.');
   const moveName = (u) => { const st = Chess.initial(), m = Chess.findUci(st, u); return m ? Chess.notate(st, m) : u; };
   const firsts = Object.entries(P.first.w).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([u, n]) => `1.${moveName(u)} (${n})`).join(', ');
   const reply = (k, label) => { const e = Object.entries(P.first[k]).sort((a, b) => b[1] - a[1])[0]; if (!e) return null; const st = Chess.apply(Chess.initial(), Chess.findUci(Chess.initial(), k === 'e4' ? 'e2e4' : 'd2d4')), m = Chess.findUci(st, e[0]); return `${label} 1…${m ? Chess.notate(st, m) : e[0]}`; };
@@ -3575,14 +3581,15 @@ function profileHTML(P) {
   const E = P.err, T = P.time;
   const phaseName = { o: 'opening', m: 'middlegame', e: 'endgame' };
   const worst = E ? Object.entries(E.phase).filter(([, v]) => v.n >= 5).sort((a, b) => (b[1].blunder + b[1].mistake) - (a[1].blunder + a[1].mistake))[0] : null;
-  return `<div class="cltags">${P.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>
+  return `<div class="cltags">${shownTags(P).map((t) => `<span>${esc(t)}</span>`).join('')}</div>
   <div class="clbars">${bar('Aggression', P.aggr, 'defensive', 'aggressive')}${bar('Tactical', P.tact, 'positional', 'tactical')}${bar('Risk-taking', P.risk, 'safe', 'risky')}</div>
-  <div class="clnote">Plays at about ${P.rating} · ${P.results.win}W ${P.results.loss}L ${P.results.draw}D in these games${E ? ` · accuracy ${E.acc}%` : ''}</div>
+  <div class="clnote">Plays at about ${P.rating} · ${P.results.win}W ${P.results.loss}L ${P.results.draw}D in these games${E && own ? ` · accuracy ${E.acc}%` : ''}</div>
   <details><summary>Full playstyle profile</summary>
+    ${own ? '' : `<div class="clnote">${esc(P.name)}'s weak spots (mistakes, time trouble, results by opening and endgame) are only shown to them. The bot still plays with them.</div>`}
     <div class="clsec"><h3>Openings as White</h3>${firsts ? `<div class="clnote" style="margin:0 0 4px">${firsts}</div>` : ''}${opn('w')}</div>
     <div class="clsec"><h3>Openings as Black</h3>${replies ? `<div class="clnote" style="margin:0 0 4px">${replies}</div>` : ''}${opn('b')}</div>
     <div class="clsec"><h3>Tactics they use</h3>${list(P.tactics.map((t) => [t.name, `${perGame(t.perGame)} per game`]), 'No tactics spotted yet.')}</div>
-    <div class="clsec"><h3>Endgames they reach</h3>${list(P.endgames.slice(0, 5).map((e) => [e.name, `${e.n}× · scores ${e.score}%${e.acc != null ? ` · ${e.acc}% acc.` : ''}`]), 'Their games rarely reach an endgame.')}${P.endgames.length ? `<div class="clnote">${pct(Math.min(1, P.reachedEnd))} of their games reach an endgame.</div>` : ''}</div>
+    <div class="clsec"><h3>Endgames they reach</h3>${list(P.endgames.slice(0, 5).map((e) => [e.name, own ? `${e.n}× · scores ${e.score}%${e.acc != null ? ` · ${e.acc}% acc.` : ''}` : `${e.n}×`]), 'Their games rarely reach an endgame.')}${P.endgames.length ? `<div class="clnote">${pct(Math.min(1, P.reachedEnd))} of their games reach an endgame.</div>` : ''}</div>
     <div class="clsec"><h3>Habits</h3>${list([
       ['Castles', P.castle.none >= 0.99 ? 'rarely' : `${pct(P.castle.K)} kingside · ${pct(P.castle.Q)} queenside${P.castle.at ? ` · around move ${P.castle.at}` : ''}`],
       ['Checks', `${pct(P.rates.check)} of moves`], ['Captures', `${pct(P.rates.capture)} of moves`],
@@ -3590,12 +3597,12 @@ function profileHTML(P) {
       ['Pawn storms', `${pct(P.rates.storm)} of moves`], ['Retreats', `${pct(P.rates.retreat)} of moves`],
       ['Early queen moves', `${perGame(P.rates.queenEarly)} per game`],
     ], '')}</div>
-    <div class="clsec"><h3>Mistakes</h3>${E ? list([
+    <div class="clsec"><h3>Mistakes</h3>${!own ? hidden : E ? list([
       ['Blunders', `${perGame(E.perGame.blunder)} per game`], ['Mistakes', `${perGame(E.perGame.mistake)} per game`], ['Inaccuracies', `${perGame(E.perGame.inaccuracy)} per game`],
       ...(worst ? [['Most errors in the', phaseName[worst[0]]]] : []),
       ['Usual kind', E.hung >= 0.5 ? 'leaving pieces hanging' : 'missing a tactic'],
     ], '') : '<div class="clnote">Not analyzed.</div>'}</div>
-    <div class="clsec"><h3>Time management</h3>${T ? list([
+    <div class="clsec"><h3>Time management</h3>${!own ? (T ? list([['Average per move', `${T.avgSec}s`]], '') : '') + hidden : T ? list([
       ['Average per move', `${T.avgSec}s`], ['Quick moves (under 2s)', pct(T.fast)], ['Moves in time trouble', pct(T.trouble)], ['Lost on time', `${T.timeouts}×`],
       ...(T.share.o != null ? [['Clock used per move', ['o', 'm', 'e'].filter((k) => T.share[k] != null).map((k) => `${phaseName[k]} ${(100 * T.share[k]).toFixed(1)}%`).join(' · ')]] : []),
     ], '') : '<div class="clnote">No clock data yet: move times are recorded for games played from now on.</div>'}</div>
@@ -3657,7 +3664,7 @@ function paintClone() {
   setText($('#clpLvl'), `about ${P.rating}`);
   if (!botStatusOf(b).over) {
     const why = b.clone.why === 'book' ? `<div class="clnote">Last move came from ${P.name === user.name ? 'your' : esc(P.name) + "'s"} own opening repertoire.</div>` : '';
-    return setHTML($('#clpBody'), `<div class="cltags">${P.tags.slice(0, 4).map((t) => `<span>${esc(t)}</span>`).join('')}</div><div class="clnote">Plays the way ${P.name === user.name ? 'you play' : esc(P.name) + ' plays'}, from ${P.games} archived games. After the game you'll see how it compared.</div>${why}`);
+    return setHTML($('#clpBody'), `<div class="cltags">${shownTags(P).slice(0, 4).map((t) => `<span>${esc(t)}</span>`).join('')}</div><div class="clnote">Plays the way ${P.name === user.name ? 'you play' : esc(P.name) + ' plays'}, from ${P.games} archived games. After the game you'll see how it compared.</div>${why}`);
   }
   if (!C || !C.report) {
     const k = C ? Math.round((100 * C.an.filter(Boolean).length) / Math.max(1, C.n)) : 0;
@@ -3707,7 +3714,7 @@ function cloneReport(b) {
   const tacList = (s) => Object.entries(s.tac).map(([k, n]) => `${Style.TACTICS[k]}${n > 1 ? ' ×' + n : ''}`).join(', ') || '—';
   const more = (a, b2, high) => (a === b2 ? '' : (a > b2) === high ? 'win' : '');
   const row = (label, a, b2, p, cmp) => `<tr><td>${label}</td><td class="${cmp ? cmp[0] : ''}">${a}</td><td class="${cmp ? cmp[1] : ''}">${b2}</td><td>${p}</td></tr>`;
-  const E = P.err;
+  const E = self ? P.err : null;                         // someone else's mistake rates stay hidden here too
   const aggrLine = Math.abs(ys.aggr - bs.aggr) < 6 ? `You and ${botName.toLowerCase().startsWith('your') ? 'your bot' : botName} were about equally aggressive.`
     : ys.aggr > bs.aggr ? `You played more aggressively than ${self ? 'your bot' : botName} (${ys.aggr} vs ${bs.aggr}).` : `${botName} played more aggressively than you (${bs.aggr} vs ${ys.aggr}).`;
   const forcing = (recs) => recs.filter((r) => r.f.forcing).length / Math.max(1, recs.length);
@@ -3720,9 +3727,9 @@ function cloneReport(b) {
     ${row('Tactical', ys.tact, bs.tact, P.tact)}
     ${row('Risk-taking', ys.risk, bs.risk, P.risk)}
     ${row('Sacrifices', ys.sacs, bs.sacs, perGame(P.sacs))}
-    ${row('Accuracy', fmtAcc(ys), fmtAcc(bs), E ? E.acc + '%' : '—', [more(ys.acc || 0, bs.acc || 0, true), more(bs.acc || 0, ys.acc || 0, true)])}
-    ${row('Blunders', ys.blunders, bs.blunders, E ? perGame(E.perGame.blunder) : '—')}
-    ${row('Mistakes', ys.mistakes, bs.mistakes, E ? perGame(E.perGame.mistake) : '—')}
+    ${row('Accuracy', fmtAcc(ys), fmtAcc(bs), E ? E.acc + '%' : self ? '—' : 'hidden', [more(ys.acc || 0, bs.acc || 0, true), more(bs.acc || 0, ys.acc || 0, true)])}
+    ${row('Blunders', ys.blunders, bs.blunders, E ? perGame(E.perGame.blunder) : self ? '—' : 'hidden')}
+    ${row('Mistakes', ys.mistakes, bs.mistakes, E ? perGame(E.perGame.mistake) : self ? '—' : 'hidden')}
   </tbody></table>
   <div class="clnote">${aggrLine}</div></div>
   <div class="clsec"><h3>Openings</h3><div class="cllist">

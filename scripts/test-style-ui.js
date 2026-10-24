@@ -65,7 +65,8 @@ async function game(w, b, tc, ucis, loser) {
     await page.click('#clProfile summary');
     const full = await page.innerText('#clProfile');
     ok('full profile: openings as White and Black', /Openings as White/i.test(full) && /Italian Game/.test(full) && /1\.e4 \(3\)/.test(full) && /vs 1\.d4: 1…e5/.test(full), full);
-    ok('full profile: tactics, endgames, habits, mistakes, time', /Tactics they use/i.test(full) && /Checkmate/.test(full) && /Endgames they reach/i.test(full) && /Castles/.test(full) && /Blunders/.test(full) && /Average per move/.test(full), full);
+    ok('full profile: tactics, endgames, habits, time', /Tactics they use/i.test(full) && /Checkmate/.test(full) && /Endgames they reach/i.test(full) && /Castles/.test(full) && /Average per move/.test(full), full);
+    ok("someone else's weak spots are hidden", /only shown to them/.test(full) && /Only bob can see this/.test(full) && !/Blunders/.test(full) && !/Moves in time trouble/.test(full) && !/accuracy/i.test(full) && !/1× · 100%/.test(full) && !/Blunder-prone|Gets into time trouble/.test(full), full);
     await shot(page, label + '-profile');
     ok('play button names the friend', prof.btn === "Play bob's clone", prof.btn);
     ok('profile is cached on this device', await page.evaluate(() => !!localStorage.getItem('chess:style:bob')));
@@ -100,6 +101,7 @@ async function game(w, b, tc, ucis, loser) {
     ok('style match score', /\d+%\s*style match/.test(rep), rep);
     ok('predicted share of your moves', /predicted \d+ of 2 of your moves/.test(rep), rep);
     ok('you vs the bot table: aggression, tactics, risk, accuracy, blunders', /You vs bob's bot/i.test(rep) && /Aggression/.test(rep) && /Tactical/.test(rep) && /Risk-taking/.test(rep) && /Accuracy/.test(rep) && /Blunders/.test(rep) && /bob usually/i.test(rep), rep);
+    ok("bob's usual mistake rates are hidden in the comparison", /Blunders\s+\d+\s+\d+\s+hidden/.test(rep), rep);
     ok('who was more aggressive', /more aggressively|about equally aggressive/.test(rep), rep);
     ok('opening choices', /This game/.test(rep) && /Bot followed bob's repertoire/.test(rep), rep);
     ok('tactical tendencies', /Tactical tendencies/i.test(rep) && /Forcing moves/.test(rep), rep);
@@ -117,6 +119,12 @@ async function game(w, b, tc, ucis, loser) {
     await page.click('#pfClone');
     await page.waitForSelector('#clPlay:not(.hidden)', { timeout: 30000 });
     ok('"Play their style" on a profile opens the clone tab with that player (cached profile)', (await page.inputValue('#clName')) === 'bob' && /Built from 4 games/.test(await page.textContent('#clStatus')));
+    // your own profile shows everything
+    await page.fill('#clName', 'alice'); await page.click('#clLoad');
+    await page.waitForFunction(() => CL.P && CL.P.name === 'alice' && !$('#clPlay').classList.contains('hidden'), null, { timeout: 60000 });
+    await page.click('#clProfile summary');
+    const mineFull = await page.innerText('#clProfile');
+    ok('your own profile shows your weak spots', /Blunders/.test(mineFull) && /Moves in time trouble/.test(mineFull) && /accuracy/i.test(mineFull) && /× · \d+%/.test(mineFull) && !/Only alice can see this/.test(mineFull), mineFull);
     await page.close();
   }
   await br.close(); srv.kill();
