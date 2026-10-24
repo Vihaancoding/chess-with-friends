@@ -1,8 +1,8 @@
 // Chess bot: alpha-beta search over the shared engine (chess.js).
 // Runs as a Web Worker in the browser and as a plain module in Node (for tests).
-let C;
-if (typeof importScripts === 'function') { importScripts('chess.js'); C = self.Chess; }
-else C = require('./chess.js');
+let C, Style;
+if (typeof importScripts === 'function') { importScripts('chess.js', 'style.js'); C = self.Chess; Style = self.Style; }
+else { C = require('./chess.js'); Style = require('./style.js'); }
 
 const VAL = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 0 };
 // Piece-square tables from White's point of view (index = row*8+col, row 0 = rank 8).
@@ -148,12 +148,12 @@ function chooseMove(state, level, seen, msScale) {
 }
 
 // ---------- game review: score every legal move in a position (exact root scores, time-limited depth) ----------
-function analyzePosition(state, ms) {
+function analyzePosition(state, ms, maxDepth = 12) {
   const moves = C.legalMoves(state);
   if (!moves.length) return { terminal: true, best: null, scores: [], depth: 0, score: C.inCheck(state, state.turn) ? -MATE : 0 };
   order(state, moves);
   let scored = null, depth = 0;
-  for (let d = 1; d <= 12; d++) {
+  for (let d = 1; d <= maxDepth; d++) {
     nodes = 0;
     deadline = d === 1 ? Infinity : anT0 + ms;             // depth 1 always completes
     try {
@@ -167,6 +167,45 @@ function analyzePosition(state, ms) {
   return { best: plain(scored[0].m), score: scored[0].s, scores: scored.map((x) => ({ ...plain(x.m), s: x.s })), depth, legal: moves.length };
 }
 var anT0 = 0;
+
+// ---------- play against a style (the playstyle logic is in style.js; this file supplies the engine scores) ----------
+const uciOf = (m) => C.sqName(m.from) + C.sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '');
+// every legal move with its score, for profiles and comparisons
+function scoreAll(state, ms, depth) {
+  anT0 = now();
+  const r = analyzePosition(state, ms, depth);
+  return { bestScore: r.score, best: r.best ? uciOf(r.best) : null, legal: r.legal || 0, scores: r.scores.map((x) => ({ uci: uciOf(x), s: x.s })) };
+}
+// a profile from archived games; ms per position (0 = skip the engine: style without mistakes)
+function buildProfile(name, games, ms, onProgress) {
+  return Style.profile(name, games, ms ? (st) => scoreAll(st, ms, 3) : null, onProgress);
+}
+// the clone's move: engine scores for every move, then the player's habits pick one
+function styledMove(state, P, opts = {}) {
+  const cfg = Style.engine(P, opts.diff);
+  anT0 = now();
+  const r = analyzePosition(state, cfg.ms * (opts.msScale || 1), cfg.depth);
+  if (r.terminal) return null;
+  let scored = r.scores.map((x) => ({ m: C.legalMoves(state).find((y) => y.from === x.from && y.to === x.to && (y.promo || undefined) === (x.promo || undefined)), s: x.s }));
+  if (opts.seen) {                                    // like the other bots: avoid a repetition draw when ahead, aim for one when losing
+    scored = scored.map((x) => { const n = opts.seen[C.key(C.apply(state, x.m))] || 0; return n >= 2 ? { ...x, s: x.s > 30 ? x.s - 250 : x.s < -150 ? x.s + 250 : x.s } : x; });
+    scored.sort((a, b) => b.s - a.s);
+  }
+  const c = Style.choose(state, scored, P, opts);
+  return c && { move: plain(c.move), why: c.why, depth: r.depth };
+}
+// after a clone game: score every position, and for the human's moves also what the profiled player would have played
+function compareGame(states, hist, side, P, ms, onPly) {
+  for (let i = 0; i < hist.length; i++) {
+    const a = scoreAll(states[i], ms, 4), h = hist[i], u = uciOf(h), played = a.scores.find((x) => x.uci === u);
+    const out = { i, best: a.best, bestScore: a.bestScore, played: played ? played.s : null, legal: a.legal };
+    if (states[i].turn === side && a.scores.length) {
+      const p = Style.predict(states[i], a.scores, P, i);
+      out.pred = p.move; out.top = p.top; out.predScore = (a.scores.find((x) => x.uci === p.move) || {}).s;
+    }
+    onPly(out);
+  }
+}
 
 if (typeof importScripts === 'function') {
   self.onmessage = (e) => {
@@ -185,11 +224,29 @@ if (typeof importScripts === 'function') {
       self.postMessage({ id, done: true });
       return;
     }
+    if (e.data.type === 'profile') {
+      const { id, name, games, ms } = e.data;
+      const P = buildProfile(name, games, ms, (done, total) => self.postMessage({ id, progress: [done, total] }));
+      self.postMessage({ id, profile: P });
+      return;
+    }
+    if (e.data.type === 'styled') {
+      const { id, state, profile, opts } = e.data, t0 = now();
+      const r = styledMove(state, profile, opts);
+      self.postMessage({ id, move: r && r.move, why: r && r.why, depth: r && r.depth, ms: Math.round(now() - t0) });
+      return;
+    }
+    if (e.data.type === 'compare') {
+      const { id, states, hist, side, profile, ms } = e.data;
+      compareGame(states, hist, side, profile, ms, (out) => self.postMessage({ id, ply: out, n: hist.length }));
+      self.postMessage({ id, done: true });
+      return;
+    }
     const { id, state, level, seen } = e.data;
     const t0 = now();
     const r = chooseMove(state, level, seen);
     self.postMessage({ id, move: r && r.move, depth: r && r.depth, ms: Math.round(now() - t0) });
   };
 } else {
-  module.exports = { chooseMove, evaluate, LEVELS, analyzePosition, setT0: (t) => { anT0 = t; } };
+  module.exports = { chooseMove, evaluate, LEVELS, analyzePosition, setT0: (t) => { anT0 = t; }, buildProfile, styledMove, compareGame, scoreAll };
 }
