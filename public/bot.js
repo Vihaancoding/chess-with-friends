@@ -201,10 +201,11 @@ function styledMove(state, P, opts = {}) {
 // after a clone game: score every position, and for the human's moves also what the profiled player would have played
 function compareGame(states, hist, side, P, ms, onPly) {
   for (let i = 0; i < hist.length; i++) {
-    const a = scoreAll(states[i], ms, Style.DEPTH), h = hist[i], u = uciOf(h), played = a.scores.find((x) => x.uci === u);
+    // grading uses a deeper search; the prediction uses the profile's own search budget, like the model was trained on
+    const a = scoreAll(states[i], ms, 4), h = hist[i], u = uciOf(h), played = a.scores.find((x) => x.uci === u);
     const out = { i, best: a.best, bestScore: a.bestScore, played: played ? played.s : null, legal: a.legal };
     if (states[i].turn === side && a.legal) {
-      const p = Style.predict(states[i], a, P, { ply: i, lastTo: i ? hist[i - 1].to : null, ownTo: i > 1 ? hist[i - 2].to : null });
+      const p = Style.predict(states[i], scoreAll(states[i], Style.PROFILE_MS, Style.DEPTH), P, { ply: i, lastTo: i ? hist[i - 1].to : null, ownTo: i > 1 ? hist[i - 2].to : null });
       out.pred = p.move; out.top = p.top; out.predScore = (a.scores.find((x) => x.uci === p.move) || {}).s;
     }
     onPly(out);

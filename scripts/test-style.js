@@ -28,7 +28,7 @@ async function game(w, b, tc, ucis, end) {
   if (end) await end(c.code);
 }
 const same = (a, b) => a.from === b.from && a.to === b.to && (a.promo || undefined) === (b.promo || undefined);
-const legal = (st, mv) => Chess.legalMoves(st).some((x) => x.from === mv.from && x.to === mv.to && (x.promo || undefined) === (mv.promo || undefined));
+const legal = (st, mv) => Chess.legalMoves(st).some((x) => same(x, mv));
 
 (async () => {
   const su = async (n) => { const r = await call('signup', { email: n + '@x.io', password: 'password1', username: n }); return { name: r.name, token: r.token }; };
@@ -148,8 +148,11 @@ const legal = (st, mv) => Chess.legalMoves(st).some((x) => x.from === mv.from &&
   const tP = { timeModel: { w: [1, 0, 0, 0, 0, 0, 0, -2, -1, 1, -0.5, 0], sigma: 0.3 } }, avg = (o) => { seed = 3; let t = 0; for (let i = 0; i < 400; i++) t += Style.thinkTime(tP, o, rnd); return t / 400; };
   const base = { ph: 'm', ply: 30, legal: 30, timed: false };
   ok('think time: forced moves are quick, hard choices slow', avg({ ...base, legal: 1 }) < avg(base) / 3 && avg({ ...base, hard: true }) > avg(base) * 2, [avg({ ...base, legal: 1 }), avg(base), avg({ ...base, hard: true })]);
-  const rT = Bot.styledMove(mid, PQ, { ply: 20, msScale: 0.3, clock: { left: 60000, base: 180 } });
+  const rT = Bot.styledMove(mid, PQ, { ply: 20, msScale: 0.3 });
   ok('the clone returns how long to think', rT && typeof rT.think === 'number' && rT.think >= 0, rT);
+  const rTimed = Bot.styledMove(mid, PQ, { ply: 20, msScale: 0.3, clock: { left: 60000, base: 180 } });
+  ok('no think time for a timed game when they only played untimed ones (the page falls back)', rTimed && rTimed.think === null, rTimed);
+  ok('backtest counts the held-out games that were really used', PQ.backtest.games === 2, PQ.backtest);
 
   console.log('comparison');
   let st = Chess.initial(); const H = [], states = [st];

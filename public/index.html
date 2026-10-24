@@ -3509,7 +3509,8 @@ const CL = { name: '', P: null, games: null, req: 0, worker: null, busy: false, 
 const isClone = () => isBot() && !!botGame.clone;
 const cloneLabel = (name) => (name === user.name ? 'Your bot' : `${name}'s bot`);
 const cloneKey = (name) => 'chess:style:' + name.toLowerCase();
-function cloneCached(name) { try { const P = JSON.parse(localStorage.getItem(cloneKey(name))); return P && P.v === 2 ? P : null; } catch { return null; } }
+// v1 profiles (before the learned models) still resume a saved game; Analyze rebuilds them
+function cloneCached(name, v = 1) { try { const P = JSON.parse(localStorage.getItem(cloneKey(name))); return P && P.v >= v ? P : null; } catch { return null; } }
 function cloneStore(P) {
   try { localStorage.setItem(cloneKey(P.name), JSON.stringify(P)); }
   catch {                                                    // full: keep only this one
@@ -3544,7 +3545,7 @@ async function cloneAnalyze(name, { force = false } = {}) {
     setText($('#clStatus'), r.games.length ? `${r.name} has only ${r.games.length} archived game${r.games.length === 1 ? '' : 's'}. A style needs at least 3 — play a few more online games first.` : `${r.name} has no archived games yet. Online games are archived when they finish.`);
     return;
   }
-  const cached = cloneCached(r.name);
+  const cached = cloneCached(r.name, 2);
   if (!force && cached && cached.last === r.games[0].id && cached.src === r.games.length) return cloneReady(cached, id);
   const w = cloneWorker();
   if (!w) { CL.busy = false; setText($('#clStatus'), 'This browser cannot run the engine (Web Workers are off).'); return; }
@@ -3579,7 +3580,7 @@ function modelHTML(P) {
   const B = P.backtest, T = P.timeModel;
   if (!P.model) return '<div class="clnote">Not enough analysed moves to learn their choices yet: the bot uses a generic player model.</div>';
   const t = B && B.time ? ` Think times typically within ×${B.time.toFixed(1)} of theirs.` : T ? ' Think times copied from their games.' : ' No move times yet, so it uses their average pace.';
-  return B ? `<div class="clfit"><b>${Math.round(100 * B.top1)}%</b><span>of ${ownStyle(P) ? 'your' : esc(P.name) + "'s"} moves predicted exactly in ${B.games} game${B.games === 1 ? '' : 's'} it didn't learn from (${Math.round(100 * B.top3)}% in its top 3; the engine alone: ${Math.round(100 * B.engine)}%).${t}</span></div>`
+  return B ? `<div class="clfit"><b>${Math.round(100 * B.top1)}%</b><span>of ${ownStyle(P) ? 'your' : esc(P.name) + "'s"} moves predicted exactly in ${B.games} game${B.games === 1 ? '' : 's'} it didn't learn from (${Math.round(100 * B.top3)}% in its top 3; the engine alone, with the same opening book: ${Math.round(100 * B.engine)}%).${t}</span></div>`
     : `<div class="clnote">Learned from ${P.model.n} of their moves. Play 5+ games for an accuracy test.${t}</div>`;
 }
 // the profile card: summary tags and bars up front, the details folded away
@@ -3656,24 +3657,28 @@ $('#pfClone').onclick = () => enterCloneLobby(pfData ? pfData.name : $('#pfName'
 paintCloneDiff();
 
 // how long the clone thinks: the share of its clock the player usually spends in this phase
+// ms left on the clock of the side to move (the clocks start after both sides' first moves)
+const botClockLeft = (b) => (b.tc ? b.clock[b.state.turn] - (b.moves.length >= 2 ? Date.now() - b.clock.ts : 0) : null);
 function cloneDelay(b) {
   const P = b.clone.P, T = P.time, ph = Style.phase(b.state, b.moves.length);
   if (b.tc && T && T.share[ph] != null) {
-    const left = b.clock[b.state.turn] - (b.moves.length >= 2 ? Date.now() - b.clock.ts : 0);
+    const left = botClockLeft(b);
     return Math.max(400, Math.min(T.share[ph] * left * (0.6 + 0.8 * Math.random()), left * 0.2, 20000));
   }
   return T ? Math.max(400, Math.min(T.avgSec * 250, 2500)) : 500;
 }
 function cloneMsg(b) {
-  const n = b.hist.length, left = b.tc ? b.clock[b.state.turn] - (n >= 2 ? Date.now() - b.clock.ts : 0) : null;
+  const n = b.hist.length, left = botClockLeft(b);
   return { type: 'styled', id: botReq, state: b.state, profile: b.clone.P, opts: { ply: n, diff: b.clone.diff, seen: b.positions,
     ctx: { lastTo: n ? b.hist[n - 1].to : null, ownTo: n > 1 ? b.hist[n - 2].to : null }, clock: b.tc ? { left, base: b.tc.base } : null } };
 }
-// the think time the player's timing model drew for this move, kept short of flagging (a clone never loses on time on purpose)
+// the think time the player's timing model drew for this move, kept well short of flagging (a clone never loses on
+// time on purpose): at most a fifth of the clock left, and never the last few seconds
 function cloneThink(b, ms) {
   if (ms == null) return cloneDelay(b);
-  const left = b.tc ? b.clock[b.state.turn] - (b.moves.length >= 2 ? Date.now() - b.clock.ts : 0) : null;
-  return Math.max(300, Math.min(ms, left != null ? left * 0.4 : 45000));
+  const left = botClockLeft(b);
+  if (left == null) return Math.max(300, Math.min(ms, 20000));
+  return Math.max(0, Math.min(ms, left * 0.2, left - 3000, 60000));
 }
 
 // ----- the side panel: who you're playing during the game, the comparison after it -----
@@ -3709,7 +3714,7 @@ function cloneCompare(b) {
     if (d.done) { w.terminate(); C.worker = null; C.report = cloneReport(b); if (botGame === b) paintClone(); }
   };
   w.onerror = (ev) => { ev.preventDefault(); C.report = '<div class="clnote">The comparison could not run in this browser.</div>'; if (botGame === b) paintClone(); };
-  w.postMessage({ type: 'compare', id, states: states.slice(0, -1), hist, side: b.you, profile: b.clone.P, ms: Style.PROFILE_MS });
+  w.postMessage({ type: 'compare', id, states: states.slice(0, -1), hist, side: b.you, profile: b.clone.P, ms: hist.length > 100 ? 70 : 110 });
   paintClone();
 }
 

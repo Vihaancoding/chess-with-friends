@@ -218,7 +218,7 @@
             // a training row for the move model: every candidate's vector, and which one they chose
             if (a.legal > 1) {
               const c = candidates(st, a, ctx, u), k = c.findIndex((x) => x.u === u);
-              if (k >= 0) rows.push({ c: c.map((x) => ({ x: x.x, u: x.u })), k, test, bk, ply: i });
+              if (k >= 0) rows.push({ c: c.map((x) => ({ x: x.x, u: x.u })), k, test, bk, ply: i, g: gi });
             }
           }
           // a training row for the timing model
@@ -234,7 +234,7 @@
             if (g.mt[i] < 2000) time.fast++;
             if (g.tc && g.ck && g.ck[i] != null) {
               if (prevCk > 0 && i >= 2) time[ph].push(clamp(g.mt[i] / prevCk, 0, 1));
-              if (g.ck[i] < Math.max(10000, g.tc.base * 100)) time.trouble++;
+              if (trouble(g.ck[i], g.tc.base)) time.trouble++;
               prevCk = g.ck[i];
             }
             r.mt = g.mt[i];
@@ -281,7 +281,7 @@
     let backtest = null;
     if (held.length >= 15 && train.length >= 30) {
       const sc = evalRows(held, fit(train), bookTrain), tt = trows.filter((r) => !r.test), th = trows.filter((r) => r.test), T = fitTime(tt);
-      backtest = { ...sc, engine: held.filter((r) => r.k === 0).length / held.length, moves: held.length, games: games.filter((g, gi) => gi % 5 === 4).length,
+      backtest = { ...sc, engine: evalRows(held, null, bookTrain).top1, moves: held.length, games: new Set(held.map((r) => r.g)).size,
         time: T && th.length >= 10 ? Math.round(Math.exp(mean(th.map((r) => Math.abs(r.y - dot(T.w, r.x))))) * 10) / 10 : null };
     }
     const P = {
@@ -333,10 +333,12 @@
   // player actually chose. The three loss columns let it learn how deep they look: a weak player's weight sits on the
   // shallow search, so the bot misses the same deep tactics they miss. The opening book still comes first.
   const DEPTH = 3, CAND = 16;
+  const trouble = (left, base) => left < Math.max(10000, base * 100);   // "in time trouble": the same rule for the profile and for play
   const FEAT = ['loss1', 'loss2', 'loss3', 'check', 'capture', 'trade', 'sacrifice', 'threat', 'fork', 'enemyHalf', 'kingZone', 'pawnStorm', 'shieldPawn', 'retreat',
     'castle', 'earlyQueen', 'kingWalk', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king', 'advance', 'pinSkewer', 'promotion', 'recapture', 'samePiece'];
   // a generic club player: the starting point, and what few games are pulled toward
   const W0 = [-0.5, -0.8, -1.4, 0.3, 0.6, 0.2, -0.5, 0.3, 0.3, 0, 0.2, 0, -0.2, -0.2, 1.0, -0.3, -0.5, 0, 0, 0, 0, -0.2, -0.4, 0.2, 0.3, 0.5, 1.0, -0.2];
+  const legalOf = (state, a) => a._legal || (a._legal = Chess.legalMoves(state));   // generated once per engine result
   const dot = (w, x) => { let s = 0; for (let i = 0; i < w.length; i++) s += w[i] * x[i]; return s; };
   // a = engine result with layers ([{ uci: score }] per depth); ctx = { lastTo, ownTo } (where the last two moves went)
   function candidates(state, a, ctx = {}, played) {
@@ -344,7 +346,7 @@
     const top = L.map((x) => WP(Math.max(...Object.values(x)))), deep = L[2];
     let list = Object.keys(deep).sort((x, y) => deep[y] - deep[x]);
     if (list.length > CAND) { const p = played && list.indexOf(played) >= CAND ? played : null; list = list.slice(0, CAND); if (p) list.push(p); }
-    const legal = new Map(Chess.legalMoves(state).map((m) => [uci(m), m]));
+    const legal = new Map(legalOf(state, a).map((m) => [uci(m), m]));
     return list.filter((u) => legal.has(u)).map((u) => {
       const m = legal.get(u), f = features(state, m), p = f.piece;
       const x = [0, 1, 2].map((d) => 10 * Math.max(0, top[d] - WP(L[d][u] != null ? L[d][u] : deep[u])));   // ×10: same scale as the other columns
@@ -373,11 +375,12 @@
     return w.map((x) => Math.round(x * 1000) / 1000);
   }
   // the backtest: like predict(), the player's book first (from the training games only), then the model
+  // (w = null: the engine's order instead, the baseline)
   function evalRows(rows, w, book) {
     let t1 = 0, t3 = 0;
     for (const r of rows) {
       const bk = r.ply < BOOK_PLY && book[r.bk] ? Object.entries(book[r.bk]).sort((a, b) => b[1] - a[1]).map(([u]) => u) : [];
-      const model = r.c.map((c) => ({ u: c.u, s: dot(w, c.x) })).sort((a, b) => b.s - a.s).map((x) => x.u);
+      const model = w ? r.c.map((c) => ({ u: c.u, s: dot(w, c.x) })).sort((a, b) => b.s - a.s).map((x) => x.u) : r.c.map((c) => c.u);
       const list = [...bk, ...model.filter((u) => !bk.includes(u))], played = r.c[r.k].u, at = list.indexOf(played);
       if (at === 0) t1++; if (at >= 0 && at < 3) t3++;
     }
@@ -404,19 +407,20 @@
     if (rows.length < 20) return null;
     const w = ridge(rows.map((r) => r.x), rows.map((r) => r.y));
     const res = rows.map((r) => r.y - dot(w, r.x)), sigma = Math.sqrt(mean(res.map((e) => e * e)));
-    return { w: w.map((x) => Math.round(x * 1000) / 1000), sigma: Math.round(sigma * 1000) / 1000, n: rows.length };
+    return { w: w.map((x) => Math.round(x * 1000) / 1000), sigma: Math.round(sigma * 1000) / 1000, n: rows.length,
+      timed: rows.filter((r) => r.x[4]).length, untimed: rows.filter((r) => !r.x[4]).length };
   }
   // ms the player would take here: a draw from their fitted distribution
   function thinkTime(P, o, rnd = Math.random) {
     const T = P.timeModel;
-    if (!T) return null;
+    if (!T || (o.timed ? T.timed : T.untimed) < 10) return null;          // no data for this kind of game: the caller falls back
     const z = Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
     return Math.max(0, (Math.exp(dot(T.w, tvec(o)) + T.sigma * z) - 0.3) * 1000);
   }
   // the timing features for a position, from an engine result
   function timeCtx(state, a, ctx, ply, clock) {
     const deep = a.layers.length ? a.layers[a.layers.length - 1] : {}, v = Object.values(deep).sort((x, y) => y - x);
-    return { ph: phase(state, ply), ply, legal: a.legal, check: Chess.inCheck(state, state.turn), recapture: ctx.lastTo != null && Chess.legalMoves(state).some((m) => m.to === ctx.lastTo),
+    return { ph: phase(state, ply), ply, legal: a.legal, check: Chess.inCheck(state, state.turn), recapture: ctx.lastTo != null && legalOf(state, a).some((m) => m.to === ctx.lastTo),
       hard: v.length > 1 && WP(v[0]) - WP(v[1]) < 0.03, timed: !!(clock && clock.base), clock: clock && clock.base ? clock.left / (clock.base * 1000) : 0, base: clock ? clock.base : 0 };
   }
 
@@ -455,7 +459,7 @@
     const think = thinkTime(P, timeCtx(state, a, ctx, ply, opts.clock), rnd);
     const b = fromBook(state, a, P, ply, 150 / d.loss, rnd);
     if (b) return { move: Chess.findUci(state, b.u), why: 'book', think };
-    const hurry = opts.clock && opts.clock.base && opts.clock.left < Math.max(15000, opts.clock.base * 100);
+    const hurry = !!(opts.clock && opts.clock.base && trouble(opts.clock.left, opts.clock.base));
     const c = candidates(state, a, ctx), w = weights(P, opts.diff, hurry);
     const us = c.map((x) => dot(w, x.x)), mx = Math.max(...us);
     const pick = pickW(c.map((x, i) => ({ x, e: Math.exp(us[i] - mx) })), (o) => o.e, rnd).x;
