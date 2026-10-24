@@ -273,7 +273,7 @@
       perPhase[ph] = { n: r.length, blunder: r.filter((x) => x.g.cls === 'blunder').length / (r.length || 1), mistake: r.filter((x) => x.g.cls === 'mistake').length / (r.length || 1),
         inaccuracy: r.filter((x) => x.g.cls === 'inaccuracy').length / (r.length || 1) };
     }
-    const bad = recs.filter((x) => x.t), okLoss = recs.filter((x) => x.g && x.g.cls === 'ok').map((x) => x.g.loss);
+    const bad = recs.filter((x) => x.t);
     const top = (o) => Object.values(o).sort((a, b) => b.n - a.n).slice(0, 5).map((x) => ({ ...x, score: Math.round((100 * x.pts) / x.n) }));
     const rating = elos.length ? Math.round(mean(elos)) : 1200;
     // the models: tested on the held-out games first, then refitted on everything
@@ -297,8 +297,6 @@
       err: s.graded ? {
         graded: s.graded, acc: s.acc, perGame: { blunder: s.blunders / used, mistake: s.mistakes / used, inaccuracy: s.inaccuracies / used },
         phase: perPhase, hung: bad.filter((x) => x.t === 'hung').length / Math.max(1, bad.length),
-        // how far from the best move their ordinary (non-mistake) moves are: sets the bot's "noise"
-        temp: Math.round(clamp(35 + 1400 * mean(okLoss), 15, 120)),
       } : null,
       time: time.n ? {
         moves: time.n, avgSec: Math.round(mean(time.secs) * 10) / 10, fast: time.fast / time.n, trouble: time.trouble / time.n, timeouts: time.timeouts,
@@ -385,16 +383,6 @@
     }
     return { top1: t1 / rows.length, top3: t3 / rows.length };
   }
-  // how often the model's first (and top three) guesses are the move that was played
-  function score(rows, w) {
-    let t1 = 0, t3 = 0;
-    for (const r of rows) {
-      const us = r.c.map((c) => dot(w, c.x)), mine = us[r.k], above = us.filter((u) => u > mine).length;
-      if (above === 0) t1++; if (above < 3) t3++;
-    }
-    return { top1: rows.length ? t1 / rows.length : 0, top3: rows.length ? t3 / rows.length : 0 };
-  }
-
   // ---------- think time: a second small model, log(seconds) from the situation (least squares) ----------
   const TFEAT = ['bias', 'middlegame', 'endgame', 'clockLeft', 'timed', 'longControl', 'manyMoves', 'onlyMove', 'recapture', 'hardChoice', 'opening', 'inCheck'];
   function tvec(o) {
@@ -510,5 +498,5 @@
     return seen ? hit / seen : null;
   }
 
-  return { TACTICS, FEAT, TFEAT, W0, DEPTH, PROFILE_MS, endType, profile, choose, predict, candidates, fit, score, evalRows, thinkTime, engineMs, features, sideRecords, sideStats, similarity, bookShare, bookKey, phase, grade, DIFF, BOOK_PLY, uci, sq };
+  return { TACTICS, FEAT, TFEAT, W0, DEPTH, PROFILE_MS, endType, profile, choose, predict, candidates, fit, evalRows, thinkTime, engineMs, features, sideRecords, sideStats, similarity, bookShare, bookKey, phase, grade, DIFF, BOOK_PLY, uci, sq };
 });
