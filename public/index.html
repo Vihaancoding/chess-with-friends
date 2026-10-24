@@ -575,6 +575,8 @@
   .cllist { display: grid; gap: 4px; font-size: .86rem; font-weight: 600; }
   .cllist div { display: flex; flex-wrap: wrap; gap: 2px 8px; justify-content: space-between; } .cllist div span:last-child { color: var(--muted); text-align: right; }
   #clProfile details { margin-top: 10px; } #clProfile summary { cursor: pointer; font-weight: 700; color: var(--muted); font-size: .88rem; }
+  .clfit { display: flex; gap: 10px; align-items: baseline; background: var(--panel2); border-radius: 8px; padding: 8px 10px; margin: 8px 0; font-size: .82rem; font-weight: 600; color: var(--muted); }
+  .clfit b { font-size: 1.3rem; font-weight: 800; color: #c9b0f0; }
   .clscore { display: flex; align-items: baseline; gap: 10px; } .clscore b { font-size: 2rem; font-weight: 800; color: #c9b0f0; } .clscore span { color: var(--muted); font-weight: 600; font-size: .85rem; }
   .cltable { width: 100%; font-size: .82rem; table-layout: fixed; } .cltable th { font-size: .66rem; } .cltable th:first-child { width: 34%; } .cltable td, .cltable th { padding: 5px 6px; } .cltable tbody tr td:first-child { color: var(--muted); width: auto; font-weight: 700; }
   .cltable td.win { color: var(--green); font-weight: 800; }
@@ -3401,7 +3403,7 @@ function botWorkerGet() {
   if (botWorker) return botWorker;
   try {
     botWorker = new Worker('bot.js');
-    botWorker.onmessage = (e) => { if (e.data.id === botReq && botCb) { const cb = botCb; botCb = null; cb(e.data.move && { ...e.data.move, why: e.data.why }); } };
+    botWorker.onmessage = (e) => { if (e.data.id === botReq && botCb) { const cb = botCb; botCb = null; cb(e.data.move && { ...e.data.move, why: e.data.why, think: e.data.think }); } };
     botWorker.onerror = () => { botWorker = null; if (botCb) { const cb = botCb; botCb = null; cb(null); } };
   } catch { botWorker = null; }
   return botWorker;
@@ -3421,7 +3423,7 @@ function botThink() {
     if (b.clone) b.clone.why = mv && mv.why;
     applyBotMove(b, m, true); botSave(); pushBot();
     if (!b.coach) liveBadge(before, m, ply, false);
-  }, Math.max(0, (b.clone ? cloneDelay(b) : 350) - (Date.now() - t0)));          // never answer instantly: it feels like a person (a clone takes about as long as its player)
+  }, Math.max(0, (b.clone ? cloneThink(b, mv && mv.think) : 350) - (Date.now() - t0)));          // never answer instantly: it feels like a person (a clone takes about as long as its player)
   const w = botWorkerGet();
   if (!w) return finish(null);
   botCb = finish;
@@ -3507,7 +3509,7 @@ const CL = { name: '', P: null, games: null, req: 0, worker: null, busy: false, 
 const isClone = () => isBot() && !!botGame.clone;
 const cloneLabel = (name) => (name === user.name ? 'Your bot' : `${name}'s bot`);
 const cloneKey = (name) => 'chess:style:' + name.toLowerCase();
-function cloneCached(name) { try { const P = JSON.parse(localStorage.getItem(cloneKey(name))); return P && P.v === 1 ? P : null; } catch { return null; } }
+function cloneCached(name) { try { const P = JSON.parse(localStorage.getItem(cloneKey(name))); return P && P.v === 2 ? P : null; } catch { return null; } }
 function cloneStore(P) {
   try { localStorage.setItem(cloneKey(P.name), JSON.stringify(P)); }
   catch {                                                    // full: keep only this one
@@ -3546,7 +3548,7 @@ async function cloneAnalyze(name, { force = false } = {}) {
   if (!force && cached && cached.last === r.games[0].id && cached.src === r.games.length) return cloneReady(cached, id);
   const w = cloneWorker();
   if (!w) { CL.busy = false; setText($('#clStatus'), 'This browser cannot run the engine (Web Workers are off).'); return; }
-  setText($('#clStatus'), `Studying ${r.games.length} games by ${r.name}…`);
+  setText($('#clStatus'), `Studying ${r.games.length} games by ${r.name}… (a minute or two, once)`);
   $('#clProg').classList.remove('hidden'); $('#clProg').querySelector('i').style.width = '0%';
   w.onmessage = (e) => {
     const d = e.data;
@@ -3554,7 +3556,7 @@ async function cloneAnalyze(name, { force = false } = {}) {
     if (d.progress) { $('#clProg').querySelector('i').style.width = Math.round((100 * d.progress[0]) / d.progress[1]) + '%'; setText($('#clStatus'), `Studying ${r.name}'s games… ${d.progress[0]} of ${d.progress[1]}`); return; }
     if (d.profile) { cloneStore(d.profile); cloneReady(d.profile, id); }
   };
-  w.postMessage({ type: 'profile', id, name: r.name, games: r.games, ms: 12 });
+  w.postMessage({ type: 'profile', id, name: r.name, games: r.games, ms: Style.PROFILE_MS });
 }
 function cloneReady(P, id) {
   if (id !== CL.req) return;
@@ -3572,6 +3574,14 @@ function cloneReady(P, id) {
 const WEAK_TAGS = ['Blunder-prone', 'Gets into time trouble'];
 const ownStyle = (P) => P.name === user.name;
 const shownTags = (P) => (ownStyle(P) ? P.tags : P.tags.filter((t) => !WEAK_TAGS.includes(t)));
+// how well the bot copies them, measured on games it didn't learn from
+function modelHTML(P) {
+  const B = P.backtest, T = P.timeModel;
+  if (!P.model) return '<div class="clnote">Not enough analysed moves to learn their choices yet: the bot uses a generic player model.</div>';
+  const t = B && B.time ? ` Think times typically within ×${B.time.toFixed(1)} of theirs.` : T ? ' Think times copied from their games.' : ' No move times yet, so it uses their average pace.';
+  return B ? `<div class="clfit"><b>${Math.round(100 * B.top1)}%</b><span>of ${ownStyle(P) ? 'your' : esc(P.name) + "'s"} moves predicted exactly in ${B.games} game${B.games === 1 ? '' : 's'} it didn't learn from (${Math.round(100 * B.top3)}% in its top 3; the engine alone: ${Math.round(100 * B.engine)}%).${t}</span></div>`
+    : `<div class="clnote">Learned from ${P.model.n} of their moves. Play 5+ games for an accuracy test.${t}</div>`;
+}
 // the profile card: summary tags and bars up front, the details folded away
 function profileHTML(P) {
   const own = ownStyle(P), hidden = `<div class="clnote">Only ${esc(P.name)} can see this.</div>`;
@@ -3587,6 +3597,7 @@ function profileHTML(P) {
   const worst = E ? Object.entries(E.phase).filter(([, v]) => v.n >= 5).sort((a, b) => (b[1].blunder + b[1].mistake) - (a[1].blunder + a[1].mistake))[0] : null;
   return `<div class="cltags">${shownTags(P).map((t) => `<span>${esc(t)}</span>`).join('')}</div>
   <div class="clbars">${bar('Aggression', P.aggr, 'defensive', 'aggressive')}${bar('Tactical', P.tact, 'positional', 'tactical')}${bar('Risk-taking', P.risk, 'safe', 'risky')}</div>
+  ${modelHTML(P)}
   <div class="clnote">Plays at about ${P.rating} · ${P.results.win}W ${P.results.loss}L ${P.results.draw}D in these games${E && own ? ` · accuracy ${E.acc}%` : ''}</div>
   <details><summary>Full playstyle profile</summary>
     ${own ? '' : `<div class="clnote">${esc(P.name)}'s weak spots (mistakes, time trouble, results by opening and endgame) are only shown to them. The bot still plays with them.</div>`}
@@ -3654,8 +3665,15 @@ function cloneDelay(b) {
   return T ? Math.max(400, Math.min(T.avgSec * 250, 2500)) : 500;
 }
 function cloneMsg(b) {
-  const tc = b.tc ? b.clock[b.state.turn] / (b.tc.base * 1000) : null;
-  return { type: 'styled', id: botReq, state: b.state, profile: b.clone.P, opts: { ply: b.moves.length, diff: b.clone.diff, clockLeft: tc, seen: b.positions } };
+  const n = b.hist.length, left = b.tc ? b.clock[b.state.turn] - (n >= 2 ? Date.now() - b.clock.ts : 0) : null;
+  return { type: 'styled', id: botReq, state: b.state, profile: b.clone.P, opts: { ply: n, diff: b.clone.diff, seen: b.positions,
+    ctx: { lastTo: n ? b.hist[n - 1].to : null, ownTo: n > 1 ? b.hist[n - 2].to : null }, clock: b.tc ? { left, base: b.tc.base } : null } };
+}
+// the think time the player's timing model drew for this move, kept short of flagging (a clone never loses on time on purpose)
+function cloneThink(b, ms) {
+  if (ms == null) return cloneDelay(b);
+  const left = b.tc ? b.clock[b.state.turn] - (b.moves.length >= 2 ? Date.now() - b.clock.ts : 0) : null;
+  return Math.max(300, Math.min(ms, left != null ? left * 0.4 : 45000));
 }
 
 // ----- the side panel: who you're playing during the game, the comparison after it -----
@@ -3691,7 +3709,7 @@ function cloneCompare(b) {
     if (d.done) { w.terminate(); C.worker = null; C.report = cloneReport(b); if (botGame === b) paintClone(); }
   };
   w.onerror = (ev) => { ev.preventDefault(); C.report = '<div class="clnote">The comparison could not run in this browser.</div>'; if (botGame === b) paintClone(); };
-  w.postMessage({ type: 'compare', id, states: states.slice(0, -1), hist, side: b.you, profile: b.clone.P, ms: hist.length > 100 ? 70 : 110 });
+  w.postMessage({ type: 'compare', id, states: states.slice(0, -1), hist, side: b.you, profile: b.clone.P, ms: Style.PROFILE_MS });
   paintClone();
 }
 

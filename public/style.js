@@ -126,7 +126,7 @@
       for (const x of Chess.legalMoves(sim)) if (x.from === m.to && sim.board[x.to] && sim.board[x.to][0] === opp && (V[sim.board[x.to][1]] > V[piece] || sim.board[x.to][1] === 'K')) threats++;
     }
     const f = {
-      piece, cap, check, inOpp, kzone, storm, shield, retreat, sac, trade, threats,
+      piece, adv, cap, check, inOpp, kzone, storm, shield, retreat, sac, trade, threats,
       castle: m.castle || null, queenEarly: piece === 'Q' && st.full <= 8, kingWalk: piece === 'K' && !m.castle && phase(st, 0) !== 'e',
       forcing: check || cap > 0 || threats > 0,
     };
@@ -190,13 +190,14 @@
   // games: [{ id, color, moves: "e2e4 e7e5 …", result, reason, tc, mt, ck, eco, opening, elo, at }]
   // analyze(state) -> { bestScore, scores: [{ uci, s }], legal, best } (optional; with it, the profile includes mistakes)
   // onProgress(done, total) is called after each game.
-  function profile(name, games, analyze, onProgress) {
-    const recs = [], ends = {}, book = {}, first = { w: {}, e4: {}, d4: {}, other: {} }, ops = { w: {}, b: {} };
+  function profile(name, games, analyze, onProgress, opts = {}) {
+    const recs = [], rows = [], trows = [], bookTrain = {}, ends = {}, book = {}, first = { w: {}, e4: {}, d4: {}, other: {} }, ops = { w: {}, b: {} };
     const castle = { K: 0, Q: 0, none: 0, at: [] }, res = { win: 0, loss: 0, draw: 0 }, elos = [];
     const time = { o: [], m: [], e: [], fast: 0, trouble: 0, n: 0, secs: [], timeouts: 0 };
     let used = 0;
     games.forEach((g, gi) => {
       const ucis = String(g.moves || '').split(' ').filter(Boolean), color = g.color;
+      const test = games.length >= 5 && gi % 5 === 4, tos = [];      // every 5th game is held out to test the models
       let st = Chess.initial(), castled = null, ok = true, prevCk = g.tc ? g.tc.base * 1000 : null, ending = null;
       const mine = [];
       ucis.forEach((u, i) => {
@@ -205,11 +206,26 @@
         if (!m) { ok = false; return; }
         if (st.turn === color) {
           const ph = phase(st, i), f = features(st, m), r = { ply: i, f, ph, g: null, t: null };
-          if (i < BOOK_PLY) { const k = bookKey(st), e = (book[k] = book[k] || {}); e[u] = (e[u] || 0) + 1; }
+          const bk = bookKey(st);
+          if (i < BOOK_PLY) for (const B of test ? [book] : [book, bookTrain]) { const e = (B[bk] = B[bk] || {}); e[u] = (e[u] || 0) + 1; }
+          const ctx = { lastTo: i ? tos[i - 1] : null, ownTo: i > 1 ? tos[i - 2] : null };
+          let a = null;
           if (analyze && i >= 4) {                                    // the first couple of moves are book for everyone
-            const a = analyze(st), played = a.scores.find((x) => x.uci === u);
+            a = analyze(st);
+            const played = a.scores.find((x) => x.uci === u);
             r.g = grade(a.bestScore, played ? played.s : null, a.legal);
             if (r.g && r.g.cls !== 'ok') r.t = errType(st, m, a.best ? Chess.findUci(st, a.best) : null);
+            // a training row for the move model: every candidate's vector, and which one they chose
+            if (a.legal > 1) {
+              const c = candidates(st, a, ctx, u), k = c.findIndex((x) => x.u === u);
+              if (k >= 0) rows.push({ c: c.map((x) => ({ x: x.x, u: x.u })), k, test, bk, ply: i });
+            }
+          }
+          // a training row for the timing model
+          if (g.mt && g.mt[i] != null && i >= 2) {
+            const o = a ? timeCtx(st, a, ctx, i, g.tc ? { left: prevCk, base: g.tc.base } : null)
+              : { ph, ply: i, legal: Chess.legalMoves(st).length, check: Chess.inCheck(st, st.turn), recapture: false, hard: false, timed: !!g.tc, clock: g.tc ? prevCk / (g.tc.base * 1000) : 0, base: g.tc ? g.tc.base : 0 };
+            trows.push({ x: tvec(o), y: tlog(g.mt[i]), test });
           }
           if (f.castle && !castled) { castled = f.castle; castle.at.push(st.full); }
           // time: the share of the clock left that this move used
@@ -225,6 +241,7 @@
           }
           mine.push(r);
         }
+        tos.push(m.to);
         if (!ending && i >= 10 && phase(st, i) === 'e') ending = endType(st.board);
         if (i === 0 && color === 'w') first.w[u] = (first.w[u] || 0) + 1;
         if (i === 1 && color === 'b') { const k = ucis[0] === 'e2e4' ? 'e4' : ucis[0] === 'd2d4' ? 'd4' : 'other'; first[k][u] = (first[k][u] || 0) + 1; }
@@ -259,8 +276,16 @@
     const bad = recs.filter((x) => x.t), okLoss = recs.filter((x) => x.g && x.g.cls === 'ok').map((x) => x.g.loss);
     const top = (o) => Object.values(o).sort((a, b) => b.n - a.n).slice(0, 5).map((x) => ({ ...x, score: Math.round((100 * x.pts) / x.n) }));
     const rating = elos.length ? Math.round(mean(elos)) : 1200;
+    // the models: tested on the held-out games first, then refitted on everything
+    const train = rows.filter((r) => !r.test), held = rows.filter((r) => r.test);
+    let backtest = null;
+    if (held.length >= 15 && train.length >= 30) {
+      const sc = evalRows(held, fit(train), bookTrain), tt = trows.filter((r) => !r.test), th = trows.filter((r) => r.test), T = fitTime(tt);
+      backtest = { ...sc, engine: held.filter((r) => r.k === 0).length / held.length, moves: held.length, games: games.filter((g, gi) => gi % 5 === 4).length,
+        time: T && th.length >= 10 ? Math.round(Math.exp(mean(th.map((r) => Math.abs(r.y - dot(T.w, r.x))))) * 10) / 10 : null };
+    }
     const P = {
-      v: 1, name, games: used, src: games.length, built: Date.now(), last: games[0] ? games[0].id : null, rating,
+      v: 2, model: rows.length >= 20 ? { w: fit(rows), n: rows.length } : null, timeModel: fitTime(trows), backtest, name, games: used, src: games.length, built: Date.now(), last: games[0] ? games[0].id : null, rating,
       aggr: s.aggr, tact: s.tact, risk: s.risk, rates: s.rates, sacs: s.sacs / Math.max(1, used), forks: s.forks / Math.max(1, used),
       castle: { K: castle.K / Math.max(1, used), Q: castle.Q / Math.max(1, used), none: castle.none / Math.max(1, used), at: castle.at.length ? Math.round(mean(castle.at)) : null },
       openings: { w: top(ops.w), b: top(ops.b) }, first,
@@ -281,6 +306,7 @@
       } : null,
     };
     P.tags = tags(P);
+    if (opts.rows) Object.defineProperty(P, 'rows', { value: { rows, bookTrain } });   // for tuning (not saved)
     return P;
   }
 
@@ -303,79 +329,158 @@
     return t;
   }
 
-  // ---------- playing like them ----------
-  // difficulty: how close to their own level the bot plays
-  const DIFF = {
-    easy: { label: 'Off day', err: 1.7, temp: 1.5, depth: -1, desc: 'Their style on a bad day: more of their typical mistakes.' },
-    true: { label: 'True to form', err: 1, temp: 1, depth: 0, desc: 'As close to how they really play as possible, mistakes included.' },
-    sharp: { label: 'On form', err: 0.5, temp: 0.6, depth: 1, desc: 'Their style on a good day: half the mistakes.' },
-    best: { label: 'Best day', err: 0.15, temp: 0.3, depth: 2, desc: 'Their ideas with almost none of their mistakes.' },
-  };
-  // engine settings for the bot's search: deeper for stronger players
-  function engine(P, diff) {
-    const d = DIFF[diff] || DIFF.true, r = P.rating || 1200;
-    const depth = clamp((r < 1000 ? 2 : r < 1400 ? 3 : r < 1800 ? 4 : 5) + d.depth, 1, 6);
-    return { depth, ms: 300 + depth * 220 };
-  }
-  // how many points (cp) a move earns for fitting the style; it decides between moves of similar value
-  function bonus(f, P) {
-    const wA = (P.aggr - 50) / 50, wT = (P.tact - 50) / 50, wR = (P.risk - 50) / 50;
-    let b = wA * 22 * aggPts(f) + wT * 18 * (f.forcing ? 1 : -0.3) + wR * 25 * riskPts(f);
-    if (f.trade) b += (P.rates.trade - 0.5) * 50;
-    if (f.castle) b += 20 + 40 * (P.castle[f.castle] - 0.5);
-    if (f.queenEarly) b += clamp((P.rates.queenEarly - 0.3) * 40, -25, 15);
-    return clamp(b, -70, 70);
-  }
-  function rank(state, scored, P) {
-    const top = scored[0].s;
-    return scored.map((x) => {
-      const m = x.m || Chess.findUci(state, x.uci), f = features(state, m), loss = Math.max(0, WP(top) - WP(x.s));
-      return { m, s: x.s, f, loss, u: x.s + bonus(f, P) };
+  // ---------- playing like them: a move model learned from their own games ----------
+  // Every legal move is described by a vector: how much it loses as seen by a 1-, 2- and 3-move search, and what kind of
+  // move it is (check, capture, retreat, which piece, recapture…). P(move) ∝ exp(w · x), with w fitted to the moves the
+  // player actually chose. The three loss columns let it learn how deep they look: a weak player's weight sits on the
+  // shallow search, so the bot misses the same deep tactics they miss. The opening book still comes first.
+  const DEPTH = 3, CAND = 16;
+  const FEAT = ['loss1', 'loss2', 'loss3', 'check', 'capture', 'trade', 'sacrifice', 'threat', 'fork', 'enemyHalf', 'kingZone', 'pawnStorm', 'shieldPawn', 'retreat',
+    'castle', 'earlyQueen', 'kingWalk', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king', 'advance', 'pinSkewer', 'promotion', 'recapture', 'samePiece'];
+  // a generic club player: the starting point, and what few games are pulled toward
+  const W0 = [-0.5, -0.8, -1.4, 0.3, 0.6, 0.2, -0.5, 0.3, 0.3, 0, 0.2, 0, -0.2, -0.2, 1.0, -0.3, -0.5, 0, 0, 0, 0, -0.2, -0.4, 0.2, 0.3, 0.5, 1.0, -0.2];
+  const dot = (w, x) => { let s = 0; for (let i = 0; i < w.length; i++) s += w[i] * x[i]; return s; };
+  // a = engine result with layers ([{ uci: score }] per depth); ctx = { lastTo, ownTo } (where the last two moves went)
+  function candidates(state, a, ctx = {}, played) {
+    const L = [0, 1, 2].map((d) => a.layers[Math.min(d, a.layers.length - 1)]);
+    const top = L.map((x) => WP(Math.max(...Object.values(x)))), deep = L[2];
+    let list = Object.keys(deep).sort((x, y) => deep[y] - deep[x]);
+    if (list.length > CAND) { const p = played && list.indexOf(played) >= CAND ? played : null; list = list.slice(0, CAND); if (p) list.push(p); }
+    const legal = new Map(Chess.legalMoves(state).map((m) => [uci(m), m]));
+    return list.filter((u) => legal.has(u)).map((u) => {
+      const m = legal.get(u), f = features(state, m), p = f.piece;
+      const x = [0, 1, 2].map((d) => 10 * Math.max(0, top[d] - WP(L[d][u] != null ? L[d][u] : deep[u])));   // ×10: same scale as the other columns
+      x.push(+f.check, f.cap / 900, +f.trade, +f.sac, +(f.threats > 0), +(f.threats >= 2), +f.inOpp, +f.kzone, +f.storm, +f.shield, +f.retreat, +!!f.castle, +f.queenEarly, +f.kingWalk,
+        +(p === 'P'), +(p === 'N'), +(p === 'B'), +(p === 'R'), +(p === 'Q'), +(p === 'K' && !f.castle), f.adv / 7,
+        +f.tac.some((t) => t === 'pin' || t === 'skewer' || t === 'discovered'), +!!m.promo, +(f.cap > 0 && m.to === ctx.lastTo), +(m.from === ctx.ownTo));
+      return { u, m, s: deep[u], loss: x[2] / 10, x, f };
     });
   }
-  const pickW = (list, w, rnd) => { const tot = list.reduce((a, x) => a + w(x), 0); let r = rnd() * tot; for (const x of list) { r -= w(x); if (r <= 0) return x; } return list[list.length - 1]; };
-
-  // scored: [{ m (or uci), s }] engine score of every legal move (mover's view), best first.
-  // opts: { ply, diff, clockLeft (share of the starting clock still left, timed games), rnd }
-  function choose(state, scored, P, opts = {}) {
-    const rnd = opts.rnd || Math.random, d = DIFF[opts.diff] || DIFF.true, ply = opts.ply || 0;
-    if (!scored.length) return null;
-    // 1. their own opening moves, as often as they played them
-    const bk = ply < BOOK_PLY && P.book ? P.book[bookKey(state)] : null;
-    if (bk) {
-      const opts2 = Object.entries(bk).map(([u, n]) => ({ u, n, x: scored.find((x) => (x.uci || uci(x.m)) === u) })).filter((o) => o.x && o.x.s >= scored[0].s - 150 * d.err);   // stronger settings drop book moves that lose more
-      if (opts2.length) { const o = pickW(opts2, (o) => o.n, rnd); return { move: o.x.m || Chess.findUci(state, o.u), why: 'book' }; }
+  // maximum likelihood with a pull toward W0 (so a handful of games can't produce something silly); Adam steps
+  function fit(rows, w0 = W0, lam = 0.002, iters = 400) {
+    const D = w0.length, w = w0.slice(), m1 = new Array(D).fill(0), m2 = new Array(D).fill(0);
+    if (!rows.length) return w;
+    for (let t = 1; t <= iters; t++) {
+      const g = new Array(D).fill(0);
+      for (const r of rows) {
+        const us = r.c.map((c) => dot(w, c.x)), mx = Math.max(...us), ex = us.map((u) => Math.exp(u - mx)), z = ex.reduce((a, b) => a + b, 0);
+        r.c.forEach((c, j) => { const k = (j === r.k ? 1 : 0) - ex[j] / z; for (let d = 0; d < D; d++) g[d] += k * c.x[d]; });
+      }
+      for (let d = 0; d < D; d++) {
+        const gd = g[d] / rows.length - 2 * lam * (w[d] - w0[d]);
+        m1[d] = 0.9 * m1[d] + 0.1 * gd; m2[d] = 0.999 * m2[d] + 0.001 * gd * gd;
+        w[d] += (0.08 * m1[d] / (1 - Math.pow(0.9, t))) / (Math.sqrt(m2[d] / (1 - Math.pow(0.999, t))) + 1e-8);
+      }
     }
-    const R = rank(state, scored, P);
-    if (R.length === 1) return { move: R[0].m, why: 'forced' };
-    // 2. their kind of mistakes, about as often as they make them (more of them when short of time)
-    const ph = phase(state, ply), E = P.err && P.err.phase[ph] && P.err.phase[ph].n >= 8 ? P.err.phase[ph] : P.err ? { blunder: P.err.perGame.blunder / 35, mistake: P.err.perGame.mistake / 35 } : { blunder: 0.02, mistake: 0.04 };
-    const hurry = opts.clockLeft != null && opts.clockLeft < 0.1 ? 1.6 : 1;
-    const pB = E.blunder * d.err * hurry, pM = E.mistake * d.err * hurry, r = rnd();
-    const band = (lo, hi) => R.filter((x) => x.loss > lo && x.loss <= hi);
-    // a bad move that looks natural: one that fits the style, not a random piece giveaway
-    const natural = (list) => pickW(list, (x) => Math.exp((x.u - x.s + (x.f.forcing ? 15 : 0)) / 25), rnd);
-    if (r < pB) { const c = band(0.2, 0.55); if (c.length) return { move: natural(c).m, why: 'blunder' }; }
-    else if (r < pB + pM) { const c = band(0.1, 0.2); if (c.length) return { move: natural(c).m, why: 'mistake' }; }
-    // 3. otherwise a good move, chosen with their taste and their usual imprecision
-    const T = Math.max(6, ((P.err && P.err.temp) || 40) * d.temp);
-    const ok = R.filter((x) => x.loss <= 0.1);
-    const best = Math.max(...ok.map((x) => x.u));
-    return { move: pickW(ok, (x) => Math.exp((x.u - best) / T), rnd).m, why: 'style' };
+    return w.map((x) => Math.round(x * 1000) / 1000);
+  }
+  // the backtest: like predict(), the player's book first (from the training games only), then the model
+  function evalRows(rows, w, book) {
+    let t1 = 0, t3 = 0;
+    for (const r of rows) {
+      const bk = r.ply < BOOK_PLY && book[r.bk] ? Object.entries(book[r.bk]).sort((a, b) => b[1] - a[1]).map(([u]) => u) : [];
+      const model = r.c.map((c) => ({ u: c.u, s: dot(w, c.x) })).sort((a, b) => b.s - a.s).map((x) => x.u);
+      const list = [...bk, ...model.filter((u) => !bk.includes(u))], played = r.c[r.k].u, at = list.indexOf(played);
+      if (at === 0) t1++; if (at >= 0 && at < 3) t3++;
+    }
+    return { top1: t1 / rows.length, top3: t3 / rows.length };
+  }
+  // how often the model's first (and top three) guesses are the move that was played
+  function score(rows, w) {
+    let t1 = 0, t3 = 0;
+    for (const r of rows) {
+      const us = r.c.map((c) => dot(w, c.x)), mine = us[r.k], above = us.filter((u) => u > mine).length;
+      if (above === 0) t1++; if (above < 3) t3++;
+    }
+    return { top1: rows.length ? t1 / rows.length : 0, top3: rows.length ? t3 / rows.length : 0 };
   }
 
-  // the move the player is most likely to play here, and the next two
-  function predict(state, scored, P, ply = 0) {
-    if (!scored.length) return null;
-    const bk = ply < BOOK_PLY && P.book ? P.book[bookKey(state)] : null;
-    const R = rank(state, scored, P).filter((x) => x.loss <= 0.1 || scored.length < 3);
-    R.sort((a, b) => b.u - a.u);
-    let list = R.map((x) => uci(x.m));
-    if (bk) {
-      const bm = Object.entries(bk).sort((a, b) => b[1] - a[1]).map(([u]) => u).filter((u) => scored.some((x) => (x.uci || uci(x.m)) === u));
-      list = [...bm, ...list.filter((u) => !bm.includes(u))];
+  // ---------- think time: a second small model, log(seconds) from the situation (least squares) ----------
+  const TFEAT = ['bias', 'middlegame', 'endgame', 'clockLeft', 'timed', 'longControl', 'manyMoves', 'onlyMove', 'recapture', 'hardChoice', 'opening', 'inCheck'];
+  function tvec(o) {
+    return [1, +(o.ph === 'm'), +(o.ph === 'e'), o.timed ? clamp(o.clock, 0, 1.5) : 0, +!!o.timed, o.timed ? Math.log(1 + o.base) / Math.log(5401) : 0,
+      Math.min(o.legal, 50) / 40, +(o.legal === 1), +!!o.recapture, +!!o.hard, +(o.ply < BOOK_PLY), +!!o.check];
+  }
+  function ridge(X, y, lam = 0.5) {
+    const D = X[0].length, A = Array.from({ length: D }, (_, i) => Array.from({ length: D + 1 }, (_, j) => (j === i ? lam : 0)));
+    X.forEach((x, n) => { for (let i = 0; i < D; i++) { for (let j = 0; j < D; j++) A[i][j] += x[i] * x[j]; A[i][D] += x[i] * y[n]; } });
+    for (let i = 0; i < D; i++) {                                  // Gaussian elimination with partial pivoting
+      let p = i; for (let r = i + 1; r < D; r++) if (Math.abs(A[r][i]) > Math.abs(A[p][i])) p = r;
+      [A[i], A[p]] = [A[p], A[i]];
+      for (let r = 0; r < D; r++) if (r !== i) { const k = A[r][i] / A[i][i]; for (let c = i; c <= D; c++) A[r][c] -= k * A[i][c]; }
     }
-    return { move: list[0], top: list.slice(0, 3), book: !!bk };
+    return A.map((row, i) => row[D] / row[i]);
+  }
+  const tlog = (ms) => Math.log(ms / 1000 + 0.3);
+  function fitTime(rows) {
+    if (rows.length < 20) return null;
+    const w = ridge(rows.map((r) => r.x), rows.map((r) => r.y));
+    const res = rows.map((r) => r.y - dot(w, r.x)), sigma = Math.sqrt(mean(res.map((e) => e * e)));
+    return { w: w.map((x) => Math.round(x * 1000) / 1000), sigma: Math.round(sigma * 1000) / 1000, n: rows.length };
+  }
+  // ms the player would take here: a draw from their fitted distribution
+  function thinkTime(P, o, rnd = Math.random) {
+    const T = P.timeModel;
+    if (!T) return null;
+    const z = Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
+    return Math.max(0, (Math.exp(dot(T.w, tvec(o)) + T.sigma * z) - 0.3) * 1000);
+  }
+  // the timing features for a position, from an engine result
+  function timeCtx(state, a, ctx, ply, clock) {
+    const deep = a.layers.length ? a.layers[a.layers.length - 1] : {}, v = Object.values(deep).sort((x, y) => y - x);
+    return { ph: phase(state, ply), ply, legal: a.legal, check: Chess.inCheck(state, state.turn), recapture: ctx.lastTo != null && Chess.legalMoves(state).some((m) => m.to === ctx.lastTo),
+      hard: v.length > 1 && WP(v[0]) - WP(v[1]) < 0.03, timed: !!(clock && clock.base), clock: clock && clock.base ? clock.left / (clock.base * 1000) : 0, base: clock ? clock.base : 0 };
+  }
+
+  // difficulty: how much the bot looks deeper than they do, or less
+  const DIFF = {
+    easy: { label: 'Off day', loss: 0.6, deep: 0, desc: 'Their style on a bad day: they see even less than usual.' },
+    true: { label: 'True to form', loss: 1, deep: 0, desc: 'As close to how they really play as possible, mistakes included.' },
+    sharp: { label: 'On form', loss: 1.3, deep: -1.2, desc: 'Their style on a good day: they spot more of the deep tactics.' },
+    best: { label: 'Best day', loss: 1.8, deep: -4, desc: 'Their ideas with almost none of their mistakes.' },
+  };
+  // search time per move: the same budget the profile was built with (PROFILE_MS), so the bot "sees" what the model was
+  // trained on; the stronger settings search longer, and their extra deep weight uses what that finds
+  const PROFILE_MS = 50;
+  const engineMs = (P, diff) => (diff === 'best' ? 1500 : diff === 'sharp' ? 400 : PROFILE_MS);
+  // the weights the bot plays with: the player's own, adjusted for difficulty and time pressure
+  function weights(P, diff, hurry) {
+    const d = DIFF[diff] || DIFF.true, w = ((P.model && P.model.w) || W0).slice();
+    for (let i = 0; i < 3; i++) w[i] *= d.loss * (hurry ? (i === 2 ? 0.5 : 0.7) : 1);
+    w[2] += d.deep;
+    return w;
+  }
+  const pickW = (list, w, rnd) => { const tot = list.reduce((a, x) => a + w(x), 0); let r = rnd() * tot; for (const x of list) { r -= w(x); if (r <= 0) return x; } return list[list.length - 1]; };
+  function fromBook(state, a, P, ply, tol, rnd) {
+    const bk = ply < BOOK_PLY && P.book ? P.book[bookKey(state)] : null;
+    if (!bk) return null;
+    const deep = a.layers[a.layers.length - 1], best = Math.max(...Object.values(deep));
+    const opts = Object.entries(bk).filter(([u]) => deep[u] != null && deep[u] >= best - tol).map(([u, n]) => ({ u, n }));
+    return opts.length ? (rnd ? pickW(opts, (o) => o.n, rnd) : opts.sort((x, y) => y.n - x.n)[0]) : null;
+  }
+
+  // a = engine result (scoreAll); opts: { ply, diff, ctx: { lastTo, ownTo }, clock: { left, base } (timed games), rnd }
+  // -> { move, why: 'book' | 'style' | 'mistake' | 'blunder', think (ms they'd take, or null) }
+  function choose(state, a, P, opts = {}) {
+    const rnd = opts.rnd || Math.random, ply = opts.ply || 0, ctx = opts.ctx || {}, d = DIFF[opts.diff] || DIFF.true;
+    if (!a.legal) return null;
+    const think = thinkTime(P, timeCtx(state, a, ctx, ply, opts.clock), rnd);
+    const b = fromBook(state, a, P, ply, 150 / d.loss, rnd);
+    if (b) return { move: Chess.findUci(state, b.u), why: 'book', think };
+    const hurry = opts.clock && opts.clock.base && opts.clock.left < Math.max(15000, opts.clock.base * 100);
+    const c = candidates(state, a, ctx), w = weights(P, opts.diff, hurry);
+    const us = c.map((x) => dot(w, x.x)), mx = Math.max(...us);
+    const pick = pickW(c.map((x, i) => ({ x, e: Math.exp(us[i] - mx) })), (o) => o.e, rnd).x;
+    return { move: pick.m, why: pick.loss > 0.2 ? 'blunder' : pick.loss > 0.1 ? 'mistake' : 'style', think };
+  }
+  // the moves the player is most likely to play here (no randomness)
+  function predict(state, a, P, opts = {}) {
+    if (!a.legal) return null;
+    const b = fromBook(state, a, P, opts.ply || 0, 150, null);
+    const c = candidates(state, a, opts.ctx || opts), w = weights(P, 'true', false);
+    let list = c.map((x) => ({ u: x.u, s: dot(w, x.x) })).sort((x, y) => y.s - x.s).map((x) => x.u);
+    if (b) list = [b.u, ...list.filter((u) => u !== b.u)];
+    return { move: list[0], top: list.slice(0, 3), book: !!b };
   }
 
   // ---------- comparing a game with a profile ----------
@@ -405,5 +510,5 @@
     return seen ? hit / seen : null;
   }
 
-  return { TACTICS, endType, profile, choose, predict, features, sideRecords, sideStats, similarity, bookShare, bookKey, phase, grade, engine, DIFF, BOOK_PLY, uci, sq };
+  return { TACTICS, FEAT, TFEAT, W0, DEPTH, PROFILE_MS, endType, profile, choose, predict, candidates, fit, score, evalRows, thinkTime, engineMs, features, sideRecords, sideStats, similarity, bookShare, bookKey, phase, grade, DIFF, BOOK_PLY, uci, sq };
 });

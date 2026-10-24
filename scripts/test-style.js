@@ -27,6 +27,7 @@ async function game(w, b, tc, ucis, end) {
   }
   if (end) await end(c.code);
 }
+const same = (a, b) => a.from === b.from && a.to === b.to && (a.promo || undefined) === (b.promo || undefined);
 const legal = (st, mv) => Chess.legalMoves(st).some((x) => x.from === mv.from && x.to === mv.to && (x.promo || undefined) === (mv.promo || undefined));
 
 (async () => {
@@ -52,7 +53,7 @@ const legal = (st, mv) => Chess.legalMoves(st).some((x) => x.from === mv.from &&
 
   console.log('profile');
   const P = Bot.buildProfile('alice', sg.games, 5);
-  ok('profile covers the games and the player\'s rating', P.v === 1 && P.games === 3 && P.rating > 0 && P.last === sg.games[0].id, { games: P.games, rating: P.rating });
+  ok('profile covers the games and the player\'s rating', P.v === 2 && P.games === 3 && P.rating > 0 && P.last === sg.games[0].id, { games: P.games, rating: P.rating });
   ok('style scores are 0..100', [P.aggr, P.tact, P.risk].every((x) => x >= 0 && x <= 100), [P.aggr, P.tact, P.risk]);
   ok('most-used openings by colour, with scores', P.openings.w.length >= 1 && P.openings.w.every((o) => o.n >= 1 && o.score >= 0 && o.name) && P.openings.b.length === 1, P.openings);
   ok('first moves as White and replies as Black', P.first.w.e2e4 === 2 && P.first.d4.e7e5 === 1, P.first);
@@ -83,24 +84,72 @@ const legal = (st, mv) => Chess.legalMoves(st).some((x) => x.from === mv.from &&
   console.log('playing like them');
   const st0 = Chess.initial();
   let bookHits = 0;
-  for (let i = 0; i < 20; i++) { const r = Bot.styledMove(st0, P, { ply: 0, msScale: 0.2 }); if (r.why === 'book' && r.move.from === sq('e2') && r.move.to === sq('e4')) bookHits++; }
-  ok('from the start it mostly plays their own first move (book)', bookHits >= 15, bookHits);
+  for (let i = 0; i < 10; i++) { const r = Bot.styledMove(st0, P, { ply: 0, msScale: 0.2 }); if (r.why === 'book' && r.move.from === sq('e2') && r.move.to === sq('e4')) bookHits++; }
+  ok('from the start it plays their own first move (book)', bookHits === 10, bookHits);
   const mid = Chess.fromFEN('r1bq1rk1/pp2bppp/2n1pn2/2pp4/3P4/2PBPN2/PP1N1PPP/R1BQ1RK1 w - - 0 1');
   const r1 = Bot.styledMove(mid, P, { ply: 20, msScale: 0.3, diff: 'true' });
-  ok('out of book it plays a legal move, chosen by style', r1 && legal(mid, r1.move) && ['style', 'blunder', 'mistake'].includes(r1.why), r1);
-  // the error model: with high blunder rates "off day" blunders more than "best day"
-  const sloppy = { ...P, err: { ...P.err, phase: { m: { n: 50, blunder: 0.3, mistake: 0.2 }, o: { n: 50, blunder: 0.3, mistake: 0.2 }, e: { n: 50, blunder: 0.3, mistake: 0.2 } } } };
-  const scoredMid = Bot.scoreAll(mid, 300, 2).scores.map((x) => ({ m: Chess.findUci(mid, x.uci), s: x.s }));
+  ok('out of book it plays a legal move picked by the model', r1 && legal(mid, r1.move) && ['style', 'blunder', 'mistake'].includes(r1.why), r1);
+  const aMid = Bot.scoreAll(mid, 400, Style.DEPTH);
+  ok('the engine reports every move at each depth it reached', aMid.layers.length >= 2 && aMid.layers.every((L) => Object.keys(L).length === aMid.legal), aMid.layers.map((L) => Object.keys(L).length));
+  const cands = Style.candidates(mid, aMid, {});
+  ok('candidates: up to 16 moves, one value per model feature', cands.length === 16 && cands.every((c) => c.x.length === Style.FEAT.length && c.x.every(Number.isFinite)), cands.length);
   let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  const bad = (diff) => { let n = 0; for (let i = 0; i < 300; i++) { const c = Style.choose(mid, scoredMid, sloppy, { ply: 20, diff, rnd }); if (c.why === 'blunder' || c.why === 'mistake') n++; } return n; };
-  const offDay = bad('easy'), bestDay = bad('best');
-  ok('difficulty scales their mistakes (off day ≫ best day)', offDay > bestDay * 3 && bestDay < 60, { offDay, bestDay });
-  const P2 = { ...P, aggr: 95, tact: 90, risk: 80 }, P3 = { ...P, aggr: 5, tact: 10, risk: 10 };
-  const choice = (PP) => { const seen = {}; seed = 11; for (let i = 0; i < 200; i++) { const c = Style.choose(mid, scoredMid, { ...PP, err: { ...PP.err, phase: {}, perGame: { blunder: 0, mistake: 0 } } }, { ply: 20, rnd }); const f = Style.features(mid, c.move); seen.a = (seen.a || 0) + (f.inOpp || f.kzone || f.check ? 1 : 0); } return seen.a; };
-  const ca = choice(P2), cs = choice(P3);
-  ok('an aggressive profile picks more attacking moves than a solid one', ca > cs, { aggressive: ca, solid: cs });
-  const pr = Style.predict(st0, Bot.scoreAll(st0, 100, 1).scores, P, 0);
+  // a player who only looks one move ahead: difficulty makes them see deeper
+  const F = (n) => Style.FEAT.indexOf(n), shallowW = Style.W0.slice();
+  shallowW[F('loss1')] = -3; shallowW[F('loss2')] = 0; shallowW[F('loss3')] = 0;
+  const shallow = { ...P, book: {}, model: { w: shallowW } };
+  // back-rank trap: Rxd7 wins a pawn as seen one move ahead, but ...Re1 is mate
+  const trap = Chess.fromFEN('4r1k1/3p1ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1'), aTrap = Bot.scoreAll(trap, 400, Style.DEPTH);
+  const grabs = (diff) => { seed = 7; let n = 0; for (let i = 0; i < 300; i++) if (Style.uci(Style.choose(trap, aTrap, shallow, { ply: 30, diff, rnd }).move) === 'd1d7') n++; return n; };
+  const offDay = grabs('easy'), trueForm = grabs('true'), bestDay = grabs('best');
+  ok('a player who looks one move ahead falls for the back-rank trap', trueForm > 60, { trueForm });
+  ok('difficulty: on their best day they see it and stop grabbing', bestDay < trueForm / 3 && offDay > bestDay * 3, { offDay, trueForm, bestDay });
+  const pr = Style.predict(st0, Bot.scoreAll(st0, 100, 1), P, { ply: 0 });
   ok('prediction from the start is their usual first move', pr.move === 'e2e4' && pr.top.length === 3 && pr.book, pr);
+
+  console.log('learning from their moves');
+  // synthetic positions: 12 candidates each; this "player" always picks a check when there is one, else the best move
+  const D = Style.FEAT.length, rowsFor = (n, pick) => Array.from({ length: n }, (_, k) => {
+    const c = Array.from({ length: 12 }, (_, j) => { const x = new Array(D).fill(0); x[0] = x[1] = x[2] = j * 0.4; if ((j + k) % 5 === 0 && j) x[F('check')] = 1; return { u: 'm' + j, x }; });
+    return { c, k: pick(c), ply: 30, bk: 'none' };
+  });
+  const checker = (c) => { const i = c.findIndex((x) => x.x[F('check')]); return i >= 0 ? i : 0; };
+  const wC = Style.fit(rowsFor(150, checker));
+  ok('learns that they love checks', wC[F('check')] > Style.W0[F('check')] + 1.5, wC[F('check')]);
+  const sc = Style.evalRows(rowsFor(60, checker), wC, {});
+  ok('…and then predicts their held-out moves', sc.top1 > 0.9, sc);
+  ok('the generic model does much worse on them', Style.evalRows(rowsFor(60, checker), Style.W0, {}).top1 < 0.5);
+  // depth: chosen move is best as seen one move ahead but bad three moves ahead
+  const blind = Array.from({ length: 150 }, (_, k) => {
+    const c = Array.from({ length: 8 }, (_, j) => { const x = new Array(D).fill(0); x[0] = j === 3 ? 0 : 1 + j * 0.3; x[1] = x[0]; x[2] = j === 3 ? 2 : j * 0.3; return { u: 'm' + j, x }; });
+    return { c, k: 3, ply: 30, bk: 'none' };
+  });
+  const wB = Style.fit(blind);
+  ok('learns how deep they look (shallow loss matters more than deep)', wB[F('loss1')] < wB[F('loss3')], [wB[F('loss1')], wB[F('loss3')]]);
+  ok('the backtest uses their book first', Style.evalRows([{ c: [{ u: 'a', x: new Array(D).fill(0) }, { u: 'b', x: new Array(D).fill(0) }], k: 1, ply: 2, bk: 'K' }], Style.W0, { K: { b: 3 } }).top1 === 1);
+
+  console.log('backtest and timing in a profile');
+  // ten quick games between two engines; one side plays fast on forced moves and slow on hard ones
+  const games10 = [];
+  for (let g = 0; g < 10; g++) {
+    let st = Chess.initial(); const ms = [], ucis = [];
+    for (let i = 0; i < 36 && !Chess.status(st).over; i++) {
+      const r = Bot.chooseMove(st, 1, null, 0.05), m = Chess.legalMoves(st).find((x) => same(x, r.move));
+      ms.push(Math.round(1500 * Math.exp(0.6 * Math.sin(i * 7.3 + g)) * (Chess.legalMoves(st).length < 8 ? 0.3 : 1.5)));
+      ucis.push(Style.uci(m)); st = Chess.apply(st, m);
+    }
+    games10.push({ id: 'q' + g, color: g % 2 ? 'b' : 'w', moves: ucis.join(' '), mt: ms, result: 'draw', elo: 900 });
+  }
+  const PQ = Bot.buildProfile('q', games10, 5);
+  ok('profile v2 has a learned move model', PQ.v === 2 && PQ.model && PQ.model.w.length === D && PQ.model.n > 50, PQ.model && PQ.model.n);
+  ok('backtest on 2 held-out games: exact and top-3 rates, engine baseline', PQ.backtest && PQ.backtest.games === 2 && PQ.backtest.top3 >= PQ.backtest.top1 && PQ.backtest.engine >= 0 && PQ.backtest.moves >= 15, PQ.backtest);
+  ok('timing model fitted from their move times', PQ.timeModel && PQ.timeModel.w.length === Style.TFEAT.length && PQ.timeModel.sigma > 0 && PQ.backtest.time >= 1, { tm: PQ.timeModel, bt: PQ.backtest });
+  ok('it learned they move faster with few legal moves', PQ.timeModel.w[Style.TFEAT.indexOf('manyMoves')] > 0, PQ.timeModel.w);
+  const tP = { timeModel: { w: [1, 0, 0, 0, 0, 0, 0, -2, -1, 1, -0.5, 0], sigma: 0.3 } }, avg = (o) => { seed = 3; let t = 0; for (let i = 0; i < 400; i++) t += Style.thinkTime(tP, o, rnd); return t / 400; };
+  const base = { ph: 'm', ply: 30, legal: 30, timed: false };
+  ok('think time: forced moves are quick, hard choices slow', avg({ ...base, legal: 1 }) < avg(base) / 3 && avg({ ...base, hard: true }) > avg(base) * 2, [avg({ ...base, legal: 1 }), avg(base), avg({ ...base, hard: true })]);
+  const rT = Bot.styledMove(mid, PQ, { ply: 20, msScale: 0.3, clock: { left: 60000, base: 180 } });
+  ok('the clone returns how long to think', rT && typeof rT.think === 'number' && rT.think >= 0, rT);
 
   console.log('comparison');
   let st = Chess.initial(); const H = [], states = [st];

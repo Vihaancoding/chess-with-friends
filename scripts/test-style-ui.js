@@ -68,13 +68,14 @@ async function game(w, b, tc, ucis, loser) {
     ok('full profile: tactics, endgames, habits, time', /Tactics they use/i.test(full) && /Checkmate/.test(full) && /Endgames they reach/i.test(full) && /Castles/.test(full) && /Average per move/.test(full), full);
     ok("someone else's weak spots are hidden", /only shown to them/.test(full) && /Only bob can see this/.test(full) && !/Blunders/.test(full) && !/Moves in time trouble/.test(full) && !/accuracy/i.test(full) && !/1× · 100%/.test(full) && !/Blunder-prone|Gets into time trouble/.test(full), full);
     await shot(page, label + '-profile');
+    ok('says how well the model fits (or why it can\'t test yet)', /predicted exactly|Play 5\+ games for an accuracy test|Not enough analysed moves/.test(prof.text), prof.text);
     ok('play button names the friend', prof.btn === "Play bob's clone", prof.btn);
     ok('profile is cached on this device', await page.evaluate(() => !!localStorage.getItem('chess:style:bob')));
     ok('no horizontal page scroll', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]));
 
     // ----- the game -----
     await page.click('#clDiff [data-d="sharp"]');
-    ok('difficulty picker', /half the mistakes/.test(await page.textContent('#clDiffDesc')));
+    ok('difficulty picker', /deep tactics/.test(await page.textContent('#clDiffDesc')));
     await page.click('#colorRow [data-c="b"]');
     await page.click('#tcgrid [data-v="0,0"]');
     await page.click('#clStart');
