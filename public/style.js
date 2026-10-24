@@ -260,7 +260,7 @@
     const top = (o) => Object.values(o).sort((a, b) => b.n - a.n).slice(0, 5).map((x) => ({ ...x, score: Math.round((100 * x.pts) / x.n) }));
     const rating = elos.length ? Math.round(mean(elos)) : 1200;
     const P = {
-      v: 1, name, games: used, built: Date.now(), last: games[0] ? games[0].id : null, rating,
+      v: 1, name, games: used, src: games.length, built: Date.now(), last: games[0] ? games[0].id : null, rating,
       aggr: s.aggr, tact: s.tact, risk: s.risk, rates: s.rates, sacs: s.sacs / Math.max(1, used), forks: s.forks / Math.max(1, used),
       castle: { K: castle.K / Math.max(1, used), Q: castle.Q / Math.max(1, used), none: castle.none / Math.max(1, used), at: castle.at.length ? Math.round(mean(castle.at)) : null },
       openings: { w: top(ops.w), b: top(ops.b) }, first,
@@ -343,7 +343,7 @@
     // 1. their own opening moves, as often as they played them
     const bk = ply < BOOK_PLY && P.book ? P.book[bookKey(state)] : null;
     if (bk) {
-      const opts2 = Object.entries(bk).map(([u, n]) => ({ u, n, x: scored.find((x) => (x.uci || uci(x.m)) === u) })).filter((o) => o.x && o.x.s >= scored[0].s - 150 / d.err);
+      const opts2 = Object.entries(bk).map(([u, n]) => ({ u, n, x: scored.find((x) => (x.uci || uci(x.m)) === u) })).filter((o) => o.x && o.x.s >= scored[0].s - 150 * d.err);   // stronger settings drop book moves that lose more
       if (opts2.length) { const o = pickW(opts2, (o) => o.n, rnd); return { move: o.x.m || Chess.findUci(state, o.u), why: 'book' }; }
     }
     const R = rank(state, scored, P);

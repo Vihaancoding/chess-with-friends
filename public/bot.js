@@ -186,7 +186,8 @@ function styledMove(state, P, opts = {}) {
   anT0 = now();
   const r = analyzePosition(state, cfg.ms * (opts.msScale || 1), cfg.depth);
   if (r.terminal) return null;
-  let scored = r.scores.map((x) => ({ m: C.legalMoves(state).find((y) => y.from === x.from && y.to === x.to && (y.promo || undefined) === (x.promo || undefined)), s: x.s }));
+  const legal = C.legalMoves(state);
+  let scored = r.scores.map((x) => ({ m: legal.find((y) => y.from === x.from && y.to === x.to && (y.promo || undefined) === (x.promo || undefined)), s: x.s }));
   if (opts.seen) {                                    // like the other bots: avoid a repetition draw when ahead, aim for one when losing
     scored = scored.map((x) => { const n = opts.seen[C.key(C.apply(state, x.m))] || 0; return n >= 2 ? { ...x, s: x.s > 30 ? x.s - 250 : x.s < -150 ? x.s + 250 : x.s } : x; });
     scored.sort((a, b) => b.s - a.s);

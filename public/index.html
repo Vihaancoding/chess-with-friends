@@ -3467,7 +3467,7 @@ function botLoad(key = 'chess:bot') {
     const b = makeBot(d.level, d.you, d.tc);
     if (d.coach) { b.coach = d.coach; b.coach.wait = false; }
     if (d.local) { b.local = d.local; b.you = b.state.turn; }
-    if (d.clone) { const P = cloneCached(d.clone.name); if (!P) return null; b.clone = { name: d.clone.name, diff: d.clone.diff, P }; }
+    if (d.clone) { const P = cloneCached(d.clone.name); if (!P) return null; b.clone = { name: d.clone.name, diff: Style.DIFF[d.clone.diff] ? d.clone.diff : 'true', P }; }
     for (const h of d.hist) {
       const m = Chess.legalMoves(b.state).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === h.promo);
       if (!m) return null;
@@ -3503,7 +3503,7 @@ function botRematch() { const b = botGame; if (!b) return; if (b.local) { const 
 // The profile is built in a worker from the "style_games" API and cached per player on this device until they play
 // a new game. A clone game is a computer game whose moves come from Style.choose; afterwards the whole game is
 // scored again and compared with the profile ("You vs your bot").
-const CL = { name: '', P: null, games: null, req: 0, worker: null, busy: false, diff: (() => { try { return localStorage.getItem('chess:cloneDiff') || 'true'; } catch { return 'true'; } })(), cmp: null };
+const CL = { name: '', P: null, games: null, req: 0, worker: null, busy: false, diff: (() => { try { const d = localStorage.getItem('chess:cloneDiff'); return Style.DIFF[d] ? d : 'true'; } catch { return 'true'; } })(), cmp: null };
 const isClone = () => isBot() && !!botGame.clone;
 const cloneLabel = (name) => (name === user.name ? 'Your bot' : `${name}'s bot`);
 const cloneKey = (name) => 'chess:style:' + name.toLowerCase();
@@ -3516,7 +3516,10 @@ function cloneStore(P) {
 }
 function cloneWorker() {
   if (CL.worker) return CL.worker;
-  try { CL.worker = new Worker('bot.js'); CL.worker.onerror = (ev) => { ev.preventDefault(); CL.worker = null; }; } catch { CL.worker = null; }
+  try {
+    CL.worker = new Worker('bot.js');
+    CL.worker.onerror = (ev) => { ev.preventDefault(); CL.worker = null; CL.busy = false; $('#clProg').classList.add('hidden'); setText($('#clStatus'), 'Something went wrong while studying the games. Try again.'); };
+  } catch { CL.worker = null; }
   return CL.worker;
 }
 const pct = (x) => Math.round(100 * x) + '%';
@@ -3524,7 +3527,8 @@ const perGame = (x) => (x >= 10 ? Math.round(x) : x.toFixed(1).replace(/\.0$/, '
 
 async function cloneAnalyze(name, { force = false } = {}) {
   name = String(name || '').trim();
-  if (!name || CL.busy) return;
+  if (!name) return;
+  if (CL.busy && CL.worker) { CL.worker.terminate(); CL.worker = null; }   // a new request replaces the one still building
   const id = ++CL.req;
   CL.busy = true; CL.P = null;
   $('#clPlay').classList.add('hidden'); setHTML($('#clProfile'), '');
@@ -3539,7 +3543,7 @@ async function cloneAnalyze(name, { force = false } = {}) {
     return;
   }
   const cached = cloneCached(r.name);
-  if (!force && cached && cached.last === r.games[0].id && cached.games === r.games.length) return cloneReady(cached, id);
+  if (!force && cached && cached.last === r.games[0].id && cached.src === r.games.length) return cloneReady(cached, id);
   const w = cloneWorker();
   if (!w) { CL.busy = false; setText($('#clStatus'), 'This browser cannot run the engine (Web Workers are off).'); return; }
   setText($('#clStatus'), `Studying ${r.games.length} games by ${r.name}…`);
@@ -3620,7 +3624,7 @@ $('#clStart').onclick = () => {
   if (!CL.P) return;
   const you = pickColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : pickColor;
   const b = makeBot(2, you, tcOf());
-  b.clone = { name: CL.P.name, diff: CL.diff };
+  b.clone = { name: CL.P.name, diff: CL.diff, P: CL.P };      // in memory: works even if the cache couldn't be saved
   enterBot(b);
 };
 function paintCloneResume() {
