@@ -69,6 +69,9 @@ const f50 = C.fromFEN('4k3/8/8/8/8/8/4R3/4K3 w - - 0 1'); f50.half = 99;
 const fifty = E.analyze(f50, 200);
 ok(fifty.scores.every((x) => x.s === 0), '50-move rule: the next quiet move draws', fifty.scores.slice(0, 3).map((x) => x.s));
 
+const m50 = C.fromFEN('6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1'); m50.half = 99;
+ok(uci(E.analyze(m50, 200).best) === 'd1d8' && E.analyze(m50, 200).score === E.MATE - 1, 'a mate on the 100th half-move is still a mate');
+
 console.log('review mode');
 const mid = C.fromFEN('r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 7');
 const focus = C.findUci(mid, 'a2a3');

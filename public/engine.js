@@ -331,6 +331,11 @@
     if (b !== i) { const m = MOVES[i], s = SCORES[i]; MOVES[i] = MOVES[b]; SCORES[i] = SCORES[b]; MOVES[b] = m; SCORES[b] = s; }
     return MOVES[i];
   }
+  function hasLegal(ply) {
+    const a = ply * 256, n = gen(a, true);
+    for (let i = a; i < n; i++) if (make(MOVES[i])) { unmake(MOVES[i]); return true; }
+    return false;
+  }
   const nonPawn = (c) => count[N | c] + count[B | c] + count[R | c] + count[Q | c] > 0;
 
   function quiesce(alpha, beta, ply) {
@@ -367,9 +372,10 @@
 
   function search(depth, alpha, beta, ply, nullOk) {
     if ((++nodes & 1023) === 0 && now() > deadline) throw STOP;
-    if (half >= 100 || repeated()) return 0;
+    if (repeated()) return 0;
     if (ply >= MAXPLY - 1) return evaluate();
     const check = inCheck();
+    if (half >= 100) return check && !hasLegal(ply) ? -MATE + ply : 0;   // 50-move rule, unless it is checkmate
     if (check) depth++;                              // never stop the search in the middle of a check
     if (depth <= 0) return quiesce(alpha, beta, ply);
     // mate distance: no line from here can beat a mate already found nearer the root
