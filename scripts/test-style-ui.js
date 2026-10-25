@@ -95,6 +95,7 @@ async function game(w, b, tc, ucis, loser) {
     ok('game in progress is saved', await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('chess:clone')); return d && d.clone.name === 'bob' && d.clone.diff === 'sharp' && d.hist.length === 5; }));
 
     // ----- resign: the comparison -----
+    if (label === 'phone') await page.route(/r=clone_played/, (r) => r.abort());   // the alert can't get through: it must wait on the device
     await page.evaluate(() => botEnd('w', 'resignation'));
     await page.waitForFunction(() => botGame.clone.cmp && botGame.clone.cmp.report, null, { timeout: 30000 });
     const rep = await page.innerText('#clonepanel');
@@ -109,15 +110,23 @@ async function game(w, b, tc, ucis, loser) {
     ok('moments: predicted or differed', /bob would have played that too|Where your decisions differed/i.test(rep), rep);
     ok('over card says not rated', /Not rated/.test(await page.innerText('#over')));
     ok('over card says bob will be told', /bob gets a note that you played their clone/.test(await page.innerText('#over')), await page.innerText('#over'));
-    let told = null;
-    for (let i = 0; i < 40 && !told; i++) { const me = await api('me', {}, bob); told = me.clones && me.clones[0]; if (!told) await sleep(100); }
-    ok('bob gets an alert: alice, resignation, On form', told && told.from === 'alice' && told.reason === 'resignation' && told.diff === 'sharp' && told.result === 'w' && told.games === (label === 'desktop' ? 1 : 2), told);
     const moment = await page.$('#clonepanel [data-ply]');
     if (moment) { await moment.click(); ok('click a moment to see the position', await page.evaluate(() => viewPly !== null)); }
     ok('saved game cleared once it ended', await page.evaluate(() => !localStorage.getItem('chess:clone')));
     ok('no horizontal scroll on the game screen', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       await page.evaluate(() => [document.documentElement.scrollWidth, [...document.querySelectorAll('#game *')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1 && e.offsetParent).slice(0, 5).map((e) => e.tagName + '#' + e.id + '.' + e.className)]));
 
+    if (label === 'phone') {
+      await page.waitForFunction(() => unsentClones().length === 1, null, { timeout: 8000 });
+      ok('a failed alert is kept on the device', (await api('me', {}, bob)).clones[0].games === 1);
+      await page.unroute(/r=clone_played/);
+      await page.evaluate(() => { $('#over').classList.add('hidden'); enterLobby(); });
+      await page.waitForFunction(() => unsentClones().length === 0, null, { timeout: 8000 });
+      ok('…and sent when they go back to the lobby', true);
+    }
+    let told = null;
+    for (let i = 0; i < 40 && !told; i++) { const me = await api('me', {}, bob); told = me.clones && me.clones[0]; if (!told) await sleep(100); }
+    ok('bob gets an alert: alice, resignation, On form', told && told.from === 'alice' && told.reason === 'resignation' && told.diff === 'sharp' && told.result === 'w' && told.games === (label === 'desktop' ? 1 : 2), told);
     // ----- from a profile page -----
     await page.evaluate(() => enterProfile('bob'));
     await page.waitForSelector('#pfClone');

@@ -1133,9 +1133,9 @@ function onUserPing(d) {
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'clone' && d.c) {
     if (view === 'lobby') pollLobby(true);
-    else showToast('♞', cloneLine(d.c), 'It\'s in the lobby too');
+    else if (view !== 'game') { showToast('♞', cloneLine(d.c), 'Click to open the lobby'); $('#chatToast').dataset.lobby = '1'; }   // never mid-game: it waits in the lobby
     if (document.hidden && window.Notification && Notification.permission === 'granted') {
-      try { new Notification(`${d.c.from} played your clone`, { body: cloneLine(d.c).replace(/<[^>]+>/g, ''), tag: 'chess-clone-' + d.c.id }); } catch {}
+      try { new Notification(`${d.c.from} played your clone`, { body: cloneLine(d.c, true), tag: 'chess-clone-' + d.c.id }); } catch {}
     }
     return;
   }
@@ -1403,19 +1403,21 @@ function renderBanners() {
 let resultSig = '';
 const resultBusy = new Set();
 // someone played my clone
-const cloneLine = (x) => {
-  const them = esc(x.from), mine = other(x.color), lvl = (Style.DIFF[x.diff] || Style.DIFF.true).label;
-  const how = x.result === 'draw' ? `drew with it (${esc(x.reason)})` : x.result === mine ? `lost to it by ${esc(x.reason)}` : `beat it by ${esc(x.reason)}`;
-  return `<b>${them}</b> ${x.games > 1 ? `played your clone ${x.games} times. Latest game (${lvl}): they` : `played your clone (${lvl}) and`} ${how} · ${Math.ceil(x.moves / 2)} moves`;
+const cloneLine = (x, plain) => {
+  const e = plain ? String : esc, them = e(x.from), mine = other(x.color), lvl = (Style.DIFF[x.diff] || Style.DIFF.true).label;
+  const how = x.result === 'draw' ? `drew with it (${e(x.reason)})` : x.result === mine ? `lost to it by ${e(x.reason)}` : `beat it by ${e(x.reason)}`;
+  return `${plain ? them : `<b>${them}</b>`} ${x.games > 1 ? `played your clone ${x.games} times. Latest game (${lvl}): they` : `played your clone (${lvl}) and`} ${how} · ${Math.ceil(x.moves / 2)} moves`;
 };
+const cloneGone = new Set();                                             // dismissed here (a poll already in flight may still list them)
 function renderClones(list) {
-  setHTML($('#cloneBanners'), list.map((x) => `<div class="banner clone"><span>${cloneLine(x)}</span>
-    <span><button class="small" data-c="challenge" data-name="${esc(x.from)}">Challenge ${esc(x.from)}</button> <button class="small" data-c="dismiss" data-id="${esc(x.id)}">OK</button></span></div>`).join(''));
+  setHTML($('#cloneBanners'), list.filter((x) => !cloneGone.has(x.id + ':' + x.ts)).map((x) => `<div class="banner clone"><span>${cloneLine(x)}</span>
+    <span><button class="small" data-c="challenge" data-name="${esc(x.from)}">Challenge ${esc(x.from)}</button> <button class="small" data-c="dismiss" data-id="${esc(x.id)}" data-ts="${x.ts}">OK</button></span></div>`).join(''));
 }
 $('#cloneBanners').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-c]');
   if (!b) return;
   if (b.dataset.c === 'challenge') return challenge(b.dataset.name);
+  cloneGone.add(b.dataset.id + ':' + b.dataset.ts);
   b.closest('.banner').remove(); $('#cloneBanners')._h = null;
   await api('clone_dismiss', { id: b.dataset.id });
 });
@@ -2386,7 +2388,7 @@ function chatToast(m, awayCode) {
 }
 function showToast(icon, html, more, awayCode) {
   const t = $('#chatToast');
-  t.dataset.code = awayCode || '';
+  t.dataset.code = awayCode || ''; t.dataset.lobby = '';
   t.innerHTML = `<span class="ct-i">${icon}</span><div>${html}<div class="ct-more">${more}</div></div>`;
   t.classList.add('show');
   clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
@@ -2406,6 +2408,7 @@ function hideChatToast() { clearTimeout(chatToastTimer); $('#chatToast').classLi
 $('#chatToast').onclick = () => {
   hideChatToast();
   const code = $('#chatToast').dataset.code;
+  if ($('#chatToast').dataset.lobby) return enterLobby();
   if (code) { enterGame(code); setTimeout(() => $('#gcIn').focus({ preventScroll: true }), 300); return; }
   $('#gchat').scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('#gcIn').focus({ preventScroll: true });
@@ -3277,7 +3280,7 @@ function paintOver(r) {
       : L.sent === 'failed' ? `<div class="onote">${esc(L.err)} <button class="small" id="oResend">Try again</button><br>It is also retried when you go back to the lobby.</div>`
       : `<div class="onote">Sending the result to <b>${opp}</b>…</div>`;
     const rs = $('#oResend'); if (rs) rs.onclick = () => sendLocalResult(botGame);
-  } else if (isBot()) el.innerHTML = `<div class="onote">${botGame.coach ? 'Coach game · your coach\'s summary is next to the board' : botGame.local ? 'Pass & play · not rated' : botGame.clone ? (botGame.clone.name === user.name ? 'Not rated · the comparison with your style is next to the board' : `Not rated · ${esc(botGame.clone.name)} gets a note that you played their clone`) : 'Practice game · not rated'}</div>`;
+  } else if (isBot()) el.innerHTML = `<div class="onote">${botGame.coach ? 'Coach game · your coach\'s summary is next to the board' : botGame.local ? 'Pass & play · not rated' : botGame.clone ? (cloneTells(botGame) ? `Not rated · ${esc(botGame.clone.name)} gets a note that you played their clone` : 'Not rated · the comparison with the style is next to the board') : 'Practice game · not rated'}</div>`;
   else if (!mine) el.innerHTML = '';
   else if (r.unrated) el.innerHTML = '<div class="onote">Not rated · the game ended before both players moved</div>';
   else if (r.status.reason === 'ended by an admin') el.innerHTML = '<div class="onote">Ended by an admin · not rated</div>';
@@ -3337,6 +3340,7 @@ const isLocal = () => isBot() && !!botGame.local;
 const other = (c) => (c === 'w' ? 'b' : 'w');
 function makeLocal(names, flip, tc) { const b = makeBot(2, 'w', tc); b.local = { w: names.w, b: names.b, flip }; return b; }
 
+const newGid = () => Math.random().toString(36).slice(2, 12);             // a client-made game id
 function makeBot(level, you, tc) {
   const st = Chess.initial();
   return { level, you, tc, state: st, moves: [], hist: [], last: null, positions: { [Chess.key(st)]: 1 }, rep: false, override: null, thinking: false,
@@ -3419,6 +3423,7 @@ async function resendResults() {
   if (resendBusy) return;
   resendBusy = true;
   try {
+    for (const c of unsentClones()) await postClone(c);
     for (const p of unsentResults()) {
       const r = await postResult(p);
       if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 429) $('#err').textContent = `Your pass & play result for ${p.opp} could not be sent: ${r.error}`;
@@ -3496,7 +3501,7 @@ function botLoad(key = 'chess:bot') {
     const b = makeBot(d.level, d.you, d.tc);
     if (d.coach) { b.coach = d.coach; b.coach.wait = false; }
     if (d.local) { b.local = d.local; b.you = b.state.turn; }
-    if (d.clone) { const P = cloneCached(d.clone.name); if (!P) return null; b.clone = { name: d.clone.name, diff: Style.DIFF[d.clone.diff] ? d.clone.diff : 'true', P, gid: d.clone.gid || Math.random().toString(36).slice(2, 12) }; }
+    if (d.clone) { const P = cloneCached(d.clone.name); if (!P) return null; b.clone = { name: d.clone.name, diff: Style.DIFF[d.clone.diff] ? d.clone.diff : 'true', P, gid: d.clone.gid || newGid() }; }
     for (const h of d.hist) {
       const m = Chess.legalMoves(b.state).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === h.promo);
       if (!m) return null;
@@ -3526,7 +3531,7 @@ function enterBot(b) {
   botSave(); pushBot(); paintCoach(); paintClone(); botThink();
 }
 function hideGameChat() { $('#gchat').classList.add('hidden'); hideChatToast(); }
-function botRematch() { const b = botGame; if (!b) return; if (b.local) { const n = makeLocal({ w: b.local.b, b: b.local.w }, b.local.flip, b.tc); if (b.local.rate) { n.local.rate = { me: other(b.local.rate.me), opp: b.local.rate.opp }; n.local.gid = Math.random().toString(36).slice(2, 12); } return enterBot(n); } if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, P: b.clone.P, gid: Math.random().toString(36).slice(2, 12) }; enterBot(n); }
+function botRematch() { const b = botGame; if (!b) return; if (b.local) { const n = makeLocal({ w: b.local.b, b: b.local.w }, b.local.flip, b.tc); if (b.local.rate) { n.local.rate = { me: other(b.local.rate.me), opp: b.local.rate.opp }; n.local.gid = Math.random().toString(36).slice(2, 12); } return enterBot(n); } if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, P: b.clone.P, gid: newGid() }; enterBot(n); }
 
 // ---------- play against a style: a bot built from a player's archived games (style.js; the engine side is in bot.js) ----------
 // The profile is built in a worker from the "style_games" API and cached per player on this device until they play
@@ -3663,7 +3668,7 @@ $('#clStart').onclick = () => {
   if (!CL.P) return;
   const you = pickColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : pickColor;
   const b = makeBot(2, you, tcOf());
-  b.clone = { name: CL.P.name, diff: CL.diff, P: CL.P, gid: Math.random().toString(36).slice(2, 12) };      // in memory: works even if the cache couldn't be saved
+  b.clone = { name: CL.P.name, diff: CL.diff, P: CL.P, gid: newGid() };      // in memory: works even if the cache couldn't be saved
   enterBot(b);
 };
 function paintCloneResume() {
@@ -3729,18 +3734,30 @@ function paintClone() {
 $('#clpBody').addEventListener('click', (e) => { const m = e.target.closest('[data-ply]'); if (m && snap) { goPly(+m.dataset.ply); } });
 
 // a finished game against a friend's clone: they get an alert (the server replays the moves for the real result)
+// (kept on the device until it goes through: retried from the lobby, like pass & play results)
+const cloneTells = (b) => b.clone.name !== user.name && b.hist.length >= 2;
 async function cloneTell(b) {
   const c = b.clone;
-  if (c.told || c.name === user.name || b.hist.length < 2) return;
+  if (c.told || !cloneTells(b)) return;
   c.told = true;
   const body = { name: c.name, gid: c.gid, diff: c.diff, color: b.you,
     moves: b.hist.map((h) => Chess.sqName(h.from) + Chess.sqName(h.to) + (h.promo ? h.promo.toLowerCase() : '')),
     end: b.override ? { result: b.override.result, reason: b.override.reason } : null };
-  for (let i = 0; i < 2; i++) {
-    const r = await api('clone_played', body);
-    if (r.ok || (r.status >= 400 && r.status < 500)) return;
-    await new Promise((res) => setTimeout(res, 3000));                    // offline or server busy: one more try
-  }
+  unsentClones((list) => [...list.filter((x) => x.gid !== body.gid), body]);
+  await postClone(body);
+}
+function unsentClones(fn) {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem('chess:unsentClones')) || []; } catch {}
+  if (!fn) return list;
+  list = fn(list).slice(-20);
+  try { if (list.length) localStorage.setItem('chess:unsentClones', JSON.stringify(list)); else localStorage.removeItem('chess:unsentClones'); } catch {}
+  return list;
+}
+async function postClone(body) {
+  const r = await api('clone_played', body);
+  // kept for another try only when it may still go through (offline, server busy, rate limit)
+  if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 429 && r.status !== 401)) unsentClones((list) => list.filter((x) => x.gid !== body.gid));
 }
 function cloneCompare(b) {
   if (b.clone.cmp) return;

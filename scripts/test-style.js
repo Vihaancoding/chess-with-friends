@@ -185,6 +185,14 @@ const legal = (st, mv) => Chess.legalMoves(st).some((x) => same(x, mv));
   ok('unknown player', (await call('clone_played', { name: 'nobody', gid: 'g6', color: 'w', moves: MATE }, alice)).status === 404);
   await call('clone_dismiss', { id: cl[0].id }, bob);
   ok('OK dismisses it', (await call('me', {}, bob)).clones.length === 0);
+  await tell({ gid: 'g2', color: 'b', moves: ['e2e4', 'e7e5'], end: { result: 'w', reason: 'resignation' } });
+  ok('a late retry of a dismissed game does not bring it back', (await call('me', {}, bob)).clones.length === 0);
+  await tell({ gid: 'g7' });
+  cl = (await call('me', {}, bob)).clones;
+  ok('a new game after dismissing starts a fresh alert', cl.length === 1 && cl[0].games === 1, cl);
+  let capped = null;
+  for (let i = 0; i < 40 && !capped; i++) { const r = await tell({ gid: 'cap' + i }); if (r.status === 429) capped = i; }
+  ok('one player can report at most 30 games a day', capped === 27, capped);   // g1, g2 and g7 already count today
 
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
