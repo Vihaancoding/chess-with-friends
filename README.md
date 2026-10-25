@@ -64,7 +64,8 @@ Players who signed up before recovery codes existed can create one from their pr
 | `public/coachask.js` | Ask the coach: matches a question to an opening (from `openings.js`) or a topic, and builds opening trainer lessons. Runs in the browser, no AI service. Test with `node scripts/test-coach-ask.js` |
 | `public/opening.js` | Opening recognition shared by browser and server (matches positions, so transpositions count) |
 | `public/openings.js` | Opening names (ECO, name, moves) generated from the [Lichess opening list](https://github.com/lichess-org/chess-openings) (CC0). Rebuild with `node scripts/build-openings.js` |
-| `public/bot.js` | Computer opponent: alpha-beta search with quiescence, runs in a Web Worker |
+| `public/bot.js` | Computer opponent (alpha-beta search with quiescence) and the Web Worker that runs reviews, live move grades, the evaluation bar, the coach's grading and playstyle scoring |
+| `public/engine.js` | Analysis engine: its own fast board (make/unmake, Zobrist hashing), transposition table, null-move pruning, late-move reductions, killer/history ordering, check extensions, repetition and 50-move draws, and a tapered evaluation (PeSTO tables, pawn structure, mobility, endgame knowledge). In a review only the played move and the best two are scored exactly, which buys several extra plies. Test with `node scripts/test-engine.js` |
 | `public/style.js` | Play against a style: builds a playstyle profile from archived games, picks moves the way that player would, and compares a game with a profile. Shared by the page, the worker and Node. Test with `node scripts/test-style.js` |
 | `public/chess.js` | Chess engine shared by browser and server (legal moves, check/mate, castling, en passant, promotion, repetition key) |
 | `lib/app.js` | API: accounts, rooms, clocks, Elo, challenges, chat, admin |
