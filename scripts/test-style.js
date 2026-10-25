@@ -168,6 +168,24 @@ const legal = (st, mv) => Chess.legalMoves(st).some((x) => same(x, mv));
   const far = Style.similarity({ ...ws, aggr: 100 - P.aggr, tact: 100 - P.tact, risk: 100 - P.risk, acc: 20, rates: { ...ws.rates, trade: 1 - P.rates.trade } }, P, { book: 0, castle: 0 });
   ok('an opposite style scores lower', far < sim - 25, { far, sim });
 
+  console.log('clone alerts');
+  const MATE = ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'];
+  const tell = (body) => call('clone_played', { name: 'bob', color: 'w', diff: 'sharp', moves: MATE, ...body }, alice);
+  ok('playing a friend\'s clone is reported', (await tell({ gid: 'g1' })).status === 200);
+  let cl = (await call('me', {}, bob)).clones;
+  ok('they see who played it, how it went (replayed: checkmate), the difficulty and the length', cl.length === 1 && cl[0].from === 'alice' && cl[0].result === 'w' && cl[0].reason === 'checkmate' && cl[0].moves === 7 && cl[0].diff === 'sharp' && cl[0].games === 1 && !cl[0].gids, cl);
+  await tell({ gid: 'g1' });
+  ok('a retry of the same game is not counted twice', (await call('me', {}, bob)).clones[0].games === 1);
+  await tell({ gid: 'g2', color: 'b', moves: ['e2e4', 'e7e5'], end: { result: 'w', reason: 'resignation' } });
+  cl = (await call('me', {}, bob)).clones;
+  ok('more games from the same player update one alert', cl.length === 1 && cl[0].games === 2 && cl[0].reason === 'resignation' && cl[0].color === 'b', cl);
+  ok('your own clone: no alert', (await call('clone_played', { name: 'alice', gid: 'g3', color: 'w', moves: MATE }, alice)).skipped === true && (await call('me', {}, alice)).clones.length === 0);
+  ok('an unfinished game is refused', (await tell({ gid: 'g4', moves: ['e2e4', 'e7e5'] })).status === 400);
+  ok('an illegal game is refused', (await tell({ gid: 'g5', moves: ['e2e5', 'e7e5'] })).status === 400);
+  ok('unknown player', (await call('clone_played', { name: 'nobody', gid: 'g6', color: 'w', moves: MATE }, alice)).status === 404);
+  await call('clone_dismiss', { id: cl[0].id }, bob);
+  ok('OK dismisses it', (await call('me', {}, bob)).clones.length === 0);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
