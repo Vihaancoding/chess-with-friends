@@ -95,6 +95,7 @@ async function game(w, b, tc, ucis, loser) {
     ok('game in progress is saved', await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('chess:clone')); return d && d.clone.name === 'bob' && d.clone.diff === 'sharp' && d.hist.length === 5; }));
 
     // ----- resign: the comparison -----
+    if (label === 'phone') await page.route(/r=clone_played/, (r) => r.abort());   // the alert can't get through: it must wait on the device
     await page.evaluate(() => botEnd('w', 'resignation'));
     await page.waitForFunction(() => botGame.clone.cmp && botGame.clone.cmp.report, null, { timeout: 30000 });
     const rep = await page.innerText('#clonepanel');
@@ -108,12 +109,24 @@ async function game(w, b, tc, ucis, loser) {
     ok('tactical tendencies', /Tactical tendencies/i.test(rep) && /Forcing moves/.test(rep), rep);
     ok('moments: predicted or differed', /bob would have played that too|Where your decisions differed/i.test(rep), rep);
     ok('over card says not rated', /Not rated/.test(await page.innerText('#over')));
+    ok('over card says bob will be told', /bob gets a note that you played their clone/.test(await page.innerText('#over')), await page.innerText('#over'));
     const moment = await page.$('#clonepanel [data-ply]');
     if (moment) { await moment.click(); ok('click a moment to see the position', await page.evaluate(() => viewPly !== null)); }
     ok('saved game cleared once it ended', await page.evaluate(() => !localStorage.getItem('chess:clone')));
     ok('no horizontal scroll on the game screen', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       await page.evaluate(() => [document.documentElement.scrollWidth, [...document.querySelectorAll('#game *')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1 && e.offsetParent).slice(0, 5).map((e) => e.tagName + '#' + e.id + '.' + e.className)]));
 
+    if (label === 'phone') {
+      await page.waitForFunction(() => unsentClones().length === 1, null, { timeout: 8000 });
+      ok('a failed alert is kept on the device', (await api('me', {}, bob)).clones[0].games === 1);
+      await page.unroute(/r=clone_played/);
+      await page.evaluate(() => { $('#over').classList.add('hidden'); enterLobby(); });
+      await page.waitForFunction(() => unsentClones().length === 0, null, { timeout: 8000 });
+      ok('…and sent when they go back to the lobby', true);
+    }
+    let told = null;
+    for (let i = 0; i < 40 && !told; i++) { const me = await api('me', {}, bob); told = me.clones && me.clones[0]; if (!told) await sleep(100); }
+    ok('bob gets an alert: alice, resignation, On form', told && told.from === 'alice' && told.reason === 'resignation' && told.diff === 'sharp' && told.result === 'w' && told.games === (label === 'desktop' ? 1 : 2), told);
     // ----- from a profile page -----
     await page.evaluate(() => enterProfile('bob'));
     await page.waitForSelector('#pfClone');
@@ -128,6 +141,25 @@ async function game(w, b, tc, ucis, loser) {
     ok('your own profile shows your weak spots', /Blunders/.test(mineFull) && /Moves in time trouble/.test(mineFull) && /accuracy/i.test(mineFull) && /× · \d+%/.test(mineFull) && !/Only alice can see this/.test(mineFull), mineFull);
     await page.close();
   }
+  // ----- bob sees it in his lobby -----
+  console.log('\nthe player whose clone it was');
+  const bp = await br.newPage({ viewport: { width: 1280, height: 860 } });
+  bp.on('pageerror', (e) => { failed++; console.log('  ✗ page error:', e.message); });
+  await bp.route(/cdn\.jsdelivr\.net/, (r) => r.abort());
+  await bp.addInitScript((u) => localStorage.setItem('chess:user', JSON.stringify(u)), bob);
+  await bp.goto(BASE + '/');
+  await bp.waitForSelector('#cloneBanners .banner');
+  const ban = await bp.innerText('#cloneBanners');
+  ok('lobby banner: alice played your clone 2 times, latest game lost to it by resignation', /alice played your clone 2 times\. Latest game \(On form\): they lost to it by resignation/.test(ban) && /Challenge alice/.test(ban), ban);
+  await bp.click('#cloneBanners [data-c="dismiss"]');
+  await sleep(300);
+  ok('OK dismisses it for good', (await bp.$$('#cloneBanners .banner')).length === 0 && (await api('me', {}, bob)).clones.length === 0);
+  // a live alert while bob is elsewhere on the site
+  await bp.click('#navProfile'); await bp.waitForSelector('#profile:not(.hidden)');
+  await api('clone_played', { name: 'bob', gid: 'live1', color: 'w', diff: 'true', moves: ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'] }, alice);
+  await bp.waitForFunction(() => $('#chatToast').classList.contains('show'), null, { timeout: 8000 }).catch(() => {});
+  ok('pop-up when bob is elsewhere on the site', /alice played your clone/.test(await bp.innerText('#chatToast')), await bp.innerText('#chatToast'));
+  await bp.close();
   await br.close(); srv.kill();
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
