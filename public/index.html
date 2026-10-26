@@ -65,6 +65,7 @@
   .brand { display: flex; align-items: center; gap: 8px; padding: 4px 18px 18px; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
   .brand img { width: 34px; height: 34px; }
   .brand b { color: var(--green); }
+  .brand .srvname { font-size: .5em; font-weight: 700; letter-spacing: 0; color: var(--muted); border: 1px solid currentColor; border-radius: 6px; padding: 1px 6px; }
   .nav { display: flex; flex-direction: column; }
   .nav button { background: none; box-shadow: none; border-radius: 0; justify-content: flex-start; padding: 12px 18px; min-height: 48px; font-size: 1rem; color: #c3c2c1; gap: 14px; border-left: 4px solid transparent; }
   .nav button:hover { background: #ffffff0d; filter: none; color: #fff; }
@@ -1083,6 +1084,8 @@ function rtInit() {
   RTC.ready = (async () => {
     const c = await api('config');
     RTC.mode = c.ok ? c.rt : 'none';
+    RTC.ns = (c.ok && c.ns) || '';                                       // this server's topic prefix (see SERVER_ID)
+    if (c.ok && c.server) paintServerName(c.server);
     RTC.ice = (c.ok && c.ice) || [{ urls: 'stun:stun.l.google.com:19302' }];
     if (RTC.mode === 'supabase') {
       RTC.url = c.url; RTC.anon = c.anon;
@@ -1093,6 +1096,11 @@ function rtInit() {
     }
   })();
   return RTC.ready;
+}
+// SERVER_NAME: show which server this is next to the logo and in the tab title
+function paintServerName(name) {
+  document.title += ' · ' + name;
+  document.querySelectorAll('.brand').forEach((b) => { const t = document.createElement('small'); t.className = 'srvname'; t.textContent = name; b.appendChild(t); });
 }
 // Local dev (SSE): ONE EventSource for the whole session; topics are added/removed on it without reconnecting.
 const SSE = { es: null, open: false, everOpen: false, topics: new Map() };
@@ -1116,10 +1124,11 @@ function sseEnsure() {
   });
 }
 // subscribe to a topic; handlers = { event: fn(payload) }; onState(connected) fires on every (re)connect/disconnect
-function rtSubscribe(topic, handlers, onState) {
-  let closed = false, ch = null;
+function rtSubscribe(topic0, handlers, onState) {
+  let closed = false, ch = null, topic = topic0;
   rtInit().then(() => {
     if (closed) return;
+    topic = RTC.ns + topic0;
     if (RTC.mode === 'sse') {
       SSE.topics.set(topic, { handlers, onState });
       if (!SSE.es) sseEnsure(); else { sseTopics('add', [topic]); if (SSE.open && onState) onState(true); }
@@ -4714,6 +4723,7 @@ document.querySelectorAll('#tcgrid button').forEach((b) => b.onclick = () => {
 $('#navPlay').onclick = () => (view === 'lobby' ? window.scrollTo({ top: 0, behavior: 'smooth' }) : enterLobby());
 $('#navLb').onclick = () => { if (view !== 'lobby') enterLobby(); setTimeout(() => $('#lbcard').scrollIntoView({ behavior: 'smooth' }), 120); };
 boot();
+rtInit();   // early, so the server name shows on the sign-in screen too
 </script>
 </body>
 </html>
