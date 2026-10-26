@@ -81,6 +81,17 @@ const blitz = (r) => r.user.ratings.blitz;
   const gb3 = await call('games', { name: 'bob' }, bob), g3 = await call('game_get', { id: gb3.games[0].id }, bob);
   ok('its archived game opens', !!g3.game, g3);
 
+  console.log('agreed draws');
+  r = await call('result_send', { opp: 'bob', color: 'w', gid: 'g2', tc, moves: ['e2e4', 'e7e5'], end: { result: 'w', reason: 'agreement' } }, ann);
+  ok('an agreed "win" is refused', r.status === 400, r);
+  r = await call('result_send', { opp: 'bob', color: 'w', gid: 'gd', tc, moves: ['e2e4', 'e7e5'], end: { result: 'draw', reason: 'agreement' } }, ann);
+  ok('an agreed draw can be sent', r.ok, r);
+  me = await call('me', {}, bob);
+  ok('the opponent sees the draw', me.results.some((x) => x.result === 'draw' && x.reason === 'agreement'), me.results);
+  r = await call('result_answer', { id: me.results.find((x) => x.reason === 'agreement').id, accept: false }, bob);
+  ok('declining it works', r.ok, r);
+  for (const x of (await call('me', {}, ann)).resultsOut) await call('result_dismiss', { id: x.id }, ann);
+
   console.log('limits');
   for (const id of ['a', 'b', 'c']) await call('result_send', { opp: 'bob', color: 'w', gid: id, tc, moves: MATE }, ann);
   r = await call('result_send', { opp: 'bob', color: 'w', gid: 'd', tc, moves: MATE }, ann);
