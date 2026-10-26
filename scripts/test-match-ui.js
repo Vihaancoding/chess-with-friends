@@ -114,6 +114,53 @@ process.on('exit', () => { if (srv) srv.kill(); });          // never leave a se
   await C.waitForSelector('#livelist .mtag');
   ok('a match in progress shows its score in Live games', /Bo3 · 0–0/.test(await C.textContent('#livelist .mtag')), await C.textContent('#livelist .mtag'));
 
+  console.log('pass & play match');
+  C.on('dialog', (d) => d.accept());
+  await C.click('#modeLocal');
+  ok('the format picker is there in pass & play', await C.isVisible('#fmtPick'));
+  if (await C.isChecked('#localRated')) await C.click('#localRated');
+  await C.fill('#localW', 'Kim'); await C.fill('#localB', 'Lee');
+  await C.click('#fmtPick [data-f="bo3"]');
+  ok('the start button says match', (await C.textContent('#localStart')) === 'Start pass & play match');
+  await C.click('#localStart');
+  await C.waitForFunction(() => snap && snap.local && snap.match);
+  ok('the match panel shows', await C.isVisible('#matchpanel') && /Game 1 of 3/.test(await C.textContent('#mpSub')));
+  const lplay = (ucis) => C.evaluate((u) => { for (const x of u) { const m = Chess.findUci(botGame.state, x); botHumanMove(m.from, m.to, m.promo); } }, ucis);
+  await lplay(MATE);                                               // Kim (white) mates
+  await C.waitForSelector('#over:not(.hidden) #omatch:not(.hidden)');
+  ok('game 1 scored for Kim', /Kim\s*1\s*–\s*Lee\s*0/.test(await C.textContent('#omatch .omscore')), await C.textContent('#omatch .omscore'));
+  ok('match point for Kim, by name', /Match point for Kim/.test(await C.textContent('#omatch')), await C.textContent('#omatch'));
+  ok('the next game counts down', /Next game in \d+s/.test(await C.textContent('#omatch .omcount')));
+  await shot(C, '5-local-after-game1');
+  await C.reload();                                                // a reload between games keeps the match
+  await C.waitForSelector('#lobby:not(.hidden)');
+  await C.click('#modeLocal');
+  ok('the lobby offers the match to resume', /Best of 3: Kim 1 – Lee 0/.test(await C.textContent('#localResumeText')), await C.textContent('#localResumeText'));
+  await C.click('#localResumeBtn');
+  await C.waitForFunction(() => snap && snap.local && snap.match && snap.players.w.name === 'Lee');
+  ok('game 2: colours swapped, score kept', /Game 2 of 3/.test(await C.textContent('#mpSub')));
+  await lplay(MATE);                                               // Lee (white) mates: 1–1
+  await C.waitForSelector('#over:not(.hidden) #omatch:not(.hidden)');
+  await C.click('#oRematch');
+  await C.waitForFunction(() => snap && !snap.status.over && snap.players.w.name === 'Kim');
+  await lplay(['g1f3', 'g8f6']);
+  ok('pass & play has a draw button', await C.isVisible('#drawBtn'));
+  await C.click('#drawBtn');                                       // the dialog is accepted: both agree
+  await C.waitForSelector('#over:not(.hidden) #omatch:not(.hidden)');
+  ok('level: Armageddon next', /Armageddon/.test(await C.textContent('#omatch')), await C.textContent('#omatch'));
+  await C.click('#oRematch');
+  await C.waitForFunction(() => snap && snap.arma && !snap.status.over);
+  const lclocks = await C.$$eval('.clock', (x) => x.map((e) => e.textContent).sort());
+  ok('Armageddon clocks in pass & play', lclocks.join() === '4:00,5:00', lclocks);
+  await lplay(['g1f3', 'g8f6']); await C.click('#drawBtn');
+  await C.waitForFunction(() => snap.match.done && /match/.test(document.querySelector('#otitle').textContent));
+  ok('Black (Kim) takes it on the draw', (await C.textContent('#otitle')) === 'Kim wins the match!', await C.textContent('#otitle'));
+  ok('then a new match', (await C.textContent('#oRematch')) === 'New match');
+  await shot(C, '6-local-match-won');
+  await C.click('#oRematch');
+  await C.waitForFunction(() => snap && snap.match && snap.match.no === 2 && !snap.match.games.length);
+  ok('the new match starts at 0–0', true);
+
   await br.close(); srv.kill();
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);

@@ -736,10 +736,12 @@
       </div>
       <div id="colorRow"><div class="label">Play as</div>
       <div class="colorpick"><button data-c="w">White</button><button data-c="r" class="on">Random</button><button data-c="b">Black</button></div></div>
+      <div id="fmtRow">
+        <div class="label">Format</div>
+        <div class="levels" id="fmtPick"><button data-f="" class="on">One game</button><button data-f="bo3">Best of 3</button><button data-f="bo5">Best of 5</button><button data-f="bo7">Best of 7</button><button data-f="ft3">First to 3</button><button data-f="ft5">First to 5</button><button data-f="ft10">First to 10</button><button data-f="mar">Marathon</button></div>
+        <div class="muted" id="fmtDesc" style="font-size:.85rem;margin-top:8px;font-weight:600;min-height:2.6em"></div>
+      </div>
       <div id="friendOnly">
-      <div class="label">Format</div>
-      <div class="levels" id="fmtPick"><button data-f="" class="on">One game</button><button data-f="bo3">Best of 3</button><button data-f="bo5">Best of 5</button><button data-f="bo7">Best of 7</button><button data-f="ft3">First to 3</button><button data-f="ft5">First to 5</button><button data-f="ft10">First to 10</button><button data-f="mar">Marathon</button></div>
-      <div class="muted" id="fmtDesc" style="font-size:.85rem;margin-top:8px;font-weight:600;min-height:2.6em"></div>
       <div style="margin-top:14px"><button class="primary big" id="create">Create game</button></div>
       <div class="or">or join with a code</div>
       <div class="row" style="margin-top:10px"><input id="code" class="code" maxlength="5" placeholder="ABCDE" autocomplete="off"><button class="primary" id="join">Join</button></div>
@@ -1384,6 +1386,7 @@ function paintFmt() {
   document.querySelectorAll('#fmtPick button').forEach((b) => b.classList.toggle('on', b.dataset.f === pickFmt));
   setText($('#fmtDesc'), f ? FMT_DESC[f.fmt](f.n) : 'A single game. Pick a format to play a head-to-head match: game after game until one of you comes out on top.');
   setText($('#create'), f ? 'Create match' : 'Create game');
+  setText($('#localStart'), f ? 'Start pass & play match' : 'Start pass & play');
 }
 $('#fmtPick').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-f]'); if (!b) return;
@@ -2132,11 +2135,11 @@ function render() {
   if (rm.disabled !== asked) rm.disabled = asked;
 
   const bothIn = !!(players.w && players.b);
-  const canDraw = mine && !status.over && bothIn && moves.length >= 2 && !isBot();
+  const canDraw = mine && !status.over && bothIn && moves.length >= 2 && (!isBot() || isLocal());
   const db = $('#drawBtn');
   db.classList.toggle('hidden', !canDraw);
   if (db.disabled !== (snap.drawOffer === you)) db.disabled = snap.drawOffer === you;
-  setText(db, snap.drawOffer === you ? 'Draw offered' : 'Offer draw');
+  setText(db, isLocal() ? 'Draw' : snap.drawOffer === you ? 'Draw offered' : 'Offer draw');
   // mutual pause
   const canPause = mine && !status.over && bothIn && !isBot();
   const pb = $('#pauseBtn'), reqMine = snap.pauseReq === you;
@@ -3397,10 +3400,11 @@ function paintOver(r) {
   $('#osub').style.textTransform = '';
   const M = r.match;
   const lastG = M && M.games[M.games.length - 1];
-  if (M && M.done && lastG && r.startedAt && lastG.id === `${r.code}-${r.startedAt.toString(36)}` && mine && !isBot() && !isArchive()) {   // this game decided the match
-    const pts = Match.score(M).pts, opn = M.p.find((x) => x !== user.name), sc = `${half(pts[user.name])}–${half(pts[opn])}`;
-    $('#otitle').textContent = !M.winner ? 'Match drawn' : M.winner === user.name ? 'You won the match!' : 'You lost the match';
-    $('#otitle').className = !M.winner ? 'draw' : M.winner === user.name ? 'win' : 'loss';
+  const gid = r.local ? r.gid : r.startedAt && `${r.code}-${r.startedAt.toString(36)}`;
+  if (M && M.done && lastG && gid && lastG.id === gid && mine && isMatch()) {   // this game decided the match
+    const me1 = meN() || M.p[0], pts = Match.score(M).pts, opn = M.p.find((x) => x !== me1), sc = `${half(pts[me1])}–${half(pts[opn])}`;
+    $('#otitle').textContent = !M.winner ? 'Match drawn' : !meN() ? `${M.winner} wins the match!` : M.winner === meN() ? 'You won the match!' : 'You lost the match';
+    $('#otitle').className = !M.winner ? 'draw' : !meN() || M.winner === meN() ? 'win' : 'loss';
     $('#osub').textContent = `${sc} · game ${M.games.length} ${res === 'draw' ? 'drawn' : 'by ' + r.status.reason}`;
     $('#osub').style.textTransform = 'none';
   }
@@ -3454,10 +3458,11 @@ $('#oLobby').onclick = () => { $('#over').classList.add('hidden'); enterLobby();
 const half = (x) => { x = +x || 0; const w = Math.floor(x); return x - w ? (w ? w + '½' : '½') : String(w); };
 const AUTO_NEXT = 10000;                                       // ms before you're marked ready for the next game
 let mAuto = { key: '', at: 0, held: false, sent: false }, mTimer = null;
-const isMatch = () => !!(snap && snap.match && !isBot() && !isArchive());
+const isMatch = () => !!(snap && snap.match && (!isBot() || isLocal()) && !isArchive());
+const meN = () => (isLocal() && !(botGame.local && botGame.local.rate) ? null : user.name);   // pass & play: both players are at this screen
 function nextLabel(r) {
   const asked = r.rematch.includes(r.you), m = r.match;
-  if (m && !isBot() && !isArchive()) {
+  if (m && isMatch()) {
     if (asked) return 'Waiting for opponent…';
     if (m.done) return r.rematch.length ? 'Accept new match' : 'New match';
     return r.rematch.length ? 'Next game · they\'re ready' : 'Next game';
@@ -3468,26 +3473,26 @@ function nextLabel(r) {
 function matchSides(r) {
   const m = r.match, names = m.p || [r.players.w && r.players.w.name, r.players.b && r.players.b.name].filter(Boolean);
   const mine = r.you === 'w' || r.you === 'b';
-  const order = mine && names.includes(user.name) ? [user.name, ...names.filter((x) => x !== user.name)] : names;
+  const order = mine && names.includes(meN()) ? [meN(), ...names.filter((x) => x !== meN())] : names;
   const col = (n) => (r.players.w && r.players.w.name === n ? 'w' : 'b');
   return order.map((n) => ({ name: n, c: col(n) }));
 }
 // the line under the scoreboard: winner, Armageddon, match point, streak
 function matchNote(r) {
-  const m = r.match, s = Match.score(m), nm = (x) => (x === user.name ? 'You' : `<b>${esc(x)}</b>`);
+  const m = r.match, s = Match.score(m), nm = (x) => (x === meN() ? 'You' : `<b>${esc(x)}</b>`);
   if (m.done) {
     const sides = matchSides(r), sc = sides.map((x) => half(s.pts[x.name])).join('–');
-    if (!m.winner) return `Match ended level, ${sc}${m.why === 'stopped' ? ` (stopped by ${m.by === user.name ? 'you' : esc(m.by)})` : ''}.`;
-    const how = m.why === 'armageddon' ? ' on the Armageddon decider' : m.why === 'stopped' ? ` (stopped by ${m.by === user.name ? 'you' : esc(m.by)})` : '';
-    return `<span class="mpwin">🏆 ${nm(m.winner)} ${m.winner === user.name ? 'win' : 'wins'} the match ${sc}${how}.</span>`;
+    if (!m.winner) return `Match ended level, ${sc}${m.why === 'stopped' ? ` (stopped by ${m.by === meN() ? 'you' : esc(m.by)})` : ''}.`;
+    const how = m.why === 'armageddon' ? ' on the Armageddon decider' : m.why === 'stopped' ? ` (stopped by ${m.by === meN() ? 'you' : esc(m.by)})` : '';
+    return `<span class="mpwin">🏆 ${nm(m.winner)} ${m.winner === meN() ? 'win' : 'wins'} the match ${sc}${how}.</span>`;
   }
   const tc = r.tc, armaTxt = tc ? `Black gets ${fmt(Math.round(tc.base * Match.ARMA_BLACK) * 1000)} to White's ${fmt(tc.base * 1000)}, but` : 'Black has';
   if (r.arma && !r.status.over) return `<b>Armageddon decider.</b> ${armaTxt} a draw counts as a win for Black.`;
   if (m.arma) return `<b>Level!</b> Next game is an Armageddon decider: ${tc ? 'Black has less time, but ' : ''}a draw counts as a win for Black.`;
   const bits = [], mp = Match.matchPoint(m), st = Match.streak(m);
   if (mp.length === 2) bits.push('Match point for both of you');
-  else if (mp.length) bits.push(`Match point for ${mp[0] === user.name ? 'you' : `<b>${esc(mp[0])}</b>`}`);
-  if (st.n >= 2) bits.push(`${nm(st.name)} ${st.name === user.name ? 'have' : 'has'} won ${st.n} in a row`);
+  else if (mp.length) bits.push(`Match point for ${mp[0] === meN() ? 'you' : `<b>${esc(mp[0])}</b>`}`);
+  if (st.n >= 2) bits.push(`${nm(st.name)} ${st.name === meN() ? 'have' : 'has'} won ${st.n} in a row`);
   if (m.fmt === 'ft') bits.push(`First to ${m.n} wins`);
   if (s.draws) bits.push(`${s.draws} draw${s.draws > 1 ? 's' : ''}`);
   return bits.join(' · ');
@@ -3509,6 +3514,7 @@ function matchTick() {
   if (document.hidden) { mAuto.at = Math.max(mAuto.at, Date.now() + 3000); return; }   // never start a game for someone who isn't looking
   if (Date.now() >= mAuto.at && (snap.you === 'w' || snap.you === 'b')) {
     mAuto.sent = true;
+    if (isLocal()) return botRematch();
     api('rematch', { code: gameCode }).then((r) => { if (!r.ok) { mAuto.sent = false; mAuto.at = Date.now() + 3000; paintMatch(); } kick(); });   // failed: try again shortly
   }
   paintCount();
@@ -3528,7 +3534,7 @@ function paintMatch() {
   const gameNo = m.done ? m.games.length : snap.status.over ? m.games.length : m.games.length + 1;
   setText($('#mpTitle'), `${Match.label(m)}${m.no > 1 ? ` · match ${m.no}` : ''}`);
   setText($('#mpSub'), m.done ? 'Finished' : snap.arma && !snap.status.over ? 'Armageddon' : `Game ${gameNo}${m.fmt === 'bo' ? ` of ${m.n}` : ''}`);
-  setHTML($('#mpScore'), sides.map((x) => `<div class="mprow${x.name === lead ? ' lead' : ''}"><span class="avatar ${x.c}">${esc(x.name[0].toUpperCase())}</span><span class="mpn">${esc(x.name)}${x.name === user.name ? ' <span class="youtag">you</span>' : ''}</span><span class="mps">${half(s.pts[x.name])}</span></div>`).join(''));
+  setHTML($('#mpScore'), sides.map((x) => `<div class="mprow${x.name === lead ? ' lead' : ''}"><span class="avatar ${x.c}">${esc(x.name[0].toUpperCase())}</span><span class="mpn">${esc(x.name)}${x.name === meN() ? ' <span class="youtag">you</span>' : ''}</span><span class="mps">${half(s.pts[x.name])}</span></div>`).join(''));
   // one square per game: green = the first-listed player won, red = the other, grey = draw; empty squares still to play
   const a = sides[0] && sides[0].name;
   let dots = m.games.map((g, i) => {
@@ -3559,7 +3565,8 @@ function paintOverMatch(r) {
 document.addEventListener('click', (e) => { if (e.target.closest('[data-mhold], #mpHold')) { mAuto.held = true; paintMatch(); updateOver(); } });
 $('#mpEnd').onclick = async () => {
   const s = Match.score(snap.match), lead = Match.leader(snap.match, s);
-  if (!confirm(`End the match now?${lead ? ` ${lead === user.name ? 'You lead, so you take it' : lead + ' leads, so they take it'}.` : ' It is level, so nobody wins it.'}`)) return;
+  if (!confirm(`End the match now?${lead ? ` ${lead === meN() ? 'You lead, so you take it' : lead + ' leads, so they take it'}.` : ' It is level, so nobody wins it.'}`)) return;
+  if (isLocal()) { localMatchEnd(); return; }
   const r = await api('match_end', { code: gameCode });
   if (!r.ok) setText($('#sub'), r.error || 'Something went wrong.');
   kick();
@@ -3573,7 +3580,8 @@ $('#pauseNo').onclick = () => pauseCall('pause_respond', { accept: false });
 $('#resumeBtn').onclick = () => pauseCall('unpause');
 
 // ---------- draw offers ----------
-$('#drawBtn').onclick = async () => { const r = await api('draw_offer', { code: gameCode }); if (!r.ok) $('#sub').textContent = r.error; kick(); };
+$('#drawBtn').onclick = async () => {
+  if (isLocal()) { if (confirm('Do both players agree to a draw?')) botEnd('draw', 'agreement'); return; } const r = await api('draw_offer', { code: gameCode }); if (!r.ok) $('#sub').textContent = r.error; kick(); };
 $('#drawYes').onclick = async () => { await api('draw_accept', { code: gameCode }); kick(); };
 $('#drawNo').onclick = async () => { await api('draw_decline', { code: gameCode }); kick(); };
 
@@ -3596,7 +3604,30 @@ const isBot = () => botGame !== null && gameCode === 'BOT';
 // pass & play: two people on one device. A bot game with no computer, where "you" is always the side to move.
 const isLocal = () => isBot() && !!botGame.local;
 const other = (c) => (c === 'w' ? 'b' : 'w');
-function makeLocal(names, flip, tc) { const b = makeBot(2, 'w', tc); b.local = { w: names.w, b: names.b, flip }; return b; }
+function makeLocal(names, flip, tc) { const b = makeBot(2, 'w', tc); b.local = { w: names.w, b: names.b, flip, gid: newGid() }; return b; }
+// the next pass & play game: colours swap; in a match the score carries over (or a new match starts after a finished one)
+function nextLocal(L, tc) {
+  const n = makeLocal({ w: L.b, b: L.w }, L.flip, tc);
+  if (L.rate) n.local.rate = { me: other(L.rate.me), opp: L.rate.opp };
+  if (L.match) {
+    n.local.match = L.match.done ? Match.again(L.match) : L.match;
+    if (!L.match.done && L.match.arma) {                                // the decider: Black has less time but draw odds
+      n.local.arma = true;
+      if (n.clock) n.clock.b = Math.round(tc.base * Match.ARMA_BLACK) * 1000;
+    }
+  }
+  return n;
+}
+// a pass & play match between games lives here, so a reload doesn't lose it (games in progress are saved as usual)
+function localMatchSave(L, tc) { try { if (L && L.match) localStorage.setItem('chess:localMatch', JSON.stringify({ v: 1, local: { ...L, sent: undefined, payload: undefined, err: undefined }, tc })); else localStorage.removeItem('chess:localMatch'); } catch {} }
+function localMatchLoad() { try { const d = JSON.parse(localStorage.getItem('chess:localMatch')); return d && d.v === 1 && d.local && d.local.match ? d : null; } catch { return null; } }
+function localMatchEnd() {
+  const b = botGame; if (!b || !b.local || !b.local.match) return;
+  Match.stop(b.local.match, null);
+  if (!botStatusOf(b).over && !b.hist.length && b.local.arma) { b.local.arma = false; if (b.clock) b.clock.b = b.clock.w; }   // stopped before a decider began
+  if (botStatusOf(b).over || !b.hist.length) localMatchSave(b.local, b.tc); else botSave();
+  sig = ''; pushBot();
+}
 
 const newGid = () => Math.random().toString(36).slice(2, 12);             // a client-made game id
 function makeBot(level, you, tc) {
@@ -3635,11 +3666,19 @@ function botSnap() {
     players, present: { w: true, b: true },
     tc: b.tc, clock: b.clock ? { w: left('w'), b: left('b'), running: run } : null,
     delta: null, rematch: [], hist: b.hist, drawOffer: null, watching: 0,
+    match: b.local && b.local.match ? b.local.match : null, arma: !!(b.local && b.local.arma), gid: b.local ? b.local.gid : null,
     startedAt: b.startedAt || null, endedAt: st.over ? (b.endedAt = b.endedAt || now) : null, cat: null, ratings: null,
   };
 }
 function pushBot() {
-  const b = botGame, sn = botSnap();
+  const b = botGame;
+  if (b.local && b.local.match && !b.local.scored && botStatusOf(b).over) {   // pass & play match: score the game that just ended
+    const o = botStatusOf(b);
+    b.local.scored = true;
+    if (!b.local.match.done) Match.record(b.local.match, { id: b.local.gid, w: b.local.w, b: b.local.b, result: o.result, reason: o.reason, moves: b.moves.length, arma: !!b.local.arma });
+    localMatchSave(b.local, b.tc);
+  }
+  const sn = botSnap();
   if (sn.status.over && b.local && b.local.rate && !b.local.sent) sendLocalResult(b);   // before painting, so the result card shows "sending"
   applySnapshot(sn); if (sn.status.over) botClear(); if (botGame && botGame.coach) coachAfterPush();
   if (botGame && botGame.clone) { if (sn.status.over) { cloneTell(botGame); if (window.Worker) cloneCompare(botGame); } paintClone(); }
@@ -3749,6 +3788,7 @@ function botSave() {
   const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
   let clock = null;
   if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
+  if (b.local && b.local.match) localMatchSave(null);                  // the game in progress carries the match now
   try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch {}
 }
 function botClear(key = botKey(botGame)) { try { localStorage.removeItem(key); } catch {} }
@@ -3789,7 +3829,7 @@ function enterBot(b) {
   botSave(); pushBot(); paintCoach(); paintClone(); botThink();
 }
 function hideGameChat() { $('#gchat').classList.add('hidden'); hideChatToast(); }
-function botRematch() { const b = botGame; if (!b) return; if (b.local) { const n = makeLocal({ w: b.local.b, b: b.local.w }, b.local.flip, b.tc); if (b.local.rate) { n.local.rate = { me: other(b.local.rate.me), opp: b.local.rate.opp }; n.local.gid = Math.random().toString(36).slice(2, 12); } return enterBot(n); } if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, P: b.clone.P, gid: newGid() }; enterBot(n); }
+function botRematch() { const b = botGame; if (!b) return; if (b.local) return enterBot(nextLocal(b.local, b.tc)); if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, P: b.clone.P, gid: newGid() }; enterBot(n); }
 
 // ---------- play against a style: a bot built from a player's archived games (style.js; the engine side is in bot.js) ----------
 // The profile is built in a worker from the "style_games" API and cached per player on this device until they play
@@ -4185,6 +4225,7 @@ function setLobbyMode(m) {
   $('#modeFriends').classList.toggle('on', m === 'friends'); $('#modeBot').classList.toggle('on', m === 'bot'); $('#modeLocal').classList.toggle('on', m === 'local'); $('#modeClone').classList.toggle('on', m === 'clone');
   $('#friendOnly').classList.toggle('hidden', m !== 'friends'); $('#botOnly').classList.toggle('hidden', m !== 'bot'); $('#localOnly').classList.toggle('hidden', m !== 'local'); $('#cloneOnly').classList.toggle('hidden', m !== 'clone');
   $('#colorRow').classList.toggle('hidden', m === 'local');
+  $('#fmtRow').classList.toggle('hidden', m !== 'friends' && m !== 'local');
   if (m === 'bot') paintBotResume();
   if (m === 'clone') { paintCloneResume(); if (!$('#clName').value) $('#clName').value = user.name; }
   if (m === 'local') paintLocalResume();
@@ -4233,18 +4274,30 @@ $('#localStart').onclick = async () => {
   $('#err').textContent = '';
   try { localStorage.setItem('chess:localNames', JSON.stringify({ w: $('#localW').value.trim(), b: $('#localB').value.trim(), flip, rated, opp: $('#localOpp').value.trim(), side: localSide })); } catch {}
   const b = makeLocal(names, flip, tcOf());
-  if (rate) { b.local.rate = rate; b.local.gid = Math.random().toString(36).slice(2, 12); }
+  if (rate) b.local.rate = rate;
+  const f = fmtOf();
+  if (f) { b.local.match = Match.start(f); b.local.match.p = [names.w, names.b]; }
   enterBot(b);
 };
 function paintLocalResume() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem('chess:local')); } catch {}
   const ok = d && d.v === 1 && d.local && Array.isArray(d.hist);
-  $('#localResume').classList.toggle('hidden', !ok);
+  const lm = !ok && localMatchLoad();
+  $('#localResume').classList.toggle('hidden', !ok && !lm);
   if (ok) $('#localResumeText').textContent = `${d.local.w} vs ${d.local.b} in progress · move ${Math.floor(d.hist.length / 2) + 1}`;
+  else if (lm) {
+    const M = lm.local.match, pts = Match.score(M).pts;
+    $('#localResumeText').textContent = `${Match.label(M)}: ${M.p.map((x) => `${x} ${half(pts[x])}`).join(' – ')}${M.done ? ' · finished' : ''}`;
+  }
 }
-$('#localResumeBtn').onclick = () => { const b = botLoad('chess:local'); if (b) enterBot(b); else { botClear('chess:local'); paintLocalResume(); } };
-$('#localDiscardBtn').onclick = () => { botClear('chess:local'); paintLocalResume(); };
+$('#localResumeBtn').onclick = () => {
+  const b = botLoad('chess:local'); if (b) return enterBot(b);
+  botClear('chess:local');
+  const lm = localMatchLoad(); if (lm) return enterBot(nextLocal(lm.local, lm.tc));   // a match between games: start its next game
+  paintLocalResume();
+};
+$('#localDiscardBtn').onclick = () => { botClear('chess:local'); localMatchSave(null); paintLocalResume(); };
 (() => {
   try {
     const d = JSON.parse(localStorage.getItem('chess:localNames')) || {};
