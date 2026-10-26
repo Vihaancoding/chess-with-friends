@@ -39,22 +39,46 @@ your free *Personal Team* (Xcode › Settings › Accounts › add your Apple ID
 7. Target › **Build Phases › Link Binary With Libraries**: add `libsqlite3.tbd`.
 8. Press **⌘R**.
 
+## Design: Apple × Arc
+
+* **Design tokens.** `Support/DesignSystem.swift` holds the 4-pt spacing scale, the radius hierarchy
+  (control 7, item 9, panel 12, floating 18), system-font type styles, the layered light/dark palette
+  (no pure black) and short spring/ease-out motion curves.
+* **Sidebar.** A translucent material carries a faint tint in the current space's color. It holds a
+  workspace selector, Pinned and Today sections, foldable folders, and favorites. While you read, it
+  softens (Settings › General › Quiet sidebar).
+* **Spaces.** Swipe with two fingers over the sidebar to switch spaces, or use ⌃1…9, ⌥⌘← / ⌥⌘→,
+  ⌘⇧P, or the space bar. The sidebar follows your fingers. The active-space indicator slides between icons.
+* **Drag and drop.** Reorder tabs. Drop a tab into Pinned to pin it, or into Today to unpin it.
+  Drop it on a space icon to move it to that space. Insertion points and targets are highlighted.
+* **Today tabs** are archived after 12 hours of inactivity by default. Change this in Settings, or
+  right-click the Today header. Archived tabs can be restored from History › Archived.
+* **Command bar (⌘T / ⌘L / ⌘K).** Results are grouped as Suggestions, Tabs, Spaces, Bookmarks,
+  History and Commands, and it is fully keyboard-driven.
+* **Start page.** A greeting, one search field, space chips, pinned destinations and recent sites.
+* **Responsive.** Wide windows get a 264 pt sidebar and medium ones 236 pt. Below 860 pt the sidebar
+  becomes a hover overlay, and a compact floating toolbar appears.
+* **Search engine.** Google is the default. DuckDuckGo, Bing and Ecosia can be chosen in Settings.
+
+Not possible in this build: dragging tabs into *another window*, because ArcX is a single-window app.
+
 ## Keyboard shortcuts
 
 | Action | Keys |
 | --- | --- |
 | New tab / command bar | ⌘T |
-| Open location (edit current URL) | ⌘L |
+| Open location / command bar | ⌘L / ⌘K |
 | Close tab / reopen closed tab | ⌘W / ⇧⌘T |
+| Next / previous tab | ⌘⇧] / ⌘⇧[ (also ⌃⇥ / ⌃⇧⇥) |
+| Tab 1–9 | ⌘1…⌘9 |
+| Switch space (picker) / space 1–9 / next–previous | ⌘⇧P / ⌃1…⌃9 / ⌥⌘→ ⌥⌘← |
 | Toggle sidebar (hover the left edge to peek) | ⌘S |
+| Pin / unpin tab, copy link | ⌘D, ⇧⌘C |
 | Find on page / next / previous | ⌘F / ⌘G / ⇧⌘G |
 | Zoom in / out / actual size | ⌘= / ⌘- / ⌘0 |
 | Back / forward / reload / stop | ⌘[ / ⌘] / ⌘R / ⌘. |
-| Split view | ⌃⇧= (or right-click a tab › Open in Split View) |
-| Pin / unpin tab | ⌘D |
-| Next / previous tab, tab 1–9 | ⌃⇥ / ⌃⇧⇥, ⌘1…⌘9 |
-| Switch space 1–9 | ⌃1…⌃9 |
-| History & bookmarks | ⌘Y |
+| Split view | ⌃⇧= |
+| History, bookmarks and archive | ⌘Y |
 | Tab memory debug view | ⌥⌘M |
 
 ## Architecture (MVVM)
@@ -75,7 +99,7 @@ ArcX/
 The tab model is `BrowserTab` and not `Tab`, because SwiftUI on macOS 15 already has a `Tab` type.
 
 Data is stored in `~/Library/Containers/local.arcx.browser/Data/Library/Application Support/ArcX/`
-(`session.json`, `history.json`, `bookmarks.json`). Each Space has its own persistent
+(`session.json`, `history.json`, `bookmarks.json`, `archive.json`). Each Space has its own persistent
 `WKWebsiteDataStore(forIdentifier:)`.
 
 ## How WebKit's advantages are kept
