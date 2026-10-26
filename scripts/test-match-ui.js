@@ -17,8 +17,11 @@ const api = async (route, body, who) => {
 const sq = (q) => 'abcdefgh'.indexOf(q[0]) + (8 - +q[1]) * 8;
 const MATE = ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'];
 
+let srv = null;
+process.on('exit', () => { if (srv) srv.kill(); });          // never leave a server behind on the port
+
 (async () => {
-  const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, SUPABASE_URL: '' }, stdio: 'ignore' });
+  srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, SUPABASE_URL: '' }, stdio: 'ignore' });
   await sleep(800);
   const su = async (n) => { const r = await api('signup', { email: n + '@x.io', password: 'password1', username: n }); return { name: r.name, token: r.token }; };
   const ann = await su('ann'), bob = await su('bob');
