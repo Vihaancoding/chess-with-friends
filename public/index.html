@@ -1105,7 +1105,7 @@ function rtInit() {
   })();
   return RTC.ready;
 }
-// which server the signed-in player is on, next to the logo (only shown once there is more than one server)
+// for admins: which server they are on, next to the logo (only once there is more than one server)
 function paintServerName(name) {
   document.querySelectorAll('.brand').forEach((b) => {
     let t = b.querySelector('.srvname');
