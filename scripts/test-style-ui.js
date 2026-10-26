@@ -76,6 +76,9 @@ async function game(w, b, tc, ucis, loser) {
     // ----- the game -----
     await page.click('#clDiff [data-d="sharp"]');
     ok('difficulty picker', /deep tactics/.test(await page.textContent('#clDiffDesc')));
+    ok('move speed defaults to realistic', await page.evaluate(() => $('#clSpeed [data-s="real"]').classList.contains('on')) && /as long as they/.test(await page.textContent('#clSpeedDesc')));
+    await page.click('#clSpeed [data-s="instant"]');
+    ok('instant can be picked (and is remembered)', /as soon as it has picked/.test(await page.textContent('#clSpeedDesc')) && await page.evaluate(() => localStorage.getItem('chess:cloneSpeed') === 'instant'));
     await page.click('#colorRow [data-c="b"]');
     await page.click('#tcgrid [data-v="0,0"]');
     await page.click('#clStart');
@@ -84,6 +87,18 @@ async function game(w, b, tc, ucis, loser) {
     ok("the clone opens with bob's 1.e4 from his book", g.first === 'e4' && g.why === 'book', g);
     ok('opponent shown as bob\'s bot with his rating', /bob's bot/.test(g.top) && !g.hidden && /bob's bot · On form/.test(g.panel), g);
     ok('status names the difficulty', /On form/.test(g.sub), g.sub);
+    const sp = await page.evaluate(() => ({ speed: botGame.clone.speed, btn: $('#clpSpeed').textContent, wait: cloneThink(botGame, 5000) }));
+    ok('the game starts at instant speed: no waiting', sp.speed === 'instant' && sp.btn === 'Instant moves' && sp.wait === 0, sp);
+    await page.click('#clpSpeed');
+    const sp2 = await page.evaluate(() => ({ speed: botGame.clone.speed, btn: $('#clpSpeed').textContent, wait: cloneThink(botGame, 5000) }));
+    ok('switch to realistic mid-game: it takes the time the player would', sp2.speed === 'real' && sp2.btn === 'Realistic speed' && sp2.wait === 5000, sp2);
+    // a reply already waiting is cut short by switching to instant
+    const cut = await page.evaluate(() => new Promise((res) => {
+      const b = botGame; let fired = 0;
+      b.go = () => { clearTimeout(b.wait); b.go = null; fired++; }; b.wait = setTimeout(b.go, 10000);
+      $('#clpSpeed').click(); setTimeout(() => res({ fired, speed: b.clone.speed }), 50);
+    }));
+    ok('switching to instant ends a wait that is already running', cut.fired === 1 && cut.speed === 'instant', cut);
     // answer 1…e5 and let it reply from its book again (Nf3 in bob's Italian, or Bc4)
     await page.evaluate(() => botHumanMove(12, 28));
     await page.waitForFunction(() => botGame.moves.length >= 3, null, { timeout: 15000 });
@@ -92,7 +107,7 @@ async function game(w, b, tc, ucis, loser) {
     await page.evaluate(() => botHumanMove(1, 18));
     await page.waitForFunction(() => botGame.moves.length >= 5, null, { timeout: 15000 });
     // the game is saved and can be resumed
-    ok('game in progress is saved', await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('chess:clone')); return d && d.clone.name === 'bob' && d.clone.diff === 'sharp' && d.hist.length === 5; }));
+    ok('game in progress is saved, with its speed', await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('chess:clone')); return d && d.clone.name === 'bob' && d.clone.diff === 'sharp' && d.clone.speed === 'instant' && d.hist.length === 5; }));
 
     // ----- resign: the comparison -----
     if (label === 'phone') await page.route(/r=clone_played/, (r) => r.abort());   // the alert can't get through: it must wait on the device

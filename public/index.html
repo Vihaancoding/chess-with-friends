@@ -567,7 +567,7 @@
   /* play against a style */
   #clonepanel { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid #a57fd8; }
   #clonepanel.hidden { display: none; }
-  .clhead { display: flex; align-items: center; gap: 8px; } .clhead .muted { margin-left: auto; font-size: .8rem; font-weight: 600; }
+  .clhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .clhead button { min-height: 0; padding: 4px 10px; } .clhead .muted { margin-left: auto; font-size: .8rem; font-weight: 600; }
   .cltags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
   .cltags span { background: #3a3150; color: #e4d8fb; border-radius: 99px; padding: 3px 10px; font-size: .78rem; font-weight: 700; }
   .clbars { display: grid; gap: 7px; margin: 10px 0; }
@@ -786,6 +786,9 @@
           <div class="label">Difficulty</div>
           <div class="levels" id="clDiff"><button data-d="easy">Off day</button><button data-d="true">True to form</button><button data-d="sharp">On form</button><button data-d="best">Best day</button></div>
           <div class="muted" id="clDiffDesc" style="font-size:.85rem;margin-top:8px;font-weight:600;min-height:2.6em"></div>
+          <div class="label">Move speed</div>
+          <div class="authtabs" id="clSpeed"><button data-s="real">Realistic</button><button data-s="instant">Instant</button></div>
+          <div class="muted" id="clSpeedDesc" style="font-size:.85rem;margin-top:8px;font-weight:600"></div>
           <div style="margin-top:10px"><button class="primary big" id="clStart">Play the clone</button></div>
         </div>
         <div id="clResume" class="banner hidden" style="margin-top:14px"><span id="clResumeText"></span><span><button class="primary small" id="clResumeBtn">Resume</button> <button class="small" id="clDiscardBtn">Discard</button></span></div>
@@ -923,7 +926,7 @@
       <div class="row"><button class="small" id="coHint">Hint</button><button class="small primary" id="coTake">Take back</button><button class="small" id="coGo">Continue</button></div>
     </div>
     <div class="panel hidden" id="clonepanel">
-      <div class="clhead"><b id="clpTitle"></b><span class="muted" id="clpLvl"></span></div>
+      <div class="clhead"><b id="clpTitle"></b><span class="muted" id="clpLvl"></span><button class="small" id="clpSpeed" type="button" title="Switch between instant and realistic moves"></button></div>
       <div id="clpBody" aria-live="polite"></div>
     </div>
     <div class="panel hidden" id="drawbox"><span id="drawtxt"></span><span class="row"><button class="primary small" id="drawYes">Accept</button><button class="small" id="drawNo">Decline</button></span></div>
@@ -3743,7 +3746,9 @@ function botThink() {
   if (!b || b.local || b.thinking || botStatusOf(b).over || b.state.turn === b.you || (b.coach && b.coach.wait)) return;
   b.thinking = true;
   const id = ++botReq, t0 = Date.now();
-  const finish = (mv) => setTimeout(() => {
+  const finish = (mv) => {
+    const go = () => {
+    clearTimeout(b.wait); b.go = null;
     if (id !== botReq || botGame !== b) return;
     b.thinking = false;
     if (botStatusOf(b).over) return;
@@ -3753,7 +3758,10 @@ function botThink() {
     if (b.clone) b.clone.why = mv && mv.why;
     applyBotMove(b, m, true); botSave(); pushBot();
     if (!b.coach) liveBadge(before, m, ply, false);
-  }, Math.max(0, (b.clone ? cloneThink(b, mv && mv.think) : 350) - (Date.now() - t0)));          // never answer instantly: it feels like a person (a clone takes about as long as its player)
+    };
+    // never answer instantly: it feels like a person (a clone takes about as long as its player, unless set to instant)
+    b.go = go; b.wait = setTimeout(go, Math.max(0, (b.clone ? cloneThink(b, mv && mv.think) : 350) - (Date.now() - t0)));
+  };
   const w = botWorkerGet();
   if (!w) return finish(null);
   botCb = finish;
@@ -3789,7 +3797,7 @@ function botSave() {
   const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
   let clock = null;
   if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
-  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch { return; }
+  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, speed: b.clone.speed, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch { return; }
   if (b.local && b.local.match && b.hist.length === 1) localMatchSave(null);   // saved with the game now: drop the between-games copy
 }
 function botClear(key = botKey(botGame)) { try { localStorage.removeItem(key); } catch {} }
@@ -3800,7 +3808,7 @@ function botLoad(key = 'chess:bot') {
     const b = makeBot(d.level, d.you, d.tc);
     if (d.coach) { b.coach = d.coach; b.coach.wait = false; }
     if (d.local) { b.local = d.local; b.you = b.state.turn; }
-    if (d.clone) { const P = cloneCached(d.clone.name); if (!P) return null; b.clone = { name: d.clone.name, diff: Style.DIFF[d.clone.diff] ? d.clone.diff : 'true', P, gid: d.clone.gid || newGid() }; }
+    if (d.clone) { const P = cloneCached(d.clone.name); if (!P) return null; b.clone = { name: d.clone.name, diff: Style.DIFF[d.clone.diff] ? d.clone.diff : 'true', P, gid: d.clone.gid || newGid(), speed: CLONE_SPEEDS.includes(d.clone.speed) ? d.clone.speed : 'real' }; }
     for (const h of d.hist) {
       const m = Chess.legalMoves(b.state).find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === h.promo);
       if (!m) return null;
@@ -3830,13 +3838,14 @@ function enterBot(b) {
   botSave(); pushBot(); paintCoach(); paintClone(); botThink();
 }
 function hideGameChat() { $('#gchat').classList.add('hidden'); hideChatToast(); }
-function botRematch() { const b = botGame; if (!b) return; if (b.local) return enterBot(nextLocal(b.local, b.tc)); if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, P: b.clone.P, gid: newGid() }; enterBot(n); }
+function botRematch() { const b = botGame; if (!b) return; if (b.local) return enterBot(nextLocal(b.local, b.tc)); if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, speed: b.clone.speed, P: b.clone.P, gid: newGid() }; enterBot(n); }
 
 // ---------- play against a style: a bot built from a player's archived games (style.js; the engine side is in bot.js) ----------
 // The profile is built in a worker from the "style_games" API and cached per player on this device until they play
 // a new game. A clone game is a computer game whose moves come from Style.choose; afterwards the whole game is
 // scored again and compared with the profile ("You vs your bot").
-const CL = { name: '', P: null, games: null, req: 0, worker: null, busy: false, diff: (() => { try { const d = localStorage.getItem('chess:cloneDiff'); return Style.DIFF[d] ? d : 'true'; } catch { return 'true'; } })(), cmp: null };
+const CLONE_SPEEDS = ['real', 'instant'];
+const CL = { speed: (() => { try { const v = localStorage.getItem('chess:cloneSpeed'); return CLONE_SPEEDS.includes(v) ? v : 'real'; } catch { return 'real'; } })(), name: '', P: null, games: null, req: 0, worker: null, busy: false, diff: (() => { try { const d = localStorage.getItem('chess:cloneDiff'); return Style.DIFF[d] ? d : 'true'; } catch { return 'true'; } })(), cmp: null };
 const isClone = () => isBot() && !!botGame.clone;
 const cloneLabel = (name) => (name === user.name ? 'Your bot' : `${name}'s bot`);
 const cloneKey = (name) => 'chess:style:' + name.toLowerCase();
@@ -3897,6 +3906,7 @@ function cloneReady(P, id) {
   setText($('#clStatus'), `Built from ${P.games} game${P.games === 1 ? '' : 's'} · ${new Date(P.built).toLocaleDateString()}`);
   setHTML($('#clProfile'), profileHTML(P));
   $('#clPlay').classList.remove('hidden');
+  paintCloneSpeed();
   $('#clStart').textContent = `Play ${P.name === user.name ? 'your own' : P.name + "'s"} clone`;
   const re = $('#clRebuild'); if (re) re.onclick = () => cloneAnalyze(P.name, { force: true });
 }
@@ -3956,6 +3966,14 @@ function profileHTML(P) {
     <div class="row" style="margin-top:12px"><button class="small" id="clRebuild" type="button">Rebuild from latest games</button></div>
   </details>`;
 }
+const speedDesc = (sp, P) => (sp === 'instant' ? 'Replies as soon as it has picked its move.'
+  : P && P.timeModel ? 'Takes about as long as they would: quick on obvious moves, slower on hard ones (from their own move times).'
+  : 'Takes about as long as they usually do per move.');
+function paintCloneSpeed() {
+  document.querySelectorAll('#clSpeed button').forEach((x) => x.classList.toggle('on', x.dataset.s === CL.speed));
+  $('#clSpeedDesc').textContent = speedDesc(CL.speed, CL.P);
+}
+document.querySelectorAll('#clSpeed button').forEach((x) => x.onclick = () => { CL.speed = x.dataset.s; try { localStorage.setItem('chess:cloneSpeed', CL.speed); } catch {} paintCloneSpeed(); });
 function paintCloneDiff() {
   document.querySelectorAll('#clDiff button').forEach((b) => b.classList.toggle('on', b.dataset.d === CL.diff));
   $('#clDiffDesc').textContent = Style.DIFF[CL.diff].desc;
@@ -3967,7 +3985,7 @@ $('#clStart').onclick = () => {
   if (!CL.P) return;
   const you = pickColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : pickColor;
   const b = makeBot(2, you, tcOf());
-  b.clone = { name: CL.P.name, diff: CL.diff, P: CL.P, gid: newGid() };      // in memory: works even if the cache couldn't be saved
+  b.clone = { name: CL.P.name, diff: CL.diff, speed: CL.speed, P: CL.P, gid: newGid() };      // in memory: works even if the cache couldn't be saved
   enterBot(b);
 };
 function paintCloneResume() {
@@ -3985,7 +4003,7 @@ function enterCloneLobby(name) {
   cloneAnalyze(name);
 }
 $('#pfClone').onclick = () => enterCloneLobby(pfData ? pfData.name : $('#pfName').textContent);
-paintCloneDiff();
+paintCloneDiff(); paintCloneSpeed();
 
 // how long the clone thinks: the share of its clock the player usually spends in this phase
 // ms left on the clock of the side to move (the clocks start after both sides' first moves)
@@ -4006,6 +4024,7 @@ function cloneMsg(b) {
 // the think time the player's timing model drew for this move, kept well short of flagging (a clone never loses on
 // time on purpose): at most a fifth of the clock left, and never the last few seconds
 function cloneThink(b, ms) {
+  if (b.clone.speed === 'instant') return 0;
   if (ms == null) return cloneDelay(b);
   const left = botClockLeft(b);
   if (left == null) return Math.max(300, Math.min(ms, 20000));
@@ -4020,6 +4039,9 @@ function paintClone() {
   const b = botGame, P = b.clone.P, C = b.clone.cmp;
   setText($('#clpTitle'), `${cloneLabel(P.name)} · ${Style.DIFF[b.clone.diff].label}`);
   setText($('#clpLvl'), `about ${P.rating}`);
+  setText($('#clpSpeed'), b.clone.speed === 'instant' ? 'Instant moves' : 'Realistic speed');
+  $('#clpSpeed').setAttribute('aria-pressed', b.clone.speed === 'instant');
+  $('#clpSpeed').classList.toggle('hidden', botStatusOf(b).over);
   if (!botStatusOf(b).over) {
     const why = b.clone.why === 'book' ? `<div class="clnote">Last move came from ${P.name === user.name ? 'your' : esc(P.name) + "'s"} own opening repertoire.</div>` : '';
     return setHTML($('#clpBody'), `<div class="cltags">${shownTags(P).slice(0, 4).map((t) => `<span>${esc(t)}</span>`).join('')}</div><div class="clnote">Plays the way ${P.name === user.name ? 'you play' : esc(P.name) + ' plays'}, from ${P.games} archived games. After the game you'll see how it compared.</div>${why}`);
@@ -4030,6 +4052,14 @@ function paintClone() {
   }
   setHTML($('#clpBody'), C.report);
 }
+// switch mid-game; going instant also ends a wait that is already running
+$('#clpSpeed').onclick = () => {
+  const b = botGame; if (!isClone()) return;
+  b.clone.speed = b.clone.speed === 'instant' ? 'real' : 'instant';
+  CL.speed = b.clone.speed; try { localStorage.setItem('chess:cloneSpeed', CL.speed); } catch {}
+  botSave(); paintClone();
+  if (b.clone.speed === 'instant' && b.go) b.go();
+};
 $('#clpBody').addEventListener('click', (e) => { const m = e.target.closest('[data-ply]'); if (m && snap) { goPly(+m.dataset.ply); } });
 
 // a finished game against a friend's clone: they get an alert (the server replays the moves for the real result)
