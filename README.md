@@ -35,10 +35,23 @@ To test emailed password resets locally with `SMTP_USER` / `SMTP_PASS` set, run 
    | `SMTP_USER`, `SMTP_PASS` | Optional: turns on "email me a reset link", sent from this mailbox. For Gmail: your address and a [Google app password](https://myaccount.google.com/apppasswords) (needs 2-Step Verification). Other providers: also set `SMTP_HOST` / `SMTP_PORT` |
    | `RESEND_API_KEY`, `MAIL_FROM` | Optional alternative to SMTP: a [Resend](https://resend.com) API key and a sender on a domain you own (e.g. `Chess <noreply@yourdomain.com>`) |
    | `APP_URL` | Optional: your site's address for links in emails (defaults to the Vercel production URL) |
+   | `SERVER_ID`, `SERVER_NAME` | Optional: run a [separate server](#separate-servers) on the same database, and a label for it |
 
 3. Deploy. Pushing to `main` redeploys automatically.
 
 See [`.env.example`](.env.example) for the same list.
+
+## Separate servers
+
+You can run a second server that is completely cut off from the first: its own accounts, leaderboard, lobby chat, live games, challenges and archive. Players on one server can't see, challenge, spectate or message players on the other, and an account made on one doesn't exist on the other. Give the second server's link to people you don't want on your main one.
+
+Both servers use the same code and the same Supabase database (no extra SQL), so pushing to `main` updates both.
+
+1. In Vercel, **Add New → Project** and import this same repo again (give it a different name, e.g. `chess-with-friends-2`; that name becomes its address).
+2. Add the same environment variables as your main project, plus `SERVER_ID` = `2` and, if you like, `SERVER_NAME` = `Server 2` (shown next to the logo).
+3. Deploy, and share the new project's URL.
+
+Leave `SERVER_ID` unset on the main project: everyone already there keeps their account and games. For more servers use `3`, `4`, … Each server has its own admins: claim admin there with `?admin=1` and the same `ADMIN_KEY`.
 
 ## Admin panel
 
