@@ -65,7 +65,8 @@
   .brand { display: flex; align-items: center; gap: 8px; padding: 4px 18px 18px; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
   .brand img { width: 34px; height: 34px; }
   .brand b { color: var(--green); }
-  .brand .srvname { font-size: .5em; font-weight: 700; letter-spacing: 0; color: var(--muted); border: 1px solid currentColor; border-radius: 6px; padding: 1px 6px; }
+  .srvcode { font: 700 1rem ui-monospace, monospace; letter-spacing: .08em; user-select: all; }
+  .brand .srvname { font-size: .5em; font-weight: 700; letter-spacing: 0; color: var(--muted); border: 1px solid currentColor; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
   .nav { display: flex; flex-direction: column; }
   .nav button { background: none; box-shadow: none; border-radius: 0; justify-content: flex-start; padding: 12px 18px; min-height: 48px; font-size: 1rem; color: #c3c2c1; gap: 14px; border-left: 4px solid transparent; }
   .nav button:hover { background: #ffffff0d; filter: none; color: #fff; }
@@ -664,6 +665,10 @@
         <label class="label" for="emailIn">Email</label>
         <input id="emailIn" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
       </div>
+      <div id="srvRow">
+        <label class="label" for="srvIn">Server code</label>
+        <input id="srvIn" maxlength="12" placeholder="The code you were given" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
       <div id="codeRow" class="hidden">
         <label class="label" for="recIn">Recovery code</label>
         <input id="recIn" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
@@ -872,6 +877,11 @@
   <h1 class="ptitle">Admin panel</h1>
   <div class="statrow" id="adstats"></div>
   <div class="panel">
+    <h2 class="ph">Servers <button class="small" id="adNewSrv">New server</button></h2>
+    <div class="muted" style="font-size:.9rem;font-weight:600;margin-bottom:8px">Each server has its own players, games, chat and leaderboard. New players sign up with a server's code. Server 1 has no code, so nobody new can join it. You see the server you're on below; switch to manage another.</div>
+    <table><thead><tr><th>Server</th><th>Code</th><th class="r">Players</th><th></th></tr></thead><tbody id="adsrv"></tbody></table>
+  </div>
+  <div class="panel">
     <h2 class="ph">Announcement</h2>
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
   </div>
@@ -881,7 +891,7 @@
   </div>
   <div class="panel">
     <h2 class="ph">Players <button class="small" id="adClearChat">Clear lobby chat</button></h2>
-    <table><thead><tr><th>Player</th><th>Email</th><th class="r">Rating</th><th class="r">W / L / D</th><th></th></tr></thead><tbody id="adusers"></tbody></table>
+    <table><thead><tr><th>Player</th><th>Email</th><th class="r">Rating</th><th class="r">W / L / D</th><th>Server</th><th></th></tr></thead><tbody id="adusers"></tbody></table>
   </div>
 </div>
 
@@ -1047,7 +1057,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
+const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 async function api(route, body) {
@@ -1084,8 +1094,6 @@ function rtInit() {
   RTC.ready = (async () => {
     const c = await api('config');
     RTC.mode = c.ok ? c.rt : 'none';
-    RTC.ns = (c.ok && c.ns) || '';                                       // this server's topic prefix (see SERVER_ID)
-    if (c.ok && c.server) paintServerName(c.server);
     RTC.ice = (c.ok && c.ice) || [{ urls: 'stun:stun.l.google.com:19302' }];
     if (RTC.mode === 'supabase') {
       RTC.url = c.url; RTC.anon = c.anon;
@@ -1097,10 +1105,14 @@ function rtInit() {
   })();
   return RTC.ready;
 }
-// SERVER_NAME: show which server this is next to the logo and in the tab title
+// which server the signed-in player is on, next to the logo (only shown once there is more than one server)
 function paintServerName(name) {
-  document.title += ' · ' + name;
-  document.querySelectorAll('.brand').forEach((b) => { const t = document.createElement('small'); t.className = 'srvname'; t.textContent = name; b.appendChild(t); });
+  document.querySelectorAll('.brand').forEach((b) => {
+    let t = b.querySelector('.srvname');
+    if (!name) { if (t) t.remove(); return; }
+    if (!t) { t = document.createElement('small'); t.className = 'srvname'; b.appendChild(t); }
+    t.textContent = name;
+  });
 }
 // Local dev (SSE): ONE EventSource for the whole session; topics are added/removed on it without reconnecting.
 const SSE = { es: null, open: false, everOpen: false, topics: new Map() };
@@ -1128,7 +1140,7 @@ function rtSubscribe(topic0, handlers, onState) {
   let closed = false, ch = null, topic = topic0;
   rtInit().then(() => {
     if (closed) return;
-    topic = RTC.ns + topic0;
+    topic = ((user && user.ns) || '') + topic0;                       // every server has its own topics
     if (RTC.mode === 'sse') {
       SSE.topics.set(topic, { handlers, onState });
       if (!SSE.es) sseEnsure(); else { sseTopics('add', [topic]); if (SSE.open && onState) onState(true); }
@@ -1178,6 +1190,7 @@ function ensureSessionSubs() {
   rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
 }
 function onUserPing(d) {
+  if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'clone' && d.c) {
     if (view === 'lobby') pollLobby(true);
@@ -1235,7 +1248,7 @@ function onRtMove(ev) {
 
 // ---------- sign in ----------
 function finishAuth(r) {
-  user = { name: r.name, token: r.token, topic: r.topic };
+  user = { name: r.name, token: r.token, topic: r.topic, srv: r.srv, ns: r.ns || '' };
   if (r.ratings) myRatings = r.ratings;
   localStorage.setItem('chess:user', JSON.stringify(user));
 }
@@ -1260,6 +1273,7 @@ function setMode(m) {
   $('#tabUp').classList.toggle('on', m === 'up'); $('#tabIn').classList.toggle('on', m !== 'up');
   $('#authIntro').classList.toggle('hidden', !recovering); $('#authIntro').textContent = AUTH_INTRO[m] || '';
   $('#nameRow').classList.toggle('hidden', m !== 'up');
+  $('#srvRow').classList.toggle('hidden', m !== 'up');
   $('#emailRow').classList.toggle('hidden', m === 'reset');
   $('#codeRow').classList.toggle('hidden', m !== 'forgot');
   $('#passRow').classList.toggle('hidden', m === 'mail');
@@ -1288,7 +1302,7 @@ $('#authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const m = authMode;
   const body = { email: $('#emailIn').value, password: $('#passIn').value };
-  if (m === 'up') body.username = $('#nameIn').value;
+  if (m === 'up') { body.username = $('#nameIn').value; body.server = $('#srvIn').value; }
   if (m === 'forgot') body.code = $('#recIn').value;
   if (m === 'reset') body.token = resetToken;
   $('#go').disabled = true; $('#werr').textContent = ''; $('#wok').textContent = '';
@@ -1629,6 +1643,8 @@ async function pollLobby(full = true) {
     if (r.status === 401) { localStorage.removeItem('chess:user'); return location.reload(); }
     if (!r.ok) return;
     if (full) {
+      if (r.user.srv !== user.srv) { finishAuth({ ...user, ...r.user, token: user.token }); return location.reload(); }   // moved to another server
+      paintServerName(r.user.srvName);
       $('#meName').textContent = r.user.name;
       myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
@@ -1827,9 +1843,19 @@ $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
   if (view !== 'admin') return;
-  const r = await api('admin_overview');
+  const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
   if (!r.ok) { if (r.status === 403 || r.status === 401) enterLobby(); return; }
+  if (sv.ok) {
+    if (sv.current !== user.srv) { finishAuth({ ...user, srv: sv.current, ns: sv.current === '1' ? '' : 'srv' + sv.current + ':' }); return location.reload(); }
+    adServers = sv.servers;
+    $('#adsrv').innerHTML = sv.servers.map((x) => `<tr><td><b>${esc(x.name)}</b>${x.id === sv.current ? '<span class="badge gold">you are here</span>' : ''}</td>
+      <td>${x.code ? `<code class="srvcode">${esc(x.code)}</code>` : `<span class="muted">${x.id === '1' ? 'closed to new players' : 'off'}</span>`}</td>
+      <td class="r">${x.players}</td>
+      <td><div class="acts">${x.id === sv.current ? '' : `<button class="small primary" data-act="srvswitch" data-id="${x.id}">Switch here</button>`}
+      <button class="small" data-act="srvrename" data-id="${x.id}" data-v="${esc(x.name)}">Rename</button>
+      ${x.id === '1' ? '' : `<button class="small" data-act="srvcode" data-id="${x.id}">${x.code ? 'New code' : 'Turn on code'}</button>${x.code ? `<button class="small" data-act="srvoff" data-id="${x.id}">Turn off code</button>` : ''}`}</div></td></tr>`).join('');
+  }
   $('#adstats').innerHTML = [['Players', r.stats.users], ['Live games', r.stats.live], ['Chat messages', r.stats.chat]]
     .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
   if (document.activeElement !== $('#annIn')) $('#annIn').value = r.announce;
@@ -1839,15 +1865,40 @@ async function loadAdmin() {
     : '<tr><td colspan="5" class="muted">No games in progress.</td></tr>';
   $('#adusers').innerHTML = r.users.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.admin ? '<span class="badge gold">admin</span>' : ''}${u.muted ? '<span class="badge red">muted</span>' : ''}</td>
       <td class="muted">${esc(u.email || '—')}</td><td class="r">${u.elo}</td><td class="r muted">${u.w}-${u.l}-${u.d}</td>
+      <td>${u.name === user.name ? '' : `<select class="small" data-act="move" data-name="${esc(u.name)}" aria-label="Move ${esc(u.name)} to another server">${adServers.map((x) => `<option value="${x.id}"${x.id === user.srv ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`}</td>
       <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>
       <button class="small" data-act="reset" data-name="${esc(u.name)}">Reset rating</button>
       <button class="small" data-act="resetlink" data-name="${esc(u.name)}">Password link</button>
       <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
 }
+let adServers = [];
+$('#admin').addEventListener('change', async (e) => {
+  const sel = e.target.closest('select[data-act="move"]');
+  if (!sel) return;
+  const to = adServers.find((x) => x.id === sel.value);
+  if (!confirm(`Move ${sel.dataset.name} to ${to.name}? They'll only see players, games and chat on ${to.name}.`)) { sel.value = user.srv; return; }
+  const r = await api('admin_move', { name: sel.dataset.name, to: sel.value });
+  if (!r.ok) alert(r.error || 'Could not move them.');
+  loadAdmin();
+});
+$('#adNewSrv').onclick = async () => {
+  const name = prompt('Name for the new server:', 'Server ' + (adServers.length + 1));
+  if (!name) return;
+  const r = await api('admin_server_new', { name });
+  if (!r.ok) alert(r.error || 'Could not create it.');
+  loadAdmin();
+};
 $('#admin').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const { act, name, code } = b.dataset;
+  if (act === 'srvswitch') { const r = await api('admin_move', { to: b.dataset.id }); if (!r.ok) return alert(r.error || 'Could not switch.'); return location.reload(); }
+  if (act === 'srvrename') { const n = prompt('New name:', b.dataset.v); if (!n) return; const r = await api('admin_server_edit', { id: b.dataset.id, name: n }); if (!r.ok) alert(r.error); return loadAdmin(); }
+  if (act === 'srvcode' || act === 'srvoff') {
+    if (act === 'srvoff' && !confirm('Turn off this code? Nobody new can join this server until you make a new one.')) return;
+    if (act === 'srvcode' && b.textContent === 'New code' && !confirm('Make a new code? The old one stops working.')) return;
+    const r = await api('admin_server_edit', { id: b.dataset.id, code: act === 'srvcode' ? 'new' : 'off' }); if (!r.ok) alert(r.error); return loadAdmin();
+  }
   if (act === 'watch') { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); return; }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
   if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
@@ -4723,7 +4774,6 @@ document.querySelectorAll('#tcgrid button').forEach((b) => b.onclick = () => {
 $('#navPlay').onclick = () => (view === 'lobby' ? window.scrollTo({ top: 0, behavior: 'smooth' }) : enterLobby());
 $('#navLb').onclick = () => { if (view !== 'lobby') enterLobby(); setTimeout(() => $('#lbcard').scrollIntoView({ behavior: 'smooth' }), 120); };
 boot();
-rtInit();   // early, so the server name shows on the sign-in screen too
 </script>
 </body>
 </html>
