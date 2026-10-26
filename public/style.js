@@ -456,7 +456,7 @@
   function choose(state, a, P, opts = {}) {
     const rnd = opts.rnd || Math.random, ply = opts.ply || 0, ctx = opts.ctx || {}, d = DIFF[opts.diff] || DIFF.true;
     if (!a.legal) return null;
-    const think = thinkTime(P, timeCtx(state, a, ctx, ply, opts.clock), rnd);
+    const think = opts.instant ? null : thinkTime(P, timeCtx(state, a, ctx, ply, opts.clock), rnd);   // instant: no wait to model
     const b = fromBook(state, a, P, ply, 150 / d.loss, rnd);
     if (b) return { move: Chess.findUci(state, b.u), why: 'book', think };
     const hurry = !!(opts.clock && opts.clock.base && trouble(opts.clock.left, opts.clock.base));
