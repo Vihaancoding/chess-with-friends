@@ -3322,7 +3322,8 @@ function paintOver(r) {
   $('#osub').textContent = 'by ' + r.status.reason;
   $('#osub').style.textTransform = '';
   const M = r.match;
-  if (M && M.done && M.games.length && mine && !isBot() && !isArchive()) {                 // this game decided the match
+  const lastG = M && M.games[M.games.length - 1];
+  if (M && M.done && lastG && r.startedAt && lastG.id === `${r.code}-${r.startedAt.toString(36)}` && mine && !isBot() && !isArchive()) {   // this game decided the match
     const pts = Match.score(M).pts, opn = M.p.find((x) => x !== user.name), sc = `${half(pts[user.name])}–${half(pts[opn])}`;
     $('#otitle').textContent = !M.winner ? 'Match drawn' : M.winner === user.name ? 'You won the match!' : 'You lost the match';
     $('#otitle').className = !M.winner ? 'draw' : M.winner === user.name ? 'win' : 'loss';
@@ -3434,7 +3435,7 @@ function matchTick() {
   if (document.hidden) { mAuto.at = Math.max(mAuto.at, Date.now() + 3000); return; }   // never start a game for someone who isn't looking
   if (Date.now() >= mAuto.at && (snap.you === 'w' || snap.you === 'b')) {
     mAuto.sent = true;
-    api('rematch', { code: gameCode }).then(() => kick());
+    api('rematch', { code: gameCode }).then((r) => { if (!r.ok) { mAuto.sent = false; mAuto.at = Date.now() + 3000; paintMatch(); } kick(); });   // failed: try again shortly
   }
   paintCount();
 }

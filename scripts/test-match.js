@@ -86,6 +86,17 @@ const tc = { base: 300, inc: 0 };
   ok('a new match after a finished one', r.match.no === 2 && r.match.games.length === 0 && !r.match.done && r.match.past.length === 1 && r.match.past[0].winner === blackName, r.match);
   ok('a new match is not an Armageddon game', r.arma === false && r.clock.b === 300e3);
 
+  console.log('stopping before a decider starts');
+  r = await call('create', { color: 'w', tc, match: { fmt: 'bo', n: 3 } }, ann);
+  const dc = r.code;
+  await call('join', { code: dc }, bob);
+  await draw(dc); await next(dc); await draw(dc); await next(dc); await draw(dc); await next(dc);
+  r = await room(dc);
+  ok('the decider is set up', r.arma && r.clock.b === 240e3, r.clock);
+  r = await call('match_end', { code: dc }, ann);
+  r = await room(dc);
+  ok('stopping it before the first move makes it a normal game', r.match.done && !r.match.winner && !r.arma && r.clock.b === 300e3, [r.arma, r.clock, r.match.winner]);
+
   console.log('archive and ratings');
   const ga = await call('games', { name: 'ann' }, ann);
   ok('every match game is archived', ga.games.filter((x) => x.code === code).length === 4, ga.games.length);
@@ -122,8 +133,10 @@ const tc = { base: 300, inc: 0 };
   ok('…with the score 3–2', pts(r).ann === 3 && pts(r).bob === 2, pts(r));
 
   console.log('challenges');
+  await call('challenge', { to: 'bob', tc }, cat);
   await call('challenge', { to: 'bob', tc, match: { fmt: 'bo', n: 5 } }, cat);
   const me = await call('me', {}, bob);
+  ok('changing the format replaces the challenge', me.inbox.length === 1 && me.inbox[0].match && me.inbox[0].match.n === 5, me.inbox);
   ok('the challenge carries the format', me.inbox[0].match && me.inbox[0].match.n === 5, me.inbox);
   r = await call('accept', { id: me.inbox[0].id }, bob);
   ok('accepting starts the match', r.code && r.snap.match && r.snap.match.fmt === 'bo' && r.snap.match.n === 5, r.snap && r.snap.match);

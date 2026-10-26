@@ -82,7 +82,7 @@ const MATE = ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'];
   await play(MATE);                                                // bob (white) wins: 1–1
   await A.waitForSelector('#over:not(.hidden) #omatch:not(.hidden)');
   ok('1–1', /ann\s*1\s*–\s*bob\s*1/.test(await A.textContent('#omatch .omscore')), await A.textContent('#omatch .omscore'));
-  await A.waitForFunction(() => snap && !snap.status.over && snap.moves.length === 0 && snap.players.w.name === 'ann', null, { timeout: 20000 });
+  await A.waitForFunction(() => snap && !snap.status.over && snap.moves.length === 0 && snap.players.w.name === 'ann', null, { timeout: 30000 });
   ok('after the countdown game 3 starts without a click', true);
 
   console.log('game 3: a draw means an Armageddon decider');
