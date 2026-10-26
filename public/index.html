@@ -601,6 +601,28 @@
   .sndtest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-weight: 700; }
   .sktoggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--green); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  /* head-to-head match */
+  #fmtPick { margin-top: 2px; } #fmtPick button { font-size: .85rem; }
+  #matchpanel { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid var(--gold); }
+  #matchpanel.hidden { display: none; }
+  .mphead { display: flex; align-items: baseline; gap: 8px; } .mphead .muted { margin-left: auto; font-size: .8rem; font-weight: 600; }
+  .mprow { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+  .mprow .avatar { width: 26px; height: 26px; font-size: .8rem; flex: none; }
+  .mprow .mpn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mprow .mps { font-size: 1.5rem; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
+  .mprow.lead .mps { color: var(--gold); }
+  .mpdots { display: flex; flex-wrap: wrap; gap: 4px; }
+  .mpdots i { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-style: normal; font-size: .7rem; font-weight: 800; background: #3a3936; color: var(--muted); }
+  .mpdots i.a { background: var(--green-dark); color: #fff; } .mpdots i.b { background: #7a3a33; color: #fff; } .mpdots i.d { background: #55534f; color: #fff; }
+  .mpdots i.x { outline: 2px solid var(--gold); outline-offset: -2px; }
+  .mpnote { font-size: .88rem; font-weight: 600; color: var(--muted); } .mpnote b { color: var(--text); }
+  .mpwin { color: var(--gold); font-weight: 800; }
+  #omatch { margin-top: 14px; padding: 12px; border-radius: 10px; background: var(--panel2); }
+  #omatch.hidden { display: none; }
+  .omscore { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; display: flex; justify-content: center; gap: 10px; align-items: baseline; }
+  .omscore span { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .omcount { margin-top: 8px; font-weight: 700; font-size: .9rem; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .liverow .mtag { font-size: .75rem; font-weight: 800; color: var(--gold); }
 </style>
 </head>
 <body data-view="welcome">
@@ -709,7 +731,10 @@
       <div id="colorRow"><div class="label">Play as</div>
       <div class="colorpick"><button data-c="w">White</button><button data-c="r" class="on">Random</button><button data-c="b">Black</button></div></div>
       <div id="friendOnly">
-      <div style="margin-top:18px"><button class="primary big" id="create">Create game</button></div>
+      <div class="label">Format</div>
+      <div class="levels" id="fmtPick"><button data-f="" class="on">One game</button><button data-f="bo3">Best of 3</button><button data-f="bo5">Best of 5</button><button data-f="bo7">Best of 7</button><button data-f="ft3">First to 3</button><button data-f="ft5">First to 5</button><button data-f="ft10">First to 10</button><button data-f="mar">Marathon</button></div>
+      <div class="muted" id="fmtDesc" style="font-size:.85rem;margin-top:8px;font-weight:600;min-height:2.6em"></div>
+      <div style="margin-top:14px"><button class="primary big" id="create">Create game</button></div>
       <div class="or">or join with a code</div>
       <div class="row" style="margin-top:10px"><input id="code" class="code" maxlength="5" placeholder="ABCDE" autocomplete="off"><button class="primary" id="join">Join</button></div>
       <div class="label">Challenge a friend</div>
@@ -872,6 +897,13 @@
       <button id="opening" type="button" aria-expanded="false" aria-controls="opPanel" title="Opening"><span class="oplbl">Opening</span><span id="opName">—</span></button>
       <div id="opPanel" class="hidden"></div>
     </div>
+    <div class="panel hidden" id="matchpanel">
+      <div class="mphead"><b id="mpTitle"></b><span class="muted" id="mpSub"></span></div>
+      <div id="mpScore"></div>
+      <div class="mpdots" id="mpDots"></div>
+      <div class="mpnote" id="mpNote" aria-live="polite"></div>
+      <div class="row" id="mpActs"><button class="small" id="mpHold">Wait</button><button class="small" id="mpEnd">End match</button></div>
+    </div>
     <div class="panel hidden" id="coachpanel">
       <div class="cohead"><span class="coav sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg></span><b>Coach</b><span class="muted" id="coLvl"></span></div>
       <div id="coMsg" aria-live="polite"></div>
@@ -934,6 +966,7 @@
   <div id="otitle"></div><div id="osub"></div>
   <div class="ovs"><div class="oside" id="oMe"></div><div class="ovsmid">VS</div><div class="oside" id="oOpp"></div></div>
   <div id="orating"></div>
+  <div id="omatch" class="hidden"></div>
   <div class="ostats"><div><b id="oMoves"></b><span>Moves</span></div><div><b id="oDur"></b><span>Duration</span></div><div><b id="oCat"></b><span>Time control</span></div></div>
   <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
@@ -964,6 +997,7 @@
 <script src="opening.js"></script>
 <script src="coachask.js"></script>
 <script src="style.js"></script>
+<script src="match.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
@@ -1151,7 +1185,7 @@ function seedSnap(code, g) {
   const you = g.players.w && g.players.w.name === user.name ? 'w' : g.players.b && g.players.b.name === user.name ? 'b' : 's';
   return { code, you, state: Chess.initial(), moves: [], last: null, status: { over: false, result: null, reason: null, check: false },
     players: g.players, present: { w: true, b: true }, tc: g.tc, clock: g.tc ? { w: g.tc.base * 1000, b: g.tc.base * 1000, running: null } : null,
-    delta: null, rematch: [], hist: [], drawOffer: null, watching: 0, cat: g.cat, ratings: null, unrated: false, startedAt: null, endedAt: null, v: g.v };
+    delta: null, rematch: [], hist: [], drawOffer: null, watching: 0, cat: g.cat, ratings: null, unrated: false, startedAt: null, endedAt: null, v: g.v, match: g.match || null, arma: false };
 }
 
 // A move pushed by the server, e.g. {m:"e2e4", v:42, k:[wMs,bMs]}: validate with the local engine and draw it.
@@ -1297,7 +1331,7 @@ document.querySelectorAll('.colorpick button').forEach((b) => b.onclick = () => 
   b.classList.add('on'); pickColor = b.dataset.c;
 });
 $('#create').onclick = async () => {
-  const r = await api('create', { color: pickColor === 'r' ? null : pickColor, tc: tcOf() });
+  const r = await api('create', { color: pickColor === 'r' ? null : pickColor, tc: tcOf(), match: fmtOf() });
   r.ok ? enterGame(r.code, r.snap) : ($('#err').textContent = r.error);
 };
 $('#join').onclick = async () => {
@@ -1305,6 +1339,29 @@ $('#join').onclick = async () => {
   r.ok ? enterGame(r.code, r.snap) : ($('#err').textContent = r.error);
 };
 $('#code').addEventListener('keydown', (e) => e.key === 'Enter' && $('#join').click());
+// ----- head-to-head match format: applies to Create game and to challenges -----
+let pickFmt = '';
+try { pickFmt = localStorage.getItem('chess:fmt') || ''; } catch {}
+const fmtOf = (k = pickFmt) => { const m = /^(bo|ft|mar)(\d*)$/.exec(k); return m ? Match.clean({ fmt: m[1], n: +m[2] || 0 }) : null; };
+const FMT_DESC = {
+  bo: (n) => `Up to ${n} games, colours alternate. A win is 1 point, a draw ½: first past ${n / 2} takes the match. Level at the end? One Armageddon decider.`,
+  ft: (n) => `Keep playing until one of you has ${n} wins. Draws don't count. Colours alternate.`,
+  mar: () => 'Back to back for as long as you like, with a running score and streaks. Either of you can stop it between games.',
+};
+function paintFmt() {
+  const f = fmtOf();
+  if (!f) pickFmt = '';
+  document.querySelectorAll('#fmtPick button').forEach((b) => b.classList.toggle('on', b.dataset.f === pickFmt));
+  setText($('#fmtDesc'), f ? FMT_DESC[f.fmt](f.n) : 'A single game. Pick a format to play a head-to-head match: game after game until one of you comes out on top.');
+  setText($('#create'), f ? 'Create match' : 'Create game');
+}
+$('#fmtPick').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  pickFmt = b.dataset.f;
+  try { localStorage.setItem('chess:fmt', pickFmt); } catch {}
+  paintFmt();
+});
+paintFmt();
 // ----- challenges: instant feedback, one at a time, no duplicate requests -----
 let curInbox = [], curOut = null, localOut = null, challengeSending = false, bannerSig = '';
 const busyIds = new Set(), goneIds = new Set(), hiddenOut = new Set();
@@ -1317,7 +1374,7 @@ async function challenge(name) {
   localOut = { to: name, ts: Date.now() };
   $('#err').textContent = '';
   syncChallenges(curInbox, null);                                                       // banner + disabled buttons right now
-  const r = await api('challenge', { to: name, tc: tcOf() });
+  const r = await api('challenge', { to: name, tc: tcOf(), match: fmtOf() });
   challengeSending = false;
   if (!r.ok) { localOut = null; $('#err').textContent = r.error; syncChallenges(curInbox, null); return; }
   if (localOut) localOut.id = r.id;
@@ -1390,7 +1447,7 @@ function renderBanners() {
   let html = '';
   for (const c of curInbox) {
     const busy = busyIds.has(c.id);
-    html += `<div class="banner"><span><b>${esc(c.from)}</b> (${c.fromElo}) challenges you — ${tcLabel(c.tc)}</span>
+    html += `<div class="banner"><span><b>${esc(c.from)}</b> (${c.fromElo}) challenges you — ${tcLabel(c.tc)}${c.match ? ` · <b>${Match.label(c.match)}</b> match` : ''}</span>
       <span><button class="primary small" data-a="accept" data-id="${c.id}" ${busy ? 'disabled' : ''}>${busy ? 'Joining…' : 'Accept'}</button>
       <button class="small" data-a="decline" data-id="${c.id}" ${busy ? 'disabled' : ''}>Decline</button></span></div>`;
   }
@@ -1652,7 +1709,7 @@ function renderLive(list, me) {
     const side = (c) => { const p = g[c], st = !g.turn ? '' : g.turn === c ? ' turn' : ' wait';
       return `<span class="lp${st}"${st === ' turn' ? ` title="${c === 'w' ? 'White' : 'Black'} to move"` : ''}><span class="pc ${c}"></span><b>${esc(p.name)}</b> <i>(${p.elo})</i></span>`; };
     return `<div class="liverow"><span class="lv">${side('w')} <i>vs</i> ${side('b')}</span>
-      <span class="muted lm">${tcLabel(g.tc)} · move ${g.full || Math.floor(g.moves / 2) + 1}</span>
+      <span class="muted lm">${g.mx ? `<span class="mtag" title="Head-to-head match: game ${g.mx.g}${g.mx.a ? ', Armageddon' : ''}">${esc(g.mx.t)} · ${half(g.mx.w)}–${half(g.mx.b)}</span> · ` : ''}${tcLabel(g.tc)} · move ${g.full || Math.floor(g.moves / 2) + 1}</span>
       <button class="small ${mine ? 'primary' : ''}" data-watch="${g.code}">${mine ? 'Rejoin' : 'Watch'}</button></div>`;
   }).join('');
 }
@@ -1862,9 +1919,9 @@ $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
 function copy(t, sel) { navigator.clipboard.writeText(t).then(() => { const b = $(sel), o = b.textContent; b.textContent = 'Copied!'; setTimeout(() => b.textContent = o, 1200); }); }
 $('#resign').onclick = async () => { if (!confirm(isLocal() ? `Resign for ${snap.players[snap.state.turn].name}?` : 'Resign this game?')) return; if (isBot()) return botEnd(botGame.you === 'w' ? 'b' : 'w', 'resignation'); await api('resign', { code: gameCode }); kick(); };
-$('#rematch').onclick = async () => { if (isBot()) return botRematch(); await api('rematch', { code: gameCode }); kick(); };
+$('#rematch').onclick = async () => { if (isBot()) return botRematch(); mAuto.sent = true; await api('rematch', { code: gameCode }); kick(); };
 
-const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer, !!r.paused, r.pauseReq, (r.resumeReady || []).join()].join('|');
+const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer, !!r.paused, r.pauseReq, (r.resumeReady || []).join(), r.match ? [r.match.no, r.match.games.length, r.match.done].join(':') : ''].join('|');
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
 let lastKick = 0;
@@ -1997,7 +2054,7 @@ function render() {
   const rm = $('#rematch');
   rm.classList.toggle('hidden', !mine || !status.over || isArchive());
   const asked = snap.rematch.includes(you);
-  setText(rm, asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch');
+  setText(rm, nextLabel(snap));
   if (rm.disabled !== asked) rm.disabled = asked;
 
   const bothIn = !!(players.w && players.b);
@@ -2026,6 +2083,7 @@ function render() {
   const incoming = canDraw && snap.drawOffer && snap.drawOffer !== you;
   $('#drawbox').classList.toggle('hidden', !incoming);
   updateOver();
+  paintMatch();
 
   // permanent colour indicator (fixed to the bottom of the screen)
   const cb = $('#colorbar');
@@ -3262,6 +3320,15 @@ function paintOver(r) {
   $('#otitle').textContent = res === 'draw' ? 'Draw' : r.local ? `${r.players[res].name} won` : mine ? (kind === 'win' ? 'You won' : 'You lost') : `${res === 'w' ? 'White' : 'Black'} won`;
   $('#otitle').className = kind;
   $('#osub').textContent = 'by ' + r.status.reason;
+  $('#osub').style.textTransform = '';
+  const M = r.match;
+  if (M && M.done && M.games.length && mine && !isBot() && !isArchive()) {                 // this game decided the match
+    const pts = Match.score(M).pts, opn = M.p.find((x) => x !== user.name), sc = `${half(pts[user.name])}–${half(pts[opn])}`;
+    $('#otitle').textContent = !M.winner ? 'Match drawn' : M.winner === user.name ? 'You won the match!' : 'You lost the match';
+    $('#otitle').className = !M.winner ? 'draw' : M.winner === user.name ? 'win' : 'loss';
+    $('#osub').textContent = `${sc} · game ${M.games.length} ${res === 'draw' ? 'drawn' : 'by ' + r.status.reason}`;
+    $('#osub').style.textTransform = 'none';
+  }
   const side = (c) => {
     const p = r.players[c] || { name: '?' };
     return `<span class="avatar ${c}">${esc(p.name[0].toUpperCase())}</span><span class="on ${p.name !== 'Computer' && p.name !== user.name && !p.local && !p.bot ? 'plink' : ''}" data-name="${esc(p.name)}">${esc(p.name)}</span><span class="or">${p.elo}${p.prov ? '?' : ''}</span>`;
@@ -3300,12 +3367,128 @@ function updateOver() {
   if (!snap || $('#over').classList.contains('hidden')) return;
   if (snap.status.over) paintOver(snap);
   const b = $('#oRematch'), asked = snap.rematch.includes(snap.you);
-  b.textContent = asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch';
+  b.textContent = nextLabel(snap);
   b.disabled = asked;
+  paintOverMatch(snap);
 }
-$('#oRematch').onclick = async () => { if (isBot()) { $('#over').classList.add('hidden'); return botRematch(); } await api('rematch', { code: gameCode }); kick(); };
+$('#oRematch').onclick = async () => { if (isBot()) { $('#over').classList.add('hidden'); return botRematch(); } mAuto.sent = true; await api('rematch', { code: gameCode }); kick(); };
 $('#oClose').onclick = () => $('#over').classList.add('hidden');
 $('#oLobby').onclick = () => { $('#over').classList.add('hidden'); enterLobby(); };
+
+// ---------- head-to-head match: scoreboard, next game countdown ----------
+const half = (x) => { x = +x || 0; const w = Math.floor(x); return x - w ? (w ? w + '½' : '½') : String(w); };
+const AUTO_NEXT = 10000;                                       // ms before you're marked ready for the next game
+let mAuto = { key: '', at: 0, held: false, sent: false }, mTimer = null;
+const isMatch = () => !!(snap && snap.match && !isBot() && !isArchive());
+function nextLabel(r) {
+  const asked = r.rematch.includes(r.you), m = r.match;
+  if (m && !isBot() && !isArchive()) {
+    if (asked) return 'Waiting for opponent…';
+    if (m.done) return r.rematch.length ? 'Accept new match' : 'New match';
+    return r.rematch.length ? 'Next game · they\'re ready' : 'Next game';
+  }
+  return asked ? 'Waiting for opponent…' : r.rematch.length ? 'Accept rematch' : 'Rematch';
+}
+// names in display order (you first) and each one's colour in the current game
+function matchSides(r) {
+  const m = r.match, names = m.p || [r.players.w && r.players.w.name, r.players.b && r.players.b.name].filter(Boolean);
+  const mine = r.you === 'w' || r.you === 'b';
+  const order = mine && names.includes(user.name) ? [user.name, ...names.filter((x) => x !== user.name)] : names;
+  const col = (n) => (r.players.w && r.players.w.name === n ? 'w' : 'b');
+  return order.map((n) => ({ name: n, c: col(n) }));
+}
+// the line under the scoreboard: winner, Armageddon, match point, streak
+function matchNote(r) {
+  const m = r.match, s = Match.score(m), nm = (x) => (x === user.name ? 'You' : `<b>${esc(x)}</b>`);
+  if (m.done) {
+    const sides = matchSides(r), sc = sides.map((x) => half(s.pts[x.name])).join('–');
+    if (!m.winner) return `Match ended level, ${sc}${m.why === 'stopped' ? ` (stopped by ${m.by === user.name ? 'you' : esc(m.by)})` : ''}.`;
+    const how = m.why === 'armageddon' ? ' on the Armageddon decider' : m.why === 'stopped' ? ` (stopped by ${m.by === user.name ? 'you' : esc(m.by)})` : '';
+    return `<span class="mpwin">🏆 ${nm(m.winner)} ${m.winner === user.name ? 'win' : 'wins'} the match ${sc}${how}.</span>`;
+  }
+  const tc = r.tc, armaTxt = tc ? `Black gets ${fmt(Math.round(tc.base * Match.ARMA_BLACK) * 1000)} to White's ${fmt(tc.base * 1000)}, but` : 'Black has';
+  if (r.arma && !r.status.over) return `<b>Armageddon decider.</b> ${armaTxt} a draw counts as a win for Black.`;
+  if (m.arma) return `<b>Level!</b> Next game is an Armageddon decider: ${tc ? 'Black has less time, but ' : ''}a draw counts as a win for Black.`;
+  const bits = [], mp = Match.matchPoint(m), st = Match.streak(m);
+  if (mp.length === 2) bits.push('Match point for both of you');
+  else if (mp.length) bits.push(`Match point for ${mp[0] === user.name ? 'you' : `<b>${esc(mp[0])}</b>`}`);
+  if (st.n >= 2) bits.push(`${nm(st.name)} ${st.name === user.name ? 'have' : 'has'} won ${st.n} in a row`);
+  if (m.fmt === 'ft') bits.push(`First to ${m.n} wins`);
+  if (s.draws) bits.push(`${s.draws} draw${s.draws > 1 ? 's' : ''}`);
+  return bits.join(' · ');
+}
+// countdown to the next game, shared by the sidebar and the result card
+function matchCountdown(r) {
+  const m = r.match, mine = r.you === 'w' || r.you === 'b';
+  if (!mine || !r.status.over || m.done || !r.players.w || !r.players.b) return null;
+  const opp = r.players[r.you === 'w' ? 'b' : 'w'].name, theyReady = r.rematch.length && !r.rematch.includes(r.you);
+  if (r.rematch.includes(r.you)) return { txt: `Ready · waiting for ${esc(opp)}…` };
+  const key = `${r.code}:${m.no}:${m.games.length}`;
+  if (mAuto.key !== key) mAuto = { key, at: Date.now() + AUTO_NEXT, held: false, sent: false };
+  if (mAuto.held) return { txt: theyReady ? `${esc(opp)} is ready.` : 'Start the next game when you\'re ready.', held: true };
+  const left = Math.max(0, Math.ceil((mAuto.at - Date.now()) / 1000));
+  return { txt: `Next game in ${left}s${theyReady ? ` · ${esc(opp)} is ready` : ''}`, hold: true };
+}
+function matchTick() {
+  if (!isMatch() || !snap.status.over || snap.match.done || mAuto.held || mAuto.sent || snap.rematch.includes(snap.you)) { clearInterval(mTimer); mTimer = null; return; }
+  if (document.hidden) { mAuto.at = Math.max(mAuto.at, Date.now() + 3000); return; }   // never start a game for someone who isn't looking
+  if (Date.now() >= mAuto.at && (snap.you === 'w' || snap.you === 'b')) {
+    mAuto.sent = true;
+    api('rematch', { code: gameCode }).then(() => kick());
+  }
+  paintCount();
+}
+function paintCount() {
+  const c = isMatch() ? matchCountdown(snap) : null;
+  const html = c ? `<span>${c.txt}</span>${c.hold ? '<button class="small" data-mhold>Wait</button>' : ''}` : '';
+  const el = $('#omatch .omcount'); if (el) setHTML(el, html);
+  $('#mpHold').classList.toggle('hidden', !(c && c.hold));
+  return c;
+}
+function paintMatch() {
+  const on = isMatch() && !!snap.match;
+  $('#matchpanel').classList.toggle('hidden', !on);
+  if (!on) return;
+  const m = snap.match, s = Match.score(m), sides = matchSides(snap), lead = Match.leader(m, s);
+  const gameNo = m.done ? m.games.length : snap.status.over ? m.games.length : m.games.length + 1;
+  setText($('#mpTitle'), `${Match.label(m)}${m.no > 1 ? ` · match ${m.no}` : ''}`);
+  setText($('#mpSub'), m.done ? 'Finished' : snap.arma && !snap.status.over ? 'Armageddon' : `Game ${gameNo}${m.fmt === 'bo' ? ` of ${m.n}` : ''}`);
+  setHTML($('#mpScore'), sides.map((x) => `<div class="mprow${x.name === lead ? ' lead' : ''}"><span class="avatar ${x.c}">${esc(x.name[0].toUpperCase())}</span><span class="mpn">${esc(x.name)}${x.name === user.name ? ' <span class="youtag">you</span>' : ''}</span><span class="mps">${half(s.pts[x.name])}</span></div>`).join(''));
+  // one square per game: green = the first-listed player won, red = the other, grey = draw; empty squares still to play
+  const a = sides[0] && sides[0].name;
+  let dots = m.games.map((g, i) => {
+    const k = !g.win ? 'd' : g.win === a ? 'a' : 'b', who = g.win ? `${g.win} won` : 'Draw';
+    return `<i class="${k}${g.arma ? ' x' : ''}" title="Game ${i + 1}${g.arma ? ' (Armageddon)' : ''}: ${esc(who)}, ${esc(g.why)} · ${esc(g.w)} had White">${g.win ? esc(g.win[0].toUpperCase()) : '½'}</i>`;
+  }).join('');
+  if (!m.done && m.fmt === 'bo') for (let i = m.games.length; i < m.n; i++) dots += '<i></i>';
+  if (!m.done && m.arma) dots += '<i class="x" title="Armageddon decider">A</i>';
+  setHTML($('#mpDots'), dots);
+  const past = (m.past || []).filter((x) => x.winner), wonBy = (n) => past.filter((x) => x.winner === n).length;
+  const series = past.length && sides.length === 2 ? ` · Matches: ${sides.map((x) => `${esc(x.name)} ${wonBy(x.name)}`).join(', ')}` : '';
+  setHTML($('#mpNote'), (matchNote(snap) || '') + series);
+  const mine = snap.you === 'w' || snap.you === 'b';
+  $('#mpActs').classList.toggle('hidden', !mine || m.done || !(snap.status.over || !snap.moves.length));
+  const c = paintCount();
+  if (c && c.hold && !mTimer) mTimer = setInterval(matchTick, 250);
+}
+function paintOverMatch(r) {
+  const el = $('#omatch'), on = isMatch() && !!r.match && r.status.over;
+  el.classList.toggle('hidden', !on);
+  if (!on) return;
+  const s = Match.score(r.match), sides = matchSides(r);
+  setHTML(el, `<div class="olbl">${Match.label(r.match)}</div>
+    <div class="omscore">${sides.map((x) => `<span>${esc(x.name)}</span><b>${half(s.pts[x.name])}</b>`).join('<span class="muted">–</span>')}</div>
+    <div class="mpnote" style="margin-top:6px">${matchNote(r)}</div><div class="omcount"></div>`);
+  paintCount();
+}
+document.addEventListener('click', (e) => { if (e.target.closest('[data-mhold], #mpHold')) { mAuto.held = true; paintMatch(); updateOver(); } });
+$('#mpEnd').onclick = async () => {
+  const s = Match.score(snap.match), lead = Match.leader(snap.match, s);
+  if (!confirm(`End the match now?${lead ? ` ${lead === user.name ? 'You lead, so you take it' : lead + ' leads, so they take it'}.` : ' It is level, so nobody wins it.'}`)) return;
+  const r = await api('match_end', { code: gameCode });
+  if (!r.ok) setText($('#sub'), r.error || 'Something went wrong.');
+  kick();
+};
 
 // ---------- pause ----------
 const pauseCall = async (route, body) => { const r = await api(route, { code: gameCode, ...(body || {}) }); if (!r.ok) setText($('#sub'), r.error || 'Something went wrong.'); kick(); };
