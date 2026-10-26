@@ -3482,8 +3482,9 @@ function matchNote(r) {
   const m = r.match, s = Match.score(m), nm = (x) => (x === meN() ? 'You' : `<b>${esc(x)}</b>`);
   if (m.done) {
     const sides = matchSides(r), sc = sides.map((x) => half(s.pts[x.name])).join('–');
-    if (!m.winner) return `Match ended level, ${sc}${m.why === 'stopped' ? ` (stopped by ${m.by === meN() ? 'you' : esc(m.by)})` : ''}.`;
-    const how = m.why === 'armageddon' ? ' on the Armageddon decider' : m.why === 'stopped' ? ` (stopped by ${m.by === meN() ? 'you' : esc(m.by)})` : '';
+    const stopped = m.why !== 'stopped' ? '' : !m.by ? ' (stopped early)' : ` (stopped by ${m.by === meN() ? 'you' : esc(m.by)})`;
+    if (!m.winner) return `Match ended level, ${sc}${stopped}.`;
+    const how = m.why === 'armageddon' ? ' on the Armageddon decider' : stopped;
     return `<span class="mpwin">🏆 ${nm(m.winner)} ${m.winner === meN() ? 'win' : 'wins'} the match ${sc}${how}.</span>`;
   }
   const tc = r.tc, armaTxt = tc ? `Black gets ${fmt(Math.round(tc.base * Match.ARMA_BLACK) * 1000)} to White's ${fmt(tc.base * 1000)}, but` : 'Black has';
@@ -3503,7 +3504,7 @@ function matchCountdown(r) {
   if (!mine || !r.status.over || m.done || !r.players.w || !r.players.b) return null;
   const opp = r.players[r.you === 'w' ? 'b' : 'w'].name, theyReady = r.rematch.length && !r.rematch.includes(r.you);
   if (r.rematch.includes(r.you)) return { txt: `Ready · waiting for ${esc(opp)}…` };
-  const key = `${r.code}:${m.no}:${m.games.length}`;
+  const key = r.local ? `local:${r.gid}` : `${r.code}:${m.no}:${m.games.length}`;   // every pass & play game has the code BOT
   if (mAuto.key !== key) mAuto = { key, at: Date.now() + AUTO_NEXT, held: false, sent: false };
   if (mAuto.held) return { txt: theyReady ? `${esc(opp)} is ready.` : 'Start the next game when you\'re ready.', held: true };
   const left = Math.max(0, Math.ceil((mAuto.at - Date.now()) / 1000));
@@ -3623,7 +3624,7 @@ function localMatchSave(L, tc) { try { if (L && L.match) localStorage.setItem('c
 function localMatchLoad() { try { const d = JSON.parse(localStorage.getItem('chess:localMatch')); return d && d.v === 1 && d.local && d.local.match ? d : null; } catch { return null; } }
 function localMatchEnd() {
   const b = botGame; if (!b || !b.local || !b.local.match) return;
-  Match.stop(b.local.match, null);
+  Match.stop(b.local.match, meN());                                    // rated: the account holder; otherwise nobody in particular
   if (!botStatusOf(b).over && !b.hist.length && b.local.arma) { b.local.arma = false; if (b.clock) b.clock.b = b.clock.w; }   // stopped before a decider began
   if (botStatusOf(b).over || !b.hist.length) localMatchSave(b.local, b.tc); else botSave();
   sig = ''; pushBot();
@@ -3788,8 +3789,8 @@ function botSave() {
   const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
   let clock = null;
   if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
-  if (b.local && b.local.match) localMatchSave(null);                  // the game in progress carries the match now
-  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch {}
+  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch { return; }
+  if (b.local && b.local.match && b.hist.length === 1) localMatchSave(null);   // saved with the game now: drop the between-games copy
 }
 function botClear(key = botKey(botGame)) { try { localStorage.removeItem(key); } catch {} }
 function botLoad(key = 'chess:bot') {
@@ -4272,6 +4273,11 @@ $('#localStart').onclick = async () => {
     names = localSide === 'w' ? { w: user.name, b: r.name } : { w: r.name, b: user.name };
   } else if (names.w === names.b) { names.w += ' (W)'; names.b += ' (B)'; }
   $('#err').textContent = '';
+  const lm = localMatchLoad();
+  if (lm && !lm.local.match.done) {
+    if (!confirm(`Start over? Your unfinished match (${Match.label(lm.local.match)}, ${lm.local.match.p.join(' vs ')}) will be discarded.`)) return;
+    localMatchSave(null);
+  }
   try { localStorage.setItem('chess:localNames', JSON.stringify({ w: $('#localW').value.trim(), b: $('#localB').value.trim(), flip, rated, opp: $('#localOpp').value.trim(), side: localSide })); } catch {}
   const b = makeLocal(names, flip, tcOf());
   if (rate) b.local.rate = rate;

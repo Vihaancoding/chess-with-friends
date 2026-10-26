@@ -158,8 +158,15 @@ process.on('exit', () => { if (srv) srv.kill(); });          // never leave a se
   ok('then a new match', (await C.textContent('#oRematch')) === 'New match');
   await shot(C, '6-local-match-won');
   await C.click('#oRematch');
-  await C.waitForFunction(() => snap && snap.match && snap.match.no === 2 && !snap.match.games.length);
-  ok('the new match starts at 0–0', true);
+  await C.waitForFunction(() => snap && snap.match && snap.match.no === 2);
+  const m2 = await C.evaluate(() => ({ games: snap.match.games.length, pts: Match.score(snap.match).pts, past: snap.match.past.length, auto: /Next game/.test(document.querySelector('#omatch').textContent) }));
+  ok('the new match starts at 0–0', m2.games === 0 && m2.pts.Kim === 0 && m2.pts.Lee === 0 && m2.past === 1, m2);
+  await lplay(MATE);                                               // a second match: its countdown must run, not reuse the first one's state
+  await C.waitForSelector('#over:not(.hidden) #omatch:not(.hidden)');
+  ok('the second match counts down to its next game', /Next game in \d+s/.test(await C.textContent('#omatch .omcount')), await C.textContent('#omatch .omcount'));
+  await C.click('#mpEnd');
+  await C.waitForFunction(() => snap.match.done);
+  ok('ending a pass & play match names nobody', /stopped early/.test(await C.textContent('#mpNote')) && !/null/.test(await C.textContent('#mpNote')), await C.textContent('#mpNote'));
 
   await br.close(); srv.kill();
   console.log(`\n${passed} passed, ${failed} failed`);
