@@ -50,7 +50,8 @@ const names = (me) => (me.leaderboards ? Object.values(me.leaderboards).flat() :
   console.log('separation');
   let me = await call('me', {}, bob);
   ok('the leaderboard only has players from your server', !names(me).includes('ann'), names(me));
-  ok('the server name is shown once there are two servers', me.user.srvName === 'Friends', me.user);
+  ok("players aren't shown a server name", !me.user.srvName, me.user);
+  ok('admins are', (await call('me', {}, ann)).user.srvName === 'Server 1');
   ok("can't challenge someone on another server", (await call('challenge', { to: 'ann', tc }, bob)).status === 404);
   ok("can't open the profile of someone on another server", (await call('profile', { name: 'ann' }, bob)).status === 404);
   ok("can't play against the clone of someone on another server", (await call('style_games', { name: 'ann' }, bob)).status === 404);
