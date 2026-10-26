@@ -1,0 +1,33 @@
+name: ArcX macOS build
+
+on:
+  push:
+    paths:
+      - "arcxswift/**"
+      - ".github/workflows/arcx-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: arcxswift
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          XCODE=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build (Sign to Run Locally)
+        run: |
+          set -o pipefail
+          xcodebuild -project ArcX.xcodeproj -scheme ArcX -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' build 2>&1 | tee build.log | grep -E "error:|warning: .*(MainActor|Sendable)|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log

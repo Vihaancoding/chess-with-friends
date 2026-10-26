@@ -1,0 +1,61 @@
+name: ArcX
+options:
+  bundleIdPrefix: local.arcx
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    ARCHS: "$(ARCHS_STANDARD)"
+
+targets:
+  ArcX:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: ArcX
+        excludes:
+          - "Info.plist"
+          - "ArcX.entitlements"
+    dependencies:
+      - sdk: libsqlite3.tbd
+      - sdk: WebKit.framework
+      - sdk: Security.framework
+    info:
+      path: ArcX/Info.plist
+      properties:
+        CFBundleName: ArcX
+        CFBundleDisplayName: ArcX
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: "15.0"
+        NSHumanReadableCopyright: "ArcX — a WebKit browser"
+    entitlements:
+      path: ArcX/ArcX.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.files.downloads.read-write: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.arcx.browser
+        PRODUCT_NAME: ArcX
+        # "Sign to Run Locally" — no paid Apple Developer account needed.
+        # To use your free Personal Team instead, pick it in Signing & Capabilities.
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        ENABLE_HARDENED_RUNTIME: NO
+        ENABLE_APP_SANDBOX: YES
+        COMBINE_HIDPI_IMAGES: YES
+        SWIFT_EMIT_LOC_STRINGS: NO
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: ArcX/Info.plist
+        CODE_SIGN_ENTITLEMENTS: ArcX/ArcX.entitlements
