@@ -2,6 +2,11 @@ import SwiftUI
 import AppKit
 import WebKit
 
+enum CommandBarScope {
+    case all
+    case spaces
+}
+
 struct ClosedTab {
     let record: TabRecord
     let spaceID: UUID
@@ -22,6 +27,12 @@ final class BrowserState: ObservableObject {
     @Published private(set) var commandBarOpensNewTab = true
     @Published private(set) var commandBarInitialText = ""
     @Published private(set) var commandBarToken = UUID()
+    @Published private(set) var commandBarScope: CommandBarScope = .all
+
+    /// Direction the sidebar slides when switching spaces.
+    @Published private(set) var spaceTransitionEdge: Edge = .trailing
+    @Published private(set) var archivedTabs: [ArchivedTab] = []
+    @Published var spaceSheet: SpaceSheet?
 
     @Published var findBarVisible = false
     @Published var findText = ""
@@ -34,10 +45,12 @@ final class BrowserState: ObservableObject {
     let downloads = DownloadManager()
     let contentBlocker = ContentBlocker()
     let sleepManager = TabSleepManager()
+    let swipe = SpaceSwipeController()
 
     private var saveWorkItem: DispatchWorkItem?
     private var historyDirty = false
     private var bookmarksDirty = false
+    private var archiveDirty = false
     private var started = false
 
     nonisolated static let pictureInPictureScript = """
@@ -54,6 +67,7 @@ final class BrowserState: ObservableObject {
         restore()
         downloads.state = self
         sleepManager.state = self
+        swipe.state = self
     }
 
     // MARK: Derived state
@@ -86,8 +100,10 @@ final class BrowserState: ObservableObject {
     func start() {
         guard !started else { return }
         started = true
+        archiveStaleTodayTabs()
         if let tab = selectedTab { wake(tab) }
         sleepManager.start()
+        swipe.start()
         Task {
             await contentBlocker.load()
             applyContentBlocker()
@@ -110,6 +126,7 @@ final class BrowserState: ObservableObject {
         }
         history = Persistence.load([HistoryEntry].self, from: Persistence.historyFile) ?? []
         bookmarks = Persistence.load([Bookmark].self, from: Persistence.bookmarksFile) ?? []
+        archivedTabs = Persistence.load([ArchivedTab].self, from: Persistence.archiveFile) ?? []
     }
 
     func scheduleSave() {
@@ -139,6 +156,10 @@ final class BrowserState: ObservableObject {
         if bookmarksDirty {
             bookmarksDirty = false
             Persistence.save(bookmarks, to: Persistence.bookmarksFile, synchronously: synchronously)
+        }
+        if archiveDirty {
+            archiveDirty = false
+            Persistence.save(archivedTabs, to: Persistence.archiveFile, synchronously: synchronously)
         }
     }
 
@@ -433,26 +454,51 @@ final class BrowserState: ObservableObject {
     }
 
     func move(_ tab: BrowserTab, to target: Space) {
-        guard let source = space(containing: tab), source !== target else { return }
+        moveTab(tab, to: target, pinned: false, before: nil)
+    }
+
+    /// Single entry point for drag and drop and "Move to Space": reorders within a section,
+    /// pins/unpins (by dropping into the other section) and moves tabs across spaces.
+    /// `before == nil` appends to the end of the destination section.
+    func moveTab(_ tab: BrowserTab, to target: Space, pinned: Bool, before anchor: BrowserTab?) {
+        guard anchor !== tab, let source = space(containing: tab) else { return }
+        let crossSpace = source !== target
         let wasSelected = source.selectedTabID == tab.id
-        if splitTabID == tab.id { splitTabID = nil }
+
+        if crossSpace {
+            if splitTabID == tab.id { splitTabID = nil }
+            if let state = tab.webView?.interactionState as? Data {
+                tab.savedInteractionState = state
+            }
+            // Different space = different website data store, so the web view is recreated later.
+            tab.detachWebView()
+        }
+
         source.pinnedTabs.removeAll { $0 === tab }
         source.tabs.removeAll { $0 === tab }
-        if let state = tab.webView?.interactionState as? Data {
-            tab.savedInteractionState = state
+
+        tab.isPinned = pinned
+        tab.folder = pinned ? anchor?.folder : nil
+
+        if pinned {
+            let index = anchor.flatMap { a in target.pinnedTabs.firstIndex { $0 === a } } ?? target.pinnedTabs.count
+            target.pinnedTabs.insert(tab, at: index)
+        } else {
+            let index = anchor.flatMap { a in target.tabs.firstIndex { $0 === a } } ?? target.tabs.count
+            target.tabs.insert(tab, at: index)
         }
-        // Different space = different website data store, so the web view must be recreated.
-        tab.detachWebView()
-        tab.isPinned = false
-        tab.folder = nil
-        target.tabs.insert(tab, at: 0)
-        if wasSelected {
+
+        if crossSpace && wasSelected {
             source.selectedTabID = nil
-            if let next = source.tabs.first ?? source.pinnedTabs.first, source === currentSpace {
+            if source === currentSpace, let next = source.tabs.first ?? source.pinnedTabs.first {
                 select(next)
             }
         }
         scheduleSave()
+    }
+
+    func tab(withID id: UUID) -> BrowserTab? {
+        allTabs.first { $0.id == id }
     }
 
     func selectAdjacentTab(offset: Int) {
@@ -563,6 +609,9 @@ final class BrowserState: ObservableObject {
 
     func selectSpace(_ space: Space) {
         guard space.id != selectedSpaceID else { return }
+        let from = spaces.firstIndex { $0.id == selectedSpaceID } ?? 0
+        let to = spaces.firstIndex { $0 === space } ?? 0
+        spaceTransitionEdge = to >= from ? .trailing : .leading
         if let previous = selectedTab {
             previous.lastActive = Date()
             captureSnapshot(of: previous)
@@ -579,6 +628,66 @@ final class BrowserState: ObservableObject {
     func selectSpace(atIndex index: Int) {
         guard spaces.indices.contains(index) else { return }
         selectSpace(spaces[index])
+    }
+
+    /// Moves to the neighbouring space. Returns false at either end.
+    @discardableResult
+    func selectAdjacentSpace(offset: Int) -> Bool {
+        guard let current = spaces.firstIndex(where: { $0.id == currentSpace?.id }) else { return false }
+        let next = current + offset
+        guard spaces.indices.contains(next) else { return false }
+        selectSpace(spaces[next])
+        return true
+    }
+
+    // MARK: Archiving "Today" tabs
+
+    nonisolated static let archiveHoursKey = "archiveAfterHours"
+    nonisolated static let defaultArchiveHours = 12
+
+    var archiveAfter: TimeInterval? {
+        let hours = UserDefaults.standard.object(forKey: Self.archiveHoursKey) as? Int ?? Self.defaultArchiveHours
+        return hours > 0 ? TimeInterval(hours) * 3600 : nil
+    }
+
+    /// Unpinned tabs that haven't been used for the configured period move to the archive
+    /// (History › Archived). Visible tabs, tabs with media/downloads are left alone.
+    func archiveStaleTodayTabs() {
+        guard let limit = archiveAfter else { return }
+        let now = Date()
+        var changed = false
+        for space in spaces {
+            let stale = space.tabs.filter { tab in
+                !isVisible(tab) && tab.activeDownloads == 0 && now.timeIntervalSince(tab.lastActive) >= limit
+            }
+            for tab in stale {
+                if let url = tab.url {
+                    archivedTabs.append(ArchivedTab(title: tab.displayTitle, url: url, faviconURL: tab.faviconURL,
+                                                    spaceName: space.name, archivedAt: now))
+                }
+                if space.selectedTabID == tab.id { space.selectedTabID = nil }
+                tab.detachWebView()
+                space.tabs.removeAll { $0 === tab }
+                changed = true
+            }
+        }
+        if archivedTabs.count > 2000 { archivedTabs.removeFirst(archivedTabs.count - 2000) }
+        if changed {
+            archiveDirty = true
+            scheduleSave()
+        }
+    }
+
+    func restoreArchived(_ item: ArchivedTab) {
+        archivedTabs.removeAll { $0.id == item.id }
+        archiveDirty = true
+        newTab(url: item.url)
+    }
+
+    func clearArchive() {
+        archivedTabs = []
+        archiveDirty = true
+        scheduleSave()
     }
 
     @discardableResult
@@ -666,15 +775,21 @@ final class BrowserState: ObservableObject {
         scheduleSave()
     }
 
-    func showCommandBar(newTab: Bool) {
+    func showCommandBar(newTab: Bool, scope: CommandBarScope = .all) {
+        commandBarScope = scope
         commandBarOpensNewTab = newTab || selectedTab == nil
-        commandBarInitialText = commandBarOpensNewTab ? "" : (selectedTab?.url?.absoluteString ?? "")
+        commandBarInitialText = (commandBarOpensNewTab || scope == .spaces) ? "" : (selectedTab?.url?.absoluteString ?? "")
         commandBarToken = UUID()
         commandBarVisible = true
     }
 
     func hideCommandBar() {
         commandBarVisible = false
+    }
+
+    func copyCurrentLink() {
+        guard let url = selectedTab?.url else { return }
+        copyToPasteboard(url.absoluteString)
     }
 
     func goBack() { selectedTab?.webView?.goBack() }

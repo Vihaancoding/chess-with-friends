@@ -50,6 +50,7 @@ final class BrowserTab: ObservableObject, Identifiable {
         scrollY = record.scrollY ?? 0
         zoom = record.zoom ?? 1
         savedInteractionState = record.interactionState
+        lastActive = record.lastActive ?? Date()
     }
 
     var record: TabRecord {
@@ -61,7 +62,8 @@ final class BrowserTab: ObservableObject, Identifiable {
             folder: folder,
             scrollY: scrollY > 0 ? scrollY : nil,
             zoom: zoom == 1 ? nil : zoom,
-            interactionState: (webView?.interactionState as? Data) ?? savedInteractionState
+            interactionState: (webView?.interactionState as? Data) ?? savedInteractionState,
+            lastActive: lastActive
         )
     }
 

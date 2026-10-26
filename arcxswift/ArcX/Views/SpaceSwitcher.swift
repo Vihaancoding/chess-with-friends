@@ -13,70 +13,66 @@ enum SpaceSheet: Identifiable {
     }
 }
 
-/// Icon row at the bottom of the sidebar: downloads, spaces, add space.
-struct SpaceSwitcher: View {
+/// Bottom space bar: downloads, one icon per space (with a sliding active indicator and
+/// drop targets for moving tabs between spaces), and "new space".
+struct SpaceBar: View {
     @EnvironmentObject private var state: BrowserState
     @EnvironmentObject private var downloads: DownloadManager
-    @State private var sheet: SpaceSheet?
+    @Namespace private var indicator
     @State private var spaceToDelete: Space?
     @State private var showingDownloads = false
 
     var body: some View {
-        HStack(spacing: 4) {
-            Button {
+        HStack(spacing: DS.Spacing.xxs) {
+            ToolbarIconButton(systemName: downloads.hasActiveDownloads ? "arrow.down.circle.fill" : "arrow.down.circle",
+                              help: "Downloads") {
                 showingDownloads.toggle()
-            } label: {
-                Image(systemName: downloads.hasActiveDownloads ? "arrow.down.circle.fill" : "arrow.down.circle")
-                    .font(.system(size: 14))
-                    .frame(width: 26, height: 26)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(downloads.hasActiveDownloads ? Color.accentColor : Color.secondary)
-            .help("Downloads")
             .popover(isPresented: $showingDownloads, arrowEdge: .top) {
                 DownloadsView()
                     .environmentObject(downloads)
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: DS.Spacing.xxs)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 2) {
-                    ForEach(state.spaces) { space in
-                        SpaceButton(space: space, isSelected: space.id == state.currentSpace?.id) {
+                HStack(spacing: DS.Spacing.xxs) {
+                    ForEach(Array(state.spaces.enumerated()), id: \.element.id) { index, space in
+                        SpaceButton(space: space,
+                                    isSelected: space.id == state.currentSpace?.id,
+                                    index: index,
+                                    indicator: indicator) {
                             state.selectSpace(space)
                         }
                         .contextMenu {
-                            Button("Edit Space…") { sheet = .edit(space) }
-                            Button("Clear Website Data…") {
+                            Button { state.spaceSheet = .edit(space) } label: { Label("Edit Space…", systemImage: "pencil") }
+                            Button {
                                 Task { await state.clearWebsiteData(for: space) }
+                            } label: {
+                                Label("Clear Website Data", systemImage: "trash")
                             }
                             Divider()
-                            Button("Delete Space…", role: .destructive) { spaceToDelete = space }
-                                .disabled(state.spaces.count < 2)
+                            Button(role: .destructive) { spaceToDelete = space } label: {
+                                Label("Delete Space…", systemImage: "minus.circle")
+                            }
+                            .disabled(state.spaces.count < 2)
                         }
                     }
                 }
+                .padding(.vertical, 2)
             }
             .fixedSize(horizontal: state.spaces.count <= 6, vertical: false)
+            .animation(DS.Motion.space, value: state.currentSpace?.id)
 
-            Spacer(minLength: 4)
+            Spacer(minLength: DS.Spacing.xxs)
 
-            Button {
-                sheet = .create
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .medium))
-                    .frame(width: 26, height: 26)
-                    .contentShape(Rectangle())
+            ToolbarIconButton(systemName: "plus", help: "New Space") {
+                state.spaceSheet = .create
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .help("New Space")
         }
-        .padding(.horizontal, 10)
-        .sheet(item: $sheet) { sheet in
+        .padding(.horizontal, DS.Spacing.xs)
+        .padding(.vertical, DS.Spacing.xs)
+        .sheet(item: $state.spaceSheet) { sheet in
             SpaceEditorView(sheet: sheet)
                 .environmentObject(state)
         }
@@ -90,30 +86,46 @@ struct SpaceSwitcher: View {
             }
             Button("Cancel", role: .cancel) { spaceToDelete = nil }
         } message: {
-            Text("Its tabs and its cookies/website data will be removed. This can’t be undone.")
+            Text("Its tabs and its cookies and website data will be removed. This can’t be undone.")
         }
     }
 }
 
 private struct SpaceButton: View {
+    @EnvironmentObject private var state: BrowserState
     @ObservedObject var space: Space
     let isSelected: Bool
+    let index: Int
+    let indicator: Namespace.ID
     let action: () -> Void
     @State private var hovering = false
+    @State private var dropTargeted = false
 
     var body: some View {
         Button(action: action) {
-            SpaceIconView(icon: space.icon, color: space.color, size: 13)
-                .frame(width: 26, height: 26)
-                .background(
-                    Circle().fill(isSelected ? space.color.opacity(0.25) : (hovering ? Color.primary.opacity(0.07) : Color.clear))
-                )
-                .contentShape(Circle())
+            SpaceIconView(icon: space.icon, color: isSelected ? space.color : DS.Palette.textSecondary, size: 12)
+                .frame(width: 28, height: 28)
+                .background {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: DS.Radius.control, style: .continuous)
+                            .fill(space.color.opacity(0.16))
+                            .matchedGeometryEffect(id: "active-space", in: indicator)
+                    } else if hovering || dropTargeted {
+                        RoundedRectangle(cornerRadius: DS.Radius.control, style: .continuous)
+                            .fill(dropTargeted ? space.color.opacity(0.22) : DS.Palette.itemHover)
+                    }
+                }
+                .scaleEffect(dropTargeted ? 1.12 : 1)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(space.name)
+        .help(index < 9 ? "\(space.name)  ⌃\(index + 1)" : space.name)
         .onHover { hovering = $0 }
-        .animation(.easeOut(duration: 0.15), value: isSelected)
+        .dropDestination(for: String.self) { items, _ in
+            TabDrag.handle(items, state: state, space: space, pinned: false, before: space.tabs.first)
+        } isTargeted: { dropTargeted = $0 }
+        .animation(DS.Motion.hover, value: hovering)
+        .animation(DS.Motion.standard, value: dropTargeted)
     }
 }
 

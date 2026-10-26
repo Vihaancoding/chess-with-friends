@@ -10,22 +10,22 @@ struct MainContentView: View {
             if state.findBarVisible {
                 FindBar()
                     .transition(.move(edge: .top).combined(with: .opacity))
-                Divider()
+                Rectangle().fill(DS.Palette.hairline).frame(height: 0.5)
             }
             if let space = state.currentSpace {
                 SpaceContent(space: space)
             } else {
-                EmptyStateView()
+                StartPageView()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(DS.Palette.content)
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.panel, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: DS.Radius.panel, style: .continuous)
+                .strokeBorder(DS.Palette.hairline, lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.14), radius: 5, y: 1)
-        .animation(.easeOut(duration: 0.15), value: state.findBarVisible)
+        .shadow(color: DS.Palette.shadow, radius: 3, y: 1)
+        .animation(DS.Motion.quick, value: state.findBarVisible)
     }
 }
 
@@ -41,7 +41,8 @@ private struct SpaceContent: View {
             TabPane(tab: selected, showsHeader: false)
                 .id(selected.id)
         } else {
-            EmptyStateView()
+            StartPageView()
+                .transition(.opacity)
         }
     }
 }
@@ -95,7 +96,7 @@ struct TabPane: View {
                 }
                 .padding(.horizontal, 10)
                 .frame(height: 28)
-                .background(isFocused ? Color.accentColor.opacity(0.10) : Color.primary.opacity(0.03))
+                .background(isFocused ? DS.Palette.itemSelected : DS.Palette.fill.opacity(0.5))
                 .contentShape(Rectangle())
                 .onTapGesture { state.select(tab) }
                 Divider()
@@ -136,24 +137,6 @@ struct LoadingBar: View {
         }
         .frame(height: 2)
         .allowsHitTesting(false)
-    }
-}
-
-struct EmptyStateView: View {
-    @EnvironmentObject private var state: BrowserState
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 34, weight: .light))
-                .foregroundStyle(.secondary)
-            Text("No tab open")
-                .font(.title3.weight(.semibold))
-            Button("New Tab  ⌘T") { state.showCommandBar(newTab: true) }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

@@ -5,6 +5,7 @@ enum Persistence {
     static let sessionFile = "session.json"
     static let historyFile = "history.json"
     static let bookmarksFile = "bookmarks.json"
+    static let archiveFile = "archive.json"
 
     static let directory: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

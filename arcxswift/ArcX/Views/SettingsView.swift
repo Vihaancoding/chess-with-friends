@@ -13,7 +13,7 @@ struct SettingsView: View {
             PasswordsSettingsView()
                 .tabItem { Label("Passwords", systemImage: "key") }
         }
-        .frame(width: 560, height: 440)
+        .frame(width: 560, height: 560)
     }
 }
 
@@ -21,6 +21,9 @@ private struct GeneralSettingsView: View {
     @EnvironmentObject private var state: BrowserState
     @Environment(\.openWindow) private var openWindow
     @AppStorage(TabSleepManager.minutesKey) private var sleepMinutes = TabSleepManager.defaultMinutes
+    @AppStorage(SearchEngine.defaultsKey) private var searchEngine = SearchEngine.google.rawValue
+    @AppStorage(BrowserState.archiveHoursKey) private var archiveHours = BrowserState.defaultArchiveHours
+    @AppStorage("quietSidebar") private var quietSidebar = true
 
     private let options: [(String, Int)] = [
         ("1 minute", 1), ("5 minutes", 5), ("10 minutes", 10), ("15 minutes", 15),
@@ -41,7 +44,29 @@ private struct GeneralSettingsView: View {
                 Button("Open Tab Memory Debug View") { openWindow(id: "memory") }
             }
             Section("Search") {
-                LabeledContent("Search engine", value: "DuckDuckGo")
+                Picker("Search engine", selection: $searchEngine) {
+                    ForEach(SearchEngine.allCases) { engine in
+                        Text(engine.name).tag(engine.rawValue)
+                    }
+                }
+            }
+            Section("Today tabs") {
+                Picker("Archive unused Today tabs after", selection: $archiveHours) {
+                    Text("12 hours").tag(12)
+                    Text("24 hours").tag(24)
+                    Text("7 days").tag(24 * 7)
+                    Text("30 days").tag(24 * 30)
+                    Text("Never").tag(0)
+                }
+                Text("Pinned tabs are never archived. Archived tabs can be reopened from History › Archived.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Appearance") {
+                Toggle("Quiet sidebar while reading", isOn: $quietSidebar)
+                Text("The sidebar softens when your pointer leaves it, so the page stays in focus. Swipe with two fingers over the sidebar to switch spaces.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

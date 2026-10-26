@@ -14,10 +14,11 @@ struct HistoryView: View {
                 Picker("", selection: $mode) {
                     Text("History").tag(0)
                     Text("Bookmarks").tag(1)
+                    Text("Archived").tag(2)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(width: 220)
+                .frame(width: 300)
                 Spacer()
                 TextField("Search", text: $query)
                     .textFieldStyle(.roundedBorder)
@@ -27,27 +28,77 @@ struct HistoryView: View {
 
             Divider()
 
-            if mode == 0 {
-                historyList
-            } else {
-                bookmarkList
+            switch mode {
+            case 0: historyList
+            case 1: bookmarkList
+            default: archivedList
             }
 
             Divider()
             HStack {
-                Text(mode == 0 ? "\(state.history.count) entries" : "\(state.bookmarks.count) bookmarks")
+                Text(footerText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
                 if mode == 0 {
                     Button("Clear History…") { confirmClear = true }
                         .disabled(state.history.isEmpty)
+                } else if mode == 2 {
+                    Button("Clear Archive") { state.clearArchive() }
+                        .disabled(state.archivedTabs.isEmpty)
                 }
             }
             .padding(10)
         }
         .confirmationDialog("Clear all browsing history?", isPresented: $confirmClear) {
             Button("Clear History", role: .destructive) { state.clearHistory() }
+        }
+    }
+
+    private var footerText: String {
+        switch mode {
+        case 0: return "\(state.history.count) entries"
+        case 1: return "\(state.bookmarks.count) bookmarks"
+        default: return "\(state.archivedTabs.count) archived tabs — Today tabs are archived after a period of inactivity"
+        }
+    }
+
+    private var filteredArchive: [ArchivedTab] {
+        let needle = query.lowercased()
+        let all = Array(state.archivedTabs.reversed())
+        guard !needle.isEmpty else { return all }
+        return all.filter {
+            $0.title.lowercased().contains(needle) || $0.url.absoluteString.lowercased().contains(needle)
+                || $0.spaceName.lowercased().contains(needle)
+        }
+    }
+
+    private var archivedList: some View {
+        List(filteredArchive) { item in
+            HStack(spacing: 10) {
+                FaviconView(faviconURL: item.faviconURL, pageURL: item.url, size: 16)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title).lineLimit(1)
+                    Text("\(item.spaceName) · \(item.url.host() ?? item.url.absoluteString)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Text(item.archivedAt, format: .dateTime.month(.abbreviated).day().hour().minute())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Restore") { state.restoreArchived(item) }
+                    .buttonStyle(.borderless)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) { state.restoreArchived(item) }
+        }
+        .overlay {
+            if filteredArchive.isEmpty {
+                Text("Nothing archived yet.")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 

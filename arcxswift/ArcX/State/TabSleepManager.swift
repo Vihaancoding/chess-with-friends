@@ -55,7 +55,7 @@ final class TabSleepManager: ObservableObject {
     }
 
     private func updateActivity() {
-        if appIsVisible, sleepAfter != nil {
+        if appIsVisible {
             isPaused = false
             if timer == nil {
                 schedule()
@@ -80,6 +80,7 @@ final class TabSleepManager: ObservableObject {
     }
 
     func sweep() {
+        state?.archiveStaleTodayTabs()
         guard let state, let limit = sleepAfter else { return }
         lastSweep = Date()
         let now = Date()

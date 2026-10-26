@@ -11,6 +11,8 @@ struct BrowserCommands: Commands {
                 .keyboardShortcut("t")
             Button("Open Location…") { state.showCommandBar(newTab: false) }
                 .keyboardShortcut("l")
+            Button("Command Bar…") { state.showCommandBar(newTab: false) }
+                .keyboardShortcut("k")
             Button("Reopen Closed Tab") { state.reopenClosedTab() }
                 .keyboardShortcut("t", modifiers: [.command, .shift])
                 .disabled(state.closedTabs.isEmpty)
@@ -20,7 +22,9 @@ struct BrowserCommands: Commands {
 
         // Replaces File > Close (Cmd+W) and Save (Cmd+S).
         CommandGroup(replacing: .saveItem) {
-            Button("Close Tab") { state.closeSelectedTab() }
+            Button("Close Tab") {
+                withAnimation(DS.Motion.standard) { state.closeSelectedTab() }
+            }
                 .keyboardShortcut("w")
             Button("Close Window") { NSApp.keyWindow?.performClose(nil) }
                 .keyboardShortcut("w", modifiers: [.command, .shift])
@@ -67,14 +71,22 @@ struct BrowserCommands: Commands {
 
         CommandMenu("Tabs") {
             Button("Next Tab") { state.selectAdjacentTab(offset: 1) }
-                .keyboardShortcut(.tab, modifiers: [.control])
+                .keyboardShortcut("]", modifiers: [.command, .shift])
             Button("Previous Tab") { state.selectAdjacentTab(offset: -1) }
+                .keyboardShortcut("[", modifiers: [.command, .shift])
+            Button("Next Tab (Alternate)") { state.selectAdjacentTab(offset: 1) }
+                .keyboardShortcut(.tab, modifiers: [.control])
+            Button("Previous Tab (Alternate)") { state.selectAdjacentTab(offset: -1) }
                 .keyboardShortcut(.tab, modifiers: [.control, .shift])
             Divider()
             Button("Pin / Unpin Tab") {
-                if let tab = state.selectedTab { state.togglePin(tab) }
+                if let tab = state.selectedTab {
+                    withAnimation(DS.Motion.standard) { state.togglePin(tab) }
+                }
             }
             .keyboardShortcut("d")
+            Button("Copy Link") { state.copyCurrentLink() }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
             Button("Add to Favorites") {
                 if let tab = state.selectedTab { state.addToFavorites(tab) }
             }
@@ -86,6 +98,14 @@ struct BrowserCommands: Commands {
         }
 
         CommandMenu("Spaces") {
+            Button("Switch Space…") { state.showCommandBar(newTab: false, scope: .spaces) }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+            Button("Next Space") { state.selectAdjacentSpace(offset: 1) }
+                .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
+            Button("Previous Space") { state.selectAdjacentSpace(offset: -1) }
+                .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
+            Button("New Space…") { state.spaceSheet = .create }
+            Divider()
             ForEach(Array(state.spaces.prefix(9).enumerated()), id: \.element.id) { index, space in
                 Button(space.name) { state.selectSpace(space) }
                     .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .control)

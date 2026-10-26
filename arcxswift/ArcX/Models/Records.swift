@@ -11,6 +11,7 @@ struct TabRecord: Codable, Identifiable, Sendable {
     var zoom: Double?
     /// Opaque WebKit session state (back/forward list, scroll, form state).
     var interactionState: Data?
+    var lastActive: Date?
 }
 
 struct SpaceRecord: Codable, Identifiable, Sendable {
@@ -45,4 +46,14 @@ struct HistoryEntry: Codable, Identifiable, Hashable, Sendable {
     var url: URL
     var title: String
     var date: Date
+}
+
+/// A "Today" tab that was archived automatically after a period of inactivity.
+struct ArchivedTab: Codable, Identifiable, Hashable, Sendable {
+    var id = UUID()
+    var title: String
+    var url: URL
+    var faviconURL: URL?
+    var spaceName: String
+    var archivedAt: Date
 }

@@ -30,10 +30,7 @@ enum URLParser {
     }
 
     static func searchURL(for query: String) -> URL {
-        var allowed = CharacterSet.urlQueryAllowed
-        allowed.remove(charactersIn: "&+=?#")
-        let encoded = query.addingPercentEncoding(withAllowedCharacters: allowed) ?? query
-        return URL(string: "https://duckduckgo.com/?q=\(encoded)") ?? URL(string: "https://duckduckgo.com/")!
+        SearchEngine.current.url(for: query)
     }
 
     static func destination(for input: String) -> URL {
