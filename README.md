@@ -45,7 +45,7 @@ See [`.env.example`](.env.example) for the same list.
 Players can be split into separate servers on the same site. Each server has its own players, leaderboard, lobby chat, live games, challenges and game archive, and players on one server can't see, challenge, spectate or look up players on another.
 
 - Everyone who signed up before servers existed is on **Server 1**. Server 1 never has a code, so nobody new can join it (except the very first account on a brand-new site, so someone can sign up and become admin).
-- Admins create servers in the **Admin panel → Servers**. Each server gets a sign-up code: give it to the people who should join that server, and they enter it in **Server code** when they sign up. Admins can make a new code (the old one stops working) or turn the code off to close the server.
+- Admins create servers in the **Admin panel → Servers**. Each server gets a sign-up code: give it to the people who should join that server, and they enter it in **Server code** when they sign up. **Copy invite link** gives a link (`https://your-site/?join=CODE`) that fills the code in for them. Admins can make a new code (the old one stops working) or turn the code off to close the server.
 - Admins move a player with the **Server** menu next to their name, and use **Switch here** to move themselves: the lobby, chat, live games and the rest of the admin panel then show that server.
 
 Accounts are shared, so usernames and emails are unique across all servers.
