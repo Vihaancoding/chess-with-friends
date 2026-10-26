@@ -878,7 +878,7 @@
   <div class="statrow" id="adstats"></div>
   <div class="panel">
     <h2 class="ph">Servers <button class="small" id="adNewSrv">New server</button></h2>
-    <div class="muted" style="font-size:.9rem;font-weight:600;margin-bottom:8px">Each server has its own players, games, chat and leaderboard. New players sign up with a server's code. Server 1 has no code, so nobody new can join it. You see the server you're on below; switch to manage another.</div>
+    <div class="muted" style="font-size:.9rem;font-weight:600;margin-bottom:8px">Each server has its own players, games, chat and leaderboard. New players sign up with a server's code, or with its invite link, which fills the code in for them. Server 1 has no code, so nobody new can join it. You see the server you're on below; switch to manage another.</div>
     <table><thead><tr><th>Server</th><th>Code</th><th class="r">Players</th><th></th></tr></thead><tbody id="adsrv"></tbody></table>
   </div>
   <div class="panel">
@@ -1336,6 +1336,8 @@ async function boot() {
   if (rt) { resetToken = rt; setMode('reset'); return show('welcome'); }
   const saved = (() => { try { return JSON.parse(localStorage.getItem('chess:user')); } catch { return null; } })();
   if (saved && (await login(saved.name, saved.token)).ok) return start();
+  const join = new URLSearchParams(location.search).get('join');      // an invite link: ?join=<server code>
+  if (join) { $('#srvIn').value = join.toUpperCase().slice(0, 12); history.replaceState(null, '', '/'); }
   show('welcome');
 }
 async function start() {
@@ -1854,6 +1856,7 @@ async function loadAdmin() {
       <td class="r">${x.players}</td>
       <td><div class="acts">${x.id === sv.current ? '' : `<button class="small primary" data-act="srvswitch" data-id="${x.id}">Switch here</button>`}
       <button class="small" data-act="srvrename" data-id="${x.id}" data-v="${esc(x.name)}">Rename</button>
+      ${x.code ? `<button class="small" data-act="srvlink" data-code="${esc(x.code)}">Copy invite link</button>` : ''}
       ${x.id === '1' ? '' : `<button class="small" data-act="srvcode" data-id="${x.id}">${x.code ? 'New code' : 'Turn on code'}</button>${x.code ? `<button class="small" data-act="srvoff" data-id="${x.id}">Turn off code</button>` : ''}`}</div></td></tr>`).join('');
   }
   $('#adstats').innerHTML = [['Players', r.stats.users], ['Live games', r.stats.live], ['Chat messages', r.stats.chat]]
@@ -1892,6 +1895,12 @@ $('#admin').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const { act, name, code } = b.dataset;
+  if (act === 'srvlink') {
+    const link = location.origin + '/?join=' + code;
+    try { await navigator.clipboard.writeText(link); b.textContent = 'Copied!'; setTimeout(() => (b.textContent = 'Copy invite link'), 1500); }
+    catch { prompt('Invite link (anyone with it can join this server):', link); }
+    return;
+  }
   if (act === 'srvswitch') { const r = await api('admin_move', { to: b.dataset.id }); if (!r.ok) return alert(r.error || 'Could not switch.'); return location.reload(); }
   if (act === 'srvrename') { const n = prompt('New name:', b.dataset.v); if (!n) return; const r = await api('admin_server_edit', { id: b.dataset.id, name: n }); if (!r.ok) alert(r.error); return loadAdmin(); }
   if (act === 'srvcode' || act === 'srvoff') {
