@@ -10,7 +10,7 @@ const DEV_LATENCY = +process.env.DEV_LATENCY_MS || 0;
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');

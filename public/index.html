@@ -4,18 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chess With Friends</title>
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wQ.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wR.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wB.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wP.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bK.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bQ.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bR.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bB.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bN.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bP.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wK.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wQ.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wR.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wB.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wN.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wP.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bK.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bQ.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bR.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bB.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bN.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bP.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -65,6 +65,8 @@
   .brand { display: flex; align-items: center; gap: 8px; padding: 4px 18px 18px; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
   .brand img { width: 34px; height: 34px; }
   .brand b { color: var(--green); }
+  .srvcode { font: 700 1rem ui-monospace, monospace; letter-spacing: .08em; user-select: all; }
+  .brand .srvname { font-size: .5em; font-weight: 700; letter-spacing: 0; color: var(--muted); border: 1px solid currentColor; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
   .nav { display: flex; flex-direction: column; }
   .nav button { background: none; box-shadow: none; border-radius: 0; justify-content: flex-start; padding: 12px 18px; min-height: 48px; font-size: 1rem; color: #c3c2c1; gap: 14px; border-left: 4px solid transparent; }
   .nav button:hover { background: #ffffff0d; filter: none; color: #fff; }
@@ -601,13 +603,35 @@
   .sndtest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-weight: 700; }
   .sktoggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--green); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  /* head-to-head match */
+  #fmtPick { margin-top: 2px; } #fmtPick button { font-size: .85rem; }
+  #matchpanel { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid var(--gold); }
+  #matchpanel.hidden { display: none; }
+  .mphead { display: flex; align-items: baseline; gap: 8px; } .mphead .muted { margin-left: auto; font-size: .8rem; font-weight: 600; }
+  .mprow { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+  .mprow .avatar { width: 26px; height: 26px; font-size: .8rem; flex: none; }
+  .mprow .mpn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mprow .mps { font-size: 1.5rem; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
+  .mprow.lead .mps { color: var(--gold); }
+  .mpdots { display: flex; flex-wrap: wrap; gap: 4px; }
+  .mpdots i { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-style: normal; font-size: .7rem; font-weight: 800; background: #3a3936; color: var(--muted); }
+  .mpdots i.a { background: var(--green-dark); color: #fff; } .mpdots i.b { background: #7a3a33; color: #fff; } .mpdots i.d { background: #55534f; color: #fff; }
+  .mpdots i.x { outline: 2px solid var(--gold); outline-offset: -2px; }
+  .mpnote { font-size: .88rem; font-weight: 600; color: var(--muted); } .mpnote b { color: var(--text); }
+  .mpwin { color: var(--gold); font-weight: 800; }
+  #omatch { margin-top: 14px; padding: 12px; border-radius: 10px; background: var(--panel2); }
+  #omatch.hidden { display: none; }
+  .omscore { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; display: flex; justify-content: center; gap: 10px; align-items: baseline; }
+  .omscore span { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .omcount { margin-top: 8px; font-weight: 700; font-size: .9rem; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .liverow .mtag { font-size: .75rem; font-weight: 800; color: var(--gold); }
 </style>
 </head>
 <body data-view="welcome">
 
 <div class="app">
 <nav class="side">
-  <div class="brand"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
+  <div class="brand"><img src="/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
@@ -627,7 +651,7 @@
 
 <!-- sign in -->
 <div id="welcome" class="hidden">
-  <div class="brand"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
+  <div class="brand"><img src="/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="muted" style="font-weight:600">Play your friends. Climb the leaderboard.</div>
   <div class="panel">
     <div class="authtabs" id="authTabs"><button id="tabUp" class="on">Sign up</button><button id="tabIn">Log in</button></div>
@@ -640,6 +664,10 @@
       <div id="emailRow">
         <label class="label" for="emailIn">Email</label>
         <input id="emailIn" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+      </div>
+      <div id="srvRow">
+        <label class="label" for="srvIn">Server code</label>
+        <input id="srvIn" maxlength="12" placeholder="The code you were given" autocomplete="off" autocapitalize="characters" spellcheck="false">
       </div>
       <div id="codeRow" class="hidden">
         <label class="label" for="recIn">Recovery code</label>
@@ -708,8 +736,13 @@
       </div>
       <div id="colorRow"><div class="label">Play as</div>
       <div class="colorpick"><button data-c="w">White</button><button data-c="r" class="on">Random</button><button data-c="b">Black</button></div></div>
+      <div id="fmtRow">
+        <div class="label">Format</div>
+        <div class="levels" id="fmtPick"><button data-f="" class="on">One game</button><button data-f="bo3">Best of 3</button><button data-f="bo5">Best of 5</button><button data-f="bo7">Best of 7</button><button data-f="ft3">First to 3</button><button data-f="ft5">First to 5</button><button data-f="ft10">First to 10</button><button data-f="mar">Marathon</button></div>
+        <div class="muted" id="fmtDesc" style="font-size:.85rem;margin-top:8px;font-weight:600;min-height:2.6em"></div>
+      </div>
       <div id="friendOnly">
-      <div style="margin-top:18px"><button class="primary big" id="create">Create game</button></div>
+      <div style="margin-top:14px"><button class="primary big" id="create">Create game</button></div>
       <div class="or">or join with a code</div>
       <div class="row" style="margin-top:10px"><input id="code" class="code" maxlength="5" placeholder="ABCDE" autocomplete="off"><button class="primary" id="join">Join</button></div>
       <div class="label">Challenge a friend</div>
@@ -846,6 +879,11 @@
   <h1 class="ptitle">Admin panel</h1>
   <div class="statrow" id="adstats"></div>
   <div class="panel">
+    <h2 class="ph">Servers <button class="small" id="adNewSrv">New server</button></h2>
+    <div class="muted" style="font-size:.9rem;font-weight:600;margin-bottom:8px">Each server has its own players, games, chat and leaderboard. New players sign up with a server's code, or with its invite link, which fills the code in for them. Server 1 has no code, so nobody new can join it. You see the server you're on below; switch to manage another.</div>
+    <table><thead><tr><th>Server</th><th>Code</th><th class="r">Players</th><th></th></tr></thead><tbody id="adsrv"></tbody></table>
+  </div>
+  <div class="panel">
     <h2 class="ph">Announcement</h2>
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
   </div>
@@ -855,7 +893,7 @@
   </div>
   <div class="panel">
     <h2 class="ph">Players <button class="small" id="adClearChat">Clear lobby chat</button></h2>
-    <table><thead><tr><th>Player</th><th>Email</th><th class="r">Rating</th><th class="r">W / L / D</th><th></th></tr></thead><tbody id="adusers"></tbody></table>
+    <table><thead><tr><th>Player</th><th>Email</th><th class="r">Rating</th><th class="r">W / L / D</th><th>Server</th><th></th></tr></thead><tbody id="adusers"></tbody></table>
   </div>
 </div>
 
@@ -871,6 +909,13 @@
     <div id="statuscard"><div id="status"></div><div id="sub"></div>
       <button id="opening" type="button" aria-expanded="false" aria-controls="opPanel" title="Opening"><span class="oplbl">Opening</span><span id="opName">—</span></button>
       <div id="opPanel" class="hidden"></div>
+    </div>
+    <div class="panel hidden" id="matchpanel">
+      <div class="mphead"><b id="mpTitle"></b><span class="muted" id="mpSub"></span></div>
+      <div id="mpScore"></div>
+      <div class="mpdots" id="mpDots"></div>
+      <div class="mpnote" id="mpNote" aria-live="polite"></div>
+      <div class="row" id="mpActs"><button class="small" id="mpHold">Wait</button><button class="small" id="mpEnd">End match</button></div>
     </div>
     <div class="panel hidden" id="coachpanel">
       <div class="cohead"><span class="coav sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg></span><b>Coach</b><span class="muted" id="coLvl"></span></div>
@@ -934,6 +979,7 @@
   <div id="otitle"></div><div id="osub"></div>
   <div class="ovs"><div class="oside" id="oMe"></div><div class="ovsmid">VS</div><div class="oside" id="oOpp"></div></div>
   <div id="orating"></div>
+  <div id="omatch" class="hidden"></div>
   <div class="ostats"><div><b id="oMoves"></b><span>Moves</span></div><div><b id="oDur"></b><span>Duration</span></div><div><b id="oCat"></b><span>Time control</span></div></div>
   <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
@@ -964,6 +1010,7 @@
 <script src="opening.js"></script>
 <script src="coachask.js"></script>
 <script src="style.js"></script>
+<script src="match.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
@@ -982,7 +1029,12 @@ const PIECE_SETS = { cburnett: 'Classic', merida: 'Merida', alpha: 'Alpha', cali
 let SKIN = (() => { try { return { board: 'green', pieces: 'cburnett', ...(JSON.parse(localStorage.getItem('chess:skin')) || {}) }; } catch { return { board: 'green', pieces: 'cburnett' }; } })();
 if (!BOARDS[SKIN.board]) SKIN.board = 'green';
 if (!PIECE_SETS[SKIN.pieces]) SKIN.pieces = 'cburnett';
-let PIECE_CDN = PIECE_ROOT + SKIN.pieces + '/';
+// The default set ships with the app, so pieces still show when the CDN is blocked or slow (school / office networks);
+// any other set falls back to it, then to a text glyph.
+const PIECE_LOCAL = '/piece/cburnett/';
+const pieceDir = (k) => k === 'cburnett' ? PIECE_LOCAL : PIECE_ROOT + k + '/';
+let PIECE_CDN = pieceDir(SKIN.pieces);
+const pieceFallback = (p) => `onerror="if(this.src.indexOf('${PIECE_LOCAL}')<0)this.src='${PIECE_LOCAL}${p}.svg';else this.remove()"`;
 function applyBoardColors() {
   const [, l, d] = BOARDS[SKIN.board];
   document.documentElement.style.setProperty('--light', l);
@@ -991,7 +1043,7 @@ function applyBoardColors() {
 applyBoardColors();
 function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
-  return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
+  return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="if(this.src.indexOf('${PIECE_LOCAL}')<0)this.src='${PIECE_LOCAL}${p}.svg';else{this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'}">`;
 }
 const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
@@ -1007,7 +1059,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
+const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 async function api(route, body) {
@@ -1055,6 +1107,15 @@ function rtInit() {
   })();
   return RTC.ready;
 }
+// for admins: which server they are on, next to the logo (only once there is more than one server)
+function paintServerName(name) {
+  document.querySelectorAll('.brand').forEach((b) => {
+    let t = b.querySelector('.srvname');
+    if (!name) { if (t) t.remove(); return; }
+    if (!t) { t = document.createElement('small'); t.className = 'srvname'; b.appendChild(t); }
+    t.textContent = name;
+  });
+}
 // Local dev (SSE): ONE EventSource for the whole session; topics are added/removed on it without reconnecting.
 const SSE = { es: null, open: false, everOpen: false, topics: new Map() };
 const sseTopics = (op, list) => fetch(`/api/events?conn=${RTC.conn}&${op}=${encodeURIComponent(list.join(','))}`, { method: 'POST' }).catch(() => {});
@@ -1077,10 +1138,11 @@ function sseEnsure() {
   });
 }
 // subscribe to a topic; handlers = { event: fn(payload) }; onState(connected) fires on every (re)connect/disconnect
-function rtSubscribe(topic, handlers, onState) {
-  let closed = false, ch = null;
+function rtSubscribe(topic0, handlers, onState) {
+  let closed = false, ch = null, topic = topic0;
   rtInit().then(() => {
     if (closed) return;
+    topic = ((user && user.ns) || '') + topic0;                       // every server has its own topics
     if (RTC.mode === 'sse') {
       SSE.topics.set(topic, { handlers, onState });
       if (!SSE.es) sseEnsure(); else { sseTopics('add', [topic]); if (SSE.open && onState) onState(true); }
@@ -1130,6 +1192,7 @@ function ensureSessionSubs() {
   rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
 }
 function onUserPing(d) {
+  if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'clone' && d.c) {
     if (view === 'lobby') pollLobby(true);
@@ -1151,7 +1214,7 @@ function seedSnap(code, g) {
   const you = g.players.w && g.players.w.name === user.name ? 'w' : g.players.b && g.players.b.name === user.name ? 'b' : 's';
   return { code, you, state: Chess.initial(), moves: [], last: null, status: { over: false, result: null, reason: null, check: false },
     players: g.players, present: { w: true, b: true }, tc: g.tc, clock: g.tc ? { w: g.tc.base * 1000, b: g.tc.base * 1000, running: null } : null,
-    delta: null, rematch: [], hist: [], drawOffer: null, watching: 0, cat: g.cat, ratings: null, unrated: false, startedAt: null, endedAt: null, v: g.v };
+    delta: null, rematch: [], hist: [], drawOffer: null, watching: 0, cat: g.cat, ratings: null, unrated: false, startedAt: null, endedAt: null, v: g.v, match: g.match || null, arma: false };
 }
 
 // A move pushed by the server, e.g. {m:"e2e4", v:42, k:[wMs,bMs]}: validate with the local engine and draw it.
@@ -1187,7 +1250,7 @@ function onRtMove(ev) {
 
 // ---------- sign in ----------
 function finishAuth(r) {
-  user = { name: r.name, token: r.token, topic: r.topic };
+  user = { name: r.name, token: r.token, topic: r.topic, srv: r.srv, ns: r.ns || '' };
   if (r.ratings) myRatings = r.ratings;
   localStorage.setItem('chess:user', JSON.stringify(user));
 }
@@ -1212,6 +1275,7 @@ function setMode(m) {
   $('#tabUp').classList.toggle('on', m === 'up'); $('#tabIn').classList.toggle('on', m !== 'up');
   $('#authIntro').classList.toggle('hidden', !recovering); $('#authIntro').textContent = AUTH_INTRO[m] || '';
   $('#nameRow').classList.toggle('hidden', m !== 'up');
+  $('#srvRow').classList.toggle('hidden', m !== 'up');
   $('#emailRow').classList.toggle('hidden', m === 'reset');
   $('#codeRow').classList.toggle('hidden', m !== 'forgot');
   $('#passRow').classList.toggle('hidden', m === 'mail');
@@ -1240,7 +1304,7 @@ $('#authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const m = authMode;
   const body = { email: $('#emailIn').value, password: $('#passIn').value };
-  if (m === 'up') body.username = $('#nameIn').value;
+  if (m === 'up') { body.username = $('#nameIn').value; body.server = $('#srvIn').value; }
   if (m === 'forgot') body.code = $('#recIn').value;
   if (m === 'reset') body.token = resetToken;
   $('#go').disabled = true; $('#werr').textContent = ''; $('#wok').textContent = '';
@@ -1274,6 +1338,8 @@ async function boot() {
   if (rt) { resetToken = rt; setMode('reset'); return show('welcome'); }
   const saved = (() => { try { return JSON.parse(localStorage.getItem('chess:user')); } catch { return null; } })();
   if (saved && (await login(saved.name, saved.token)).ok) return start();
+  const join = new URLSearchParams(location.search).get('join');      // an invite link: ?join=<server code>
+  if (join) { $('#srvIn').value = join.toUpperCase().slice(0, 12); history.replaceState(null, '', '/'); }
   show('welcome');
 }
 async function start() {
@@ -1297,7 +1363,7 @@ document.querySelectorAll('.colorpick button').forEach((b) => b.onclick = () => 
   b.classList.add('on'); pickColor = b.dataset.c;
 });
 $('#create').onclick = async () => {
-  const r = await api('create', { color: pickColor === 'r' ? null : pickColor, tc: tcOf() });
+  const r = await api('create', { color: pickColor === 'r' ? null : pickColor, tc: tcOf(), match: fmtOf() });
   r.ok ? enterGame(r.code, r.snap) : ($('#err').textContent = r.error);
 };
 $('#join').onclick = async () => {
@@ -1305,6 +1371,30 @@ $('#join').onclick = async () => {
   r.ok ? enterGame(r.code, r.snap) : ($('#err').textContent = r.error);
 };
 $('#code').addEventListener('keydown', (e) => e.key === 'Enter' && $('#join').click());
+// ----- head-to-head match format: applies to Create game and to challenges -----
+let pickFmt = '';
+try { pickFmt = localStorage.getItem('chess:fmt') || ''; } catch {}
+const fmtOf = (k = pickFmt) => { const m = /^(bo|ft|mar)(\d*)$/.exec(k); return m ? Match.clean({ fmt: m[1], n: +m[2] || 0 }) : null; };
+const FMT_DESC = {
+  bo: (n) => `Up to ${n} games, colours alternate. A win is 1 point, a draw ½: first past ${n / 2} takes the match. Level at the end? One Armageddon decider.`,
+  ft: (n) => `Keep playing until one of you has ${n} wins. Draws don't count. Colours alternate.`,
+  mar: () => 'Back to back for as long as you like, with a running score and streaks. Either of you can stop it between games.',
+};
+function paintFmt() {
+  const f = fmtOf();
+  if (!f) pickFmt = '';
+  document.querySelectorAll('#fmtPick button').forEach((b) => b.classList.toggle('on', b.dataset.f === pickFmt));
+  setText($('#fmtDesc'), f ? FMT_DESC[f.fmt](f.n) : 'A single game. Pick a format to play a head-to-head match: game after game until one of you comes out on top.');
+  setText($('#create'), f ? 'Create match' : 'Create game');
+  setText($('#localStart'), f ? 'Start pass & play match' : 'Start pass & play');
+}
+$('#fmtPick').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  pickFmt = b.dataset.f;
+  try { localStorage.setItem('chess:fmt', pickFmt); } catch {}
+  paintFmt();
+});
+paintFmt();
 // ----- challenges: instant feedback, one at a time, no duplicate requests -----
 let curInbox = [], curOut = null, localOut = null, challengeSending = false, bannerSig = '';
 const busyIds = new Set(), goneIds = new Set(), hiddenOut = new Set();
@@ -1317,7 +1407,7 @@ async function challenge(name) {
   localOut = { to: name, ts: Date.now() };
   $('#err').textContent = '';
   syncChallenges(curInbox, null);                                                       // banner + disabled buttons right now
-  const r = await api('challenge', { to: name, tc: tcOf() });
+  const r = await api('challenge', { to: name, tc: tcOf(), match: fmtOf() });
   challengeSending = false;
   if (!r.ok) { localOut = null; $('#err').textContent = r.error; syncChallenges(curInbox, null); return; }
   if (localOut) localOut.id = r.id;
@@ -1390,7 +1480,7 @@ function renderBanners() {
   let html = '';
   for (const c of curInbox) {
     const busy = busyIds.has(c.id);
-    html += `<div class="banner"><span><b>${esc(c.from)}</b> (${c.fromElo}) challenges you — ${tcLabel(c.tc)}</span>
+    html += `<div class="banner"><span><b>${esc(c.from)}</b> (${c.fromElo}) challenges you — ${tcLabel(c.tc)}${c.match ? ` · <b>${Match.label(c.match)}</b> match` : ''}</span>
       <span><button class="primary small" data-a="accept" data-id="${c.id}" ${busy ? 'disabled' : ''}>${busy ? 'Joining…' : 'Accept'}</button>
       <button class="small" data-a="decline" data-id="${c.id}" ${busy ? 'disabled' : ''}>Decline</button></span></div>`;
   }
@@ -1502,7 +1592,7 @@ function setSkin(part, value) {
   try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
   if (part === 'board') applyBoardColors();
   if (part === 'pieces') {                       // redraw every place that shows pieces
-    PIECE_CDN = PIECE_ROOT + SKIN.pieces + '/';
+    PIECE_CDN = pieceDir(SKIN.pieces);
     $('#preview').innerHTML = ''; drawPreview();
     if (snap && view === 'game') { boardFlip = null; paintBoard(); $('#top')._h = $('#bottom')._h = $('#cbIcon')._h = null; sig = ''; render(); }
     if (LS && view === 'learn') paintLesson();
@@ -1512,7 +1602,7 @@ function setSkin(part, value) {
 function paintSkinModal() {
   if ($('#skinModal').classList.contains('hidden')) return;
   setHTML($('#boardSwatches'), Object.entries(BOARDS).map(([k, [name, l, d]]) => `<button class="${k === SKIN.board ? 'on' : ''}" data-board="${k}"><span class="mini"><i style="background:${l}"></i><i style="background:${d}"></i><i style="background:${d}"></i><i style="background:${l}"></i></span>${name}</button>`).join(''));
-  setHTML($('#pieceSwatches'), Object.entries(PIECE_SETS).map(([k, name]) => `<button class="${k === SKIN.pieces ? 'on' : ''}" data-pieces="${k}"><span class="pieceset"><img src="${PIECE_ROOT}${k}/wN.svg" alt="" loading="lazy"><img src="${PIECE_ROOT}${k}/bQ.svg" alt="" loading="lazy"></span>${name}</button>`).join(''));
+  setHTML($('#pieceSwatches'), Object.entries(PIECE_SETS).map(([k, name]) => `<button class="${k === SKIN.pieces ? 'on' : ''}" data-pieces="${k}"><span class="pieceset"><img src="${pieceDir(k)}wN.svg" alt="" loading="lazy"><img src="${pieceDir(k)}bQ.svg" alt="" loading="lazy"></span>${name}</button>`).join(''));
   // preview: the opening position of the Italian Game
   const st = Chess.initial();
   for (const [f, t] of [[52, 36], [12, 28], [62, 45], [1, 18], [61, 34]]) st.board[t] = st.board[f], st.board[f] = null;
@@ -1558,6 +1648,8 @@ async function pollLobby(full = true) {
     if (r.status === 401) { localStorage.removeItem('chess:user'); return location.reload(); }
     if (!r.ok) return;
     if (full) {
+      if (r.user.srv !== user.srv) { finishAuth({ ...user, ...r.user, token: user.token }); return location.reload(); }   // moved to another server
+      paintServerName(r.user.srvName);
       $('#meName').textContent = r.user.name;
       myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
@@ -1652,7 +1744,7 @@ function renderLive(list, me) {
     const side = (c) => { const p = g[c], st = !g.turn ? '' : g.turn === c ? ' turn' : ' wait';
       return `<span class="lp${st}"${st === ' turn' ? ` title="${c === 'w' ? 'White' : 'Black'} to move"` : ''}><span class="pc ${c}"></span><b>${esc(p.name)}</b> <i>(${p.elo})</i></span>`; };
     return `<div class="liverow"><span class="lv">${side('w')} <i>vs</i> ${side('b')}</span>
-      <span class="muted lm">${tcLabel(g.tc)} · move ${g.full || Math.floor(g.moves / 2) + 1}</span>
+      <span class="muted lm">${g.mx ? `<span class="mtag" title="Head-to-head match: game ${g.mx.g}${g.mx.a ? ', Armageddon' : ''}">${esc(g.mx.t)} · ${half(g.mx.w)}–${half(g.mx.b)}</span> · ` : ''}${tcLabel(g.tc)} · move ${g.full || Math.floor(g.moves / 2) + 1}</span>
       <button class="small ${mine ? 'primary' : ''}" data-watch="${g.code}">${mine ? 'Rejoin' : 'Watch'}</button></div>`;
   }).join('');
 }
@@ -1756,9 +1848,20 @@ $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
   if (view !== 'admin') return;
-  const r = await api('admin_overview');
+  const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
   if (!r.ok) { if (r.status === 403 || r.status === 401) enterLobby(); return; }
+  if (sv.ok) {
+    if (sv.current !== user.srv) { finishAuth({ ...user, srv: sv.current, ns: sv.current === '1' ? '' : 'srv' + sv.current + ':' }); return location.reload(); }
+    adServers = sv.servers;
+    $('#adsrv').innerHTML = sv.servers.map((x) => `<tr><td><b>${esc(x.name)}</b>${x.id === sv.current ? '<span class="badge gold">you are here</span>' : ''}</td>
+      <td>${x.code ? `<code class="srvcode">${esc(x.code)}</code>` : `<span class="muted">${x.id === '1' ? 'closed to new players' : 'off'}</span>`}</td>
+      <td class="r">${x.players}</td>
+      <td><div class="acts">${x.id === sv.current ? '' : `<button class="small primary" data-act="srvswitch" data-id="${x.id}">Switch here</button>`}
+      <button class="small" data-act="srvrename" data-id="${x.id}" data-v="${esc(x.name)}">Rename</button>
+      ${x.code ? `<button class="small" data-act="srvlink" data-code="${esc(x.code)}">Copy invite link</button>` : ''}
+      ${x.id === '1' ? '' : `<button class="small" data-act="srvcode" data-id="${x.id}">${x.code ? 'New code' : 'Turn on code'}</button>${x.code ? `<button class="small" data-act="srvoff" data-id="${x.id}">Turn off code</button>` : ''}`}</div></td></tr>`).join('');
+  }
   $('#adstats').innerHTML = [['Players', r.stats.users], ['Live games', r.stats.live], ['Chat messages', r.stats.chat]]
     .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
   if (document.activeElement !== $('#annIn')) $('#annIn').value = r.announce;
@@ -1768,15 +1871,46 @@ async function loadAdmin() {
     : '<tr><td colspan="5" class="muted">No games in progress.</td></tr>';
   $('#adusers').innerHTML = r.users.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.admin ? '<span class="badge gold">admin</span>' : ''}${u.muted ? '<span class="badge red">muted</span>' : ''}</td>
       <td class="muted">${esc(u.email || '—')}</td><td class="r">${u.elo}</td><td class="r muted">${u.w}-${u.l}-${u.d}</td>
+      <td>${u.name === user.name ? '' : `<select class="small" data-act="move" data-name="${esc(u.name)}" aria-label="Move ${esc(u.name)} to another server">${adServers.map((x) => `<option value="${x.id}"${x.id === user.srv ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`}</td>
       <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>
       <button class="small" data-act="reset" data-name="${esc(u.name)}">Reset rating</button>
       <button class="small" data-act="resetlink" data-name="${esc(u.name)}">Password link</button>
       <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
 }
+let adServers = [];
+$('#admin').addEventListener('change', async (e) => {
+  const sel = e.target.closest('select[data-act="move"]');
+  if (!sel) return;
+  const to = adServers.find((x) => x.id === sel.value);
+  if (!confirm(`Move ${sel.dataset.name} to ${to.name}? They'll only see players, games and chat on ${to.name}.`)) { sel.value = user.srv; return; }
+  const r = await api('admin_move', { name: sel.dataset.name, to: sel.value });
+  if (!r.ok) alert(r.error || 'Could not move them.');
+  loadAdmin();
+});
+$('#adNewSrv').onclick = async () => {
+  const name = prompt('Name for the new server:', 'Server ' + (adServers.length + 1));
+  if (!name) return;
+  const r = await api('admin_server_new', { name });
+  if (!r.ok) alert(r.error || 'Could not create it.');
+  loadAdmin();
+};
 $('#admin').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const { act, name, code } = b.dataset;
+  if (act === 'srvlink') {
+    const link = location.origin + '/?join=' + code;
+    try { await navigator.clipboard.writeText(link); b.textContent = 'Copied!'; setTimeout(() => (b.textContent = 'Copy invite link'), 1500); }
+    catch { prompt('Invite link (anyone with it can join this server):', link); }
+    return;
+  }
+  if (act === 'srvswitch') { const r = await api('admin_move', { to: b.dataset.id }); if (!r.ok) return alert(r.error || 'Could not switch.'); return location.reload(); }
+  if (act === 'srvrename') { const n = prompt('New name:', b.dataset.v); if (!n) return; const r = await api('admin_server_edit', { id: b.dataset.id, name: n }); if (!r.ok) alert(r.error); return loadAdmin(); }
+  if (act === 'srvcode' || act === 'srvoff') {
+    if (act === 'srvoff' && !confirm('Turn off this code? Nobody new can join this server until you make a new one.')) return;
+    if (act === 'srvcode' && b.textContent === 'New code' && !confirm('Make a new code? The old one stops working.')) return;
+    const r = await api('admin_server_edit', { id: b.dataset.id, code: act === 'srvcode' ? 'new' : 'off' }); if (!r.ok) alert(r.error); return loadAdmin();
+  }
   if (act === 'watch') { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); return; }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
   if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
@@ -1862,9 +1996,9 @@ $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
 function copy(t, sel) { navigator.clipboard.writeText(t).then(() => { const b = $(sel), o = b.textContent; b.textContent = 'Copied!'; setTimeout(() => b.textContent = o, 1200); }); }
 $('#resign').onclick = async () => { if (!confirm(isLocal() ? `Resign for ${snap.players[snap.state.turn].name}?` : 'Resign this game?')) return; if (isBot()) return botEnd(botGame.you === 'w' ? 'b' : 'w', 'resignation'); await api('resign', { code: gameCode }); kick(); };
-$('#rematch').onclick = async () => { if (isBot()) return botRematch(); await api('rematch', { code: gameCode }); kick(); };
+$('#rematch').onclick = async () => { if (isBot()) return botRematch(); mAuto.sent = true; await api('rematch', { code: gameCode }); kick(); };
 
-const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer, !!r.paused, r.pauseReq, (r.resumeReady || []).join()].join('|');
+const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.present.b, r.rematch.join(), r.players.w && r.players.w.name, r.players.b && r.players.b.name, r.delta && r.delta.w, r.watching, r.drawOffer, !!r.paused, r.pauseReq, (r.resumeReady || []).join(), r.match ? [r.match.no, r.match.games.length, r.match.done].join(':') : ''].join('|');
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
 let lastKick = 0;
@@ -1954,7 +2088,7 @@ function render() {
     const name = p ? esc(p.name) : '<span class="muted">Waiting for opponent…</span>';
     const you = p && !p.local && p.name === user.name ? '<span class="youtag">you</span>' : '';
     const lead = mat[c] - mat[c === 'w' ? 'b' : 'w'];
-    const capt = takenBy[c].map((pc) => `<img src="${PIECE_CDN}${pc}.svg" alt="" onerror="this.remove()">`).join('') + (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
+    const capt = takenBy[c].map((pc) => `<img src="${PIECE_CDN}${pc}.svg" alt="" ${pieceFallback(pc)}>`).join('') + (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
     return `<span class="avatar ${c}">${p ? esc(p.name[0].toUpperCase()) : '?'}<span class="dot ${present[c] ? 'on' : ''}" title="${present[c] ? 'online' : 'offline'}"></span></span>
       <span class="pcol"><span class="pinfo"><span class="pname ${p && p.name !== 'Computer' && !p.local && !p.bot ? 'plink' : ''}" data-name="${p ? esc(p.name) : ''}">${name}</span>${p ? ` <span class="prating">(${p.elo}${p.prov ? '?' : ''})</span>` : ''}${you}${dtxt}</span><span class="capt">${capt}</span></span>${clock}`;
   };
@@ -1997,15 +2131,15 @@ function render() {
   const rm = $('#rematch');
   rm.classList.toggle('hidden', !mine || !status.over || isArchive());
   const asked = snap.rematch.includes(you);
-  setText(rm, asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch');
+  setText(rm, nextLabel(snap));
   if (rm.disabled !== asked) rm.disabled = asked;
 
   const bothIn = !!(players.w && players.b);
-  const canDraw = mine && !status.over && bothIn && moves.length >= 2 && !isBot();
+  const canDraw = mine && !status.over && bothIn && moves.length >= 2 && (!isBot() || isLocal());
   const db = $('#drawBtn');
   db.classList.toggle('hidden', !canDraw);
   if (db.disabled !== (snap.drawOffer === you)) db.disabled = snap.drawOffer === you;
-  setText(db, snap.drawOffer === you ? 'Draw offered' : 'Offer draw');
+  setText(db, isLocal() ? 'Draw' : snap.drawOffer === you ? 'Draw offered' : 'Offer draw');
   // mutual pause
   const canPause = mine && !status.over && bothIn && !isBot();
   const pb = $('#pauseBtn'), reqMine = snap.pauseReq === you;
@@ -2026,12 +2160,13 @@ function render() {
   const incoming = canDraw && snap.drawOffer && snap.drawOffer !== you;
   $('#drawbox').classList.toggle('hidden', !incoming);
   updateOver();
+  paintMatch();
 
   // permanent colour indicator (fixed to the bottom of the screen)
   const cb = $('#colorbar');
   const cbCls = (mine ? you : 's') + (mine && !status.over && bothIn && snap.state.turn === you ? ' myturn' : '');
   if (cb.className !== cbCls) cb.className = cbCls;
-  setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '');
+  setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" ${pieceFallback(you + 'K')}>` : '');
   const liveTurn = snap.state.turn;
   if (isLocal()) {
     setText($('#cbText'), 'Pass & play');
@@ -3262,6 +3397,17 @@ function paintOver(r) {
   $('#otitle').textContent = res === 'draw' ? 'Draw' : r.local ? `${r.players[res].name} won` : mine ? (kind === 'win' ? 'You won' : 'You lost') : `${res === 'w' ? 'White' : 'Black'} won`;
   $('#otitle').className = kind;
   $('#osub').textContent = 'by ' + r.status.reason;
+  $('#osub').style.textTransform = '';
+  const M = r.match;
+  const lastG = M && M.games[M.games.length - 1];
+  const gid = r.local ? r.gid : r.startedAt && `${r.code}-${r.startedAt.toString(36)}`;
+  if (M && M.done && lastG && gid && lastG.id === gid && mine && isMatch()) {   // this game decided the match
+    const me1 = meN() || M.p[0], pts = Match.score(M).pts, opn = M.p.find((x) => x !== me1), sc = `${half(pts[me1])}–${half(pts[opn])}`;
+    $('#otitle').textContent = !M.winner ? 'Match drawn' : !meN() ? `${M.winner} wins the match!` : M.winner === meN() ? 'You won the match!' : 'You lost the match';
+    $('#otitle').className = !M.winner ? 'draw' : !meN() || M.winner === meN() ? 'win' : 'loss';
+    $('#osub').textContent = `${sc} · game ${M.games.length} ${res === 'draw' ? 'drawn' : 'by ' + r.status.reason}`;
+    $('#osub').style.textTransform = 'none';
+  }
   const side = (c) => {
     const p = r.players[c] || { name: '?' };
     return `<span class="avatar ${c}">${esc(p.name[0].toUpperCase())}</span><span class="on ${p.name !== 'Computer' && p.name !== user.name && !p.local && !p.bot ? 'plink' : ''}" data-name="${esc(p.name)}">${esc(p.name)}</span><span class="or">${p.elo}${p.prov ? '?' : ''}</span>`;
@@ -3300,12 +3446,132 @@ function updateOver() {
   if (!snap || $('#over').classList.contains('hidden')) return;
   if (snap.status.over) paintOver(snap);
   const b = $('#oRematch'), asked = snap.rematch.includes(snap.you);
-  b.textContent = asked ? 'Waiting for opponent…' : snap.rematch.length ? 'Accept rematch' : 'Rematch';
+  b.textContent = nextLabel(snap);
   b.disabled = asked;
+  paintOverMatch(snap);
 }
-$('#oRematch').onclick = async () => { if (isBot()) { $('#over').classList.add('hidden'); return botRematch(); } await api('rematch', { code: gameCode }); kick(); };
+$('#oRematch').onclick = async () => { if (isBot()) { $('#over').classList.add('hidden'); return botRematch(); } mAuto.sent = true; await api('rematch', { code: gameCode }); kick(); };
 $('#oClose').onclick = () => $('#over').classList.add('hidden');
 $('#oLobby').onclick = () => { $('#over').classList.add('hidden'); enterLobby(); };
+
+// ---------- head-to-head match: scoreboard, next game countdown ----------
+const half = (x) => { x = +x || 0; const w = Math.floor(x); return x - w ? (w ? w + '½' : '½') : String(w); };
+const AUTO_NEXT = 10000;                                       // ms before you're marked ready for the next game
+let mAuto = { key: '', at: 0, held: false, sent: false }, mTimer = null;
+const isMatch = () => !!(snap && snap.match && (!isBot() || isLocal()) && !isArchive());
+const meN = () => (isLocal() && !(botGame.local && botGame.local.rate) ? null : user.name);   // pass & play: both players are at this screen
+function nextLabel(r) {
+  const asked = r.rematch.includes(r.you), m = r.match;
+  if (m && isMatch()) {
+    if (asked) return 'Waiting for opponent…';
+    if (m.done) return r.rematch.length ? 'Accept new match' : 'New match';
+    return r.rematch.length ? 'Next game · they\'re ready' : 'Next game';
+  }
+  return asked ? 'Waiting for opponent…' : r.rematch.length ? 'Accept rematch' : 'Rematch';
+}
+// names in display order (you first) and each one's colour in the current game
+function matchSides(r) {
+  const m = r.match, names = m.p || [r.players.w && r.players.w.name, r.players.b && r.players.b.name].filter(Boolean);
+  const mine = r.you === 'w' || r.you === 'b';
+  const order = mine && names.includes(meN()) ? [meN(), ...names.filter((x) => x !== meN())] : names;
+  const col = (n) => (r.players.w && r.players.w.name === n ? 'w' : 'b');
+  return order.map((n) => ({ name: n, c: col(n) }));
+}
+// the line under the scoreboard: winner, Armageddon, match point, streak
+function matchNote(r) {
+  const m = r.match, s = Match.score(m), nm = (x) => (x === meN() ? 'You' : `<b>${esc(x)}</b>`);
+  if (m.done) {
+    const sides = matchSides(r), sc = sides.map((x) => half(s.pts[x.name])).join('–');
+    const stopped = m.why !== 'stopped' ? '' : !m.by ? ' (stopped early)' : ` (stopped by ${m.by === meN() ? 'you' : esc(m.by)})`;
+    if (!m.winner) return `Match ended level, ${sc}${stopped}.`;
+    const how = m.why === 'armageddon' ? ' on the Armageddon decider' : stopped;
+    return `<span class="mpwin">🏆 ${nm(m.winner)} ${m.winner === meN() ? 'win' : 'wins'} the match ${sc}${how}.</span>`;
+  }
+  const tc = r.tc, armaTxt = tc ? `Black gets ${fmt(Math.round(tc.base * Match.ARMA_BLACK) * 1000)} to White's ${fmt(tc.base * 1000)}, but` : 'Black has';
+  if (r.arma && !r.status.over) return `<b>Armageddon decider.</b> ${armaTxt} a draw counts as a win for Black.`;
+  if (m.arma) return `<b>Level!</b> Next game is an Armageddon decider: ${tc ? 'Black has less time, but ' : ''}a draw counts as a win for Black.`;
+  const bits = [], mp = Match.matchPoint(m), st = Match.streak(m);
+  if (mp.length === 2) bits.push('Match point for both of you');
+  else if (mp.length) bits.push(`Match point for ${mp[0] === meN() ? 'you' : `<b>${esc(mp[0])}</b>`}`);
+  if (st.n >= 2) bits.push(`${nm(st.name)} ${st.name === meN() ? 'have' : 'has'} won ${st.n} in a row`);
+  if (m.fmt === 'ft') bits.push(`First to ${m.n} wins`);
+  if (s.draws) bits.push(`${s.draws} draw${s.draws > 1 ? 's' : ''}`);
+  return bits.join(' · ');
+}
+// countdown to the next game, shared by the sidebar and the result card
+function matchCountdown(r) {
+  const m = r.match, mine = r.you === 'w' || r.you === 'b';
+  if (!mine || !r.status.over || m.done || !r.players.w || !r.players.b) return null;
+  const opp = r.players[r.you === 'w' ? 'b' : 'w'].name, theyReady = r.rematch.length && !r.rematch.includes(r.you);
+  if (r.rematch.includes(r.you)) return { txt: `Ready · waiting for ${esc(opp)}…` };
+  const key = r.local ? `local:${r.gid}` : `${r.code}:${m.no}:${m.games.length}`;   // every pass & play game has the code BOT
+  if (mAuto.key !== key) mAuto = { key, at: Date.now() + AUTO_NEXT, held: false, sent: false };
+  if (mAuto.held) return { txt: theyReady ? `${esc(opp)} is ready.` : 'Start the next game when you\'re ready.', held: true };
+  const left = Math.max(0, Math.ceil((mAuto.at - Date.now()) / 1000));
+  return { txt: `Next game in ${left}s${theyReady ? ` · ${esc(opp)} is ready` : ''}`, hold: true };
+}
+function matchTick() {
+  if (!isMatch() || !snap.status.over || snap.match.done || mAuto.held || mAuto.sent || snap.rematch.includes(snap.you)) { clearInterval(mTimer); mTimer = null; return; }
+  if (document.hidden) { mAuto.at = Math.max(mAuto.at, Date.now() + 3000); return; }   // never start a game for someone who isn't looking
+  if (Date.now() >= mAuto.at && (snap.you === 'w' || snap.you === 'b')) {
+    mAuto.sent = true;
+    if (isLocal()) return botRematch();
+    api('rematch', { code: gameCode }).then((r) => { if (!r.ok) { mAuto.sent = false; mAuto.at = Date.now() + 3000; paintMatch(); } kick(); });   // failed: try again shortly
+  }
+  paintCount();
+}
+function paintCount() {
+  const c = isMatch() ? matchCountdown(snap) : null;
+  const html = c ? `<span>${c.txt}</span>${c.hold ? '<button class="small" data-mhold>Wait</button>' : ''}` : '';
+  const el = $('#omatch .omcount'); if (el) setHTML(el, html);
+  $('#mpHold').classList.toggle('hidden', !(c && c.hold));
+  return c;
+}
+function paintMatch() {
+  const on = isMatch() && !!snap.match;
+  $('#matchpanel').classList.toggle('hidden', !on);
+  if (!on) return;
+  const m = snap.match, s = Match.score(m), sides = matchSides(snap), lead = Match.leader(m, s);
+  const gameNo = m.done ? m.games.length : snap.status.over ? m.games.length : m.games.length + 1;
+  setText($('#mpTitle'), `${Match.label(m)}${m.no > 1 ? ` · match ${m.no}` : ''}`);
+  setText($('#mpSub'), m.done ? 'Finished' : snap.arma && !snap.status.over ? 'Armageddon' : `Game ${gameNo}${m.fmt === 'bo' ? ` of ${m.n}` : ''}`);
+  setHTML($('#mpScore'), sides.map((x) => `<div class="mprow${x.name === lead ? ' lead' : ''}"><span class="avatar ${x.c}">${esc(x.name[0].toUpperCase())}</span><span class="mpn">${esc(x.name)}${x.name === meN() ? ' <span class="youtag">you</span>' : ''}</span><span class="mps">${half(s.pts[x.name])}</span></div>`).join(''));
+  // one square per game: green = the first-listed player won, red = the other, grey = draw; empty squares still to play
+  const a = sides[0] && sides[0].name;
+  let dots = m.games.map((g, i) => {
+    const k = !g.win ? 'd' : g.win === a ? 'a' : 'b', who = g.win ? `${g.win} won` : 'Draw';
+    return `<i class="${k}${g.arma ? ' x' : ''}" title="Game ${i + 1}${g.arma ? ' (Armageddon)' : ''}: ${esc(who)}, ${esc(g.why)} · ${esc(g.w)} had White">${g.win ? esc(g.win[0].toUpperCase()) : '½'}</i>`;
+  }).join('');
+  if (!m.done && m.fmt === 'bo') for (let i = m.games.length; i < m.n; i++) dots += '<i></i>';
+  if (!m.done && m.arma) dots += '<i class="x" title="Armageddon decider">A</i>';
+  setHTML($('#mpDots'), dots);
+  const past = (m.past || []).filter((x) => x.winner), wonBy = (n) => past.filter((x) => x.winner === n).length;
+  const series = past.length && sides.length === 2 ? ` · Matches: ${sides.map((x) => `${esc(x.name)} ${wonBy(x.name)}`).join(', ')}` : '';
+  setHTML($('#mpNote'), (matchNote(snap) || '') + series);
+  const mine = snap.you === 'w' || snap.you === 'b';
+  $('#mpActs').classList.toggle('hidden', !mine || m.done || !(snap.status.over || !snap.moves.length));
+  const c = paintCount();
+  if (c && c.hold && !mTimer) mTimer = setInterval(matchTick, 250);
+}
+function paintOverMatch(r) {
+  const el = $('#omatch'), on = isMatch() && !!r.match && r.status.over;
+  el.classList.toggle('hidden', !on);
+  if (!on) return;
+  const s = Match.score(r.match), sides = matchSides(r);
+  setHTML(el, `<div class="olbl">${Match.label(r.match)}</div>
+    <div class="omscore">${sides.map((x) => `<span>${esc(x.name)}</span><b>${half(s.pts[x.name])}</b>`).join('<span class="muted">–</span>')}</div>
+    <div class="mpnote" style="margin-top:6px">${matchNote(r)}</div><div class="omcount"></div>`);
+  paintCount();
+}
+document.addEventListener('click', (e) => { if (e.target.closest('[data-mhold], #mpHold')) { mAuto.held = true; paintMatch(); updateOver(); } });
+$('#mpEnd').onclick = async () => {
+  const s = Match.score(snap.match), lead = Match.leader(snap.match, s);
+  if (!confirm(`End the match now?${lead ? ` ${lead === meN() ? 'You lead, so you take it' : lead + ' leads, so they take it'}.` : ' It is level, so nobody wins it.'}`)) return;
+  if (isLocal()) { localMatchEnd(); return; }
+  const r = await api('match_end', { code: gameCode });
+  if (!r.ok) setText($('#sub'), r.error || 'Something went wrong.');
+  kick();
+};
 
 // ---------- pause ----------
 const pauseCall = async (route, body) => { const r = await api(route, { code: gameCode, ...(body || {}) }); if (!r.ok) setText($('#sub'), r.error || 'Something went wrong.'); kick(); };
@@ -3315,7 +3581,8 @@ $('#pauseNo').onclick = () => pauseCall('pause_respond', { accept: false });
 $('#resumeBtn').onclick = () => pauseCall('unpause');
 
 // ---------- draw offers ----------
-$('#drawBtn').onclick = async () => { const r = await api('draw_offer', { code: gameCode }); if (!r.ok) $('#sub').textContent = r.error; kick(); };
+$('#drawBtn').onclick = async () => {
+  if (isLocal()) { if (confirm('Do both players agree to a draw?')) botEnd('draw', 'agreement'); return; } const r = await api('draw_offer', { code: gameCode }); if (!r.ok) $('#sub').textContent = r.error; kick(); };
 $('#drawYes').onclick = async () => { await api('draw_accept', { code: gameCode }); kick(); };
 $('#drawNo').onclick = async () => { await api('draw_decline', { code: gameCode }); kick(); };
 
@@ -3338,7 +3605,30 @@ const isBot = () => botGame !== null && gameCode === 'BOT';
 // pass & play: two people on one device. A bot game with no computer, where "you" is always the side to move.
 const isLocal = () => isBot() && !!botGame.local;
 const other = (c) => (c === 'w' ? 'b' : 'w');
-function makeLocal(names, flip, tc) { const b = makeBot(2, 'w', tc); b.local = { w: names.w, b: names.b, flip }; return b; }
+function makeLocal(names, flip, tc) { const b = makeBot(2, 'w', tc); b.local = { w: names.w, b: names.b, flip, gid: newGid() }; return b; }
+// the next pass & play game: colours swap; in a match the score carries over (or a new match starts after a finished one)
+function nextLocal(L, tc) {
+  const n = makeLocal({ w: L.b, b: L.w }, L.flip, tc);
+  if (L.rate) n.local.rate = { me: other(L.rate.me), opp: L.rate.opp };
+  if (L.match) {
+    n.local.match = L.match.done ? Match.again(L.match) : L.match;
+    if (!L.match.done && L.match.arma) {                                // the decider: Black has less time but draw odds
+      n.local.arma = true;
+      if (n.clock) n.clock.b = Math.round(tc.base * Match.ARMA_BLACK) * 1000;
+    }
+  }
+  return n;
+}
+// a pass & play match between games lives here, so a reload doesn't lose it (games in progress are saved as usual)
+function localMatchSave(L, tc) { try { if (L && L.match) localStorage.setItem('chess:localMatch', JSON.stringify({ v: 1, local: { ...L, sent: undefined, payload: undefined, err: undefined }, tc })); else localStorage.removeItem('chess:localMatch'); } catch {} }
+function localMatchLoad() { try { const d = JSON.parse(localStorage.getItem('chess:localMatch')); return d && d.v === 1 && d.local && d.local.match ? d : null; } catch { return null; } }
+function localMatchEnd() {
+  const b = botGame; if (!b || !b.local || !b.local.match) return;
+  Match.stop(b.local.match, meN());                                    // rated: the account holder; otherwise nobody in particular
+  if (!botStatusOf(b).over && !b.hist.length && b.local.arma) { b.local.arma = false; if (b.clock) b.clock.b = b.clock.w; }   // stopped before a decider began
+  if (botStatusOf(b).over || !b.hist.length) localMatchSave(b.local, b.tc); else botSave();
+  sig = ''; pushBot();
+}
 
 const newGid = () => Math.random().toString(36).slice(2, 12);             // a client-made game id
 function makeBot(level, you, tc) {
@@ -3377,11 +3667,19 @@ function botSnap() {
     players, present: { w: true, b: true },
     tc: b.tc, clock: b.clock ? { w: left('w'), b: left('b'), running: run } : null,
     delta: null, rematch: [], hist: b.hist, drawOffer: null, watching: 0,
+    match: b.local && b.local.match ? b.local.match : null, arma: !!(b.local && b.local.arma), gid: b.local ? b.local.gid : null,
     startedAt: b.startedAt || null, endedAt: st.over ? (b.endedAt = b.endedAt || now) : null, cat: null, ratings: null,
   };
 }
 function pushBot() {
-  const b = botGame, sn = botSnap();
+  const b = botGame;
+  if (b.local && b.local.match && !b.local.scored && botStatusOf(b).over) {   // pass & play match: score the game that just ended
+    const o = botStatusOf(b);
+    b.local.scored = true;
+    if (!b.local.match.done) Match.record(b.local.match, { id: b.local.gid, w: b.local.w, b: b.local.b, result: o.result, reason: o.reason, moves: b.moves.length, arma: !!b.local.arma });
+    localMatchSave(b.local, b.tc);
+  }
+  const sn = botSnap();
   if (sn.status.over && b.local && b.local.rate && !b.local.sent) sendLocalResult(b);   // before painting, so the result card shows "sending"
   applySnapshot(sn); if (sn.status.over) botClear(); if (botGame && botGame.coach) coachAfterPush();
   if (botGame && botGame.clone) { if (sn.status.over) { cloneTell(botGame); if (window.Worker) cloneCompare(botGame); } paintClone(); }
@@ -3491,7 +3789,8 @@ function botSave() {
   const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
   let clock = null;
   if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
-  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch {}
+  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch { return; }
+  if (b.local && b.local.match && b.hist.length === 1) localMatchSave(null);   // saved with the game now: drop the between-games copy
 }
 function botClear(key = botKey(botGame)) { try { localStorage.removeItem(key); } catch {} }
 function botLoad(key = 'chess:bot') {
@@ -3531,7 +3830,7 @@ function enterBot(b) {
   botSave(); pushBot(); paintCoach(); paintClone(); botThink();
 }
 function hideGameChat() { $('#gchat').classList.add('hidden'); hideChatToast(); }
-function botRematch() { const b = botGame; if (!b) return; if (b.local) { const n = makeLocal({ w: b.local.b, b: b.local.w }, b.local.flip, b.tc); if (b.local.rate) { n.local.rate = { me: other(b.local.rate.me), opp: b.local.rate.opp }; n.local.gid = Math.random().toString(36).slice(2, 12); } return enterBot(n); } if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, P: b.clone.P, gid: newGid() }; enterBot(n); }
+function botRematch() { const b = botGame; if (!b) return; if (b.local) return enterBot(nextLocal(b.local, b.tc)); if (b.coach) return startCoachGame(b.you === 'w' ? 'b' : 'w'); const n = makeBot(b.level, b.you === 'w' ? 'b' : 'w', b.tc); if (b.clone) n.clone = { name: b.clone.name, diff: b.clone.diff, P: b.clone.P, gid: newGid() }; enterBot(n); }
 
 // ---------- play against a style: a bot built from a player's archived games (style.js; the engine side is in bot.js) ----------
 // The profile is built in a worker from the "style_games" API and cached per player on this device until they play
@@ -3927,6 +4226,7 @@ function setLobbyMode(m) {
   $('#modeFriends').classList.toggle('on', m === 'friends'); $('#modeBot').classList.toggle('on', m === 'bot'); $('#modeLocal').classList.toggle('on', m === 'local'); $('#modeClone').classList.toggle('on', m === 'clone');
   $('#friendOnly').classList.toggle('hidden', m !== 'friends'); $('#botOnly').classList.toggle('hidden', m !== 'bot'); $('#localOnly').classList.toggle('hidden', m !== 'local'); $('#cloneOnly').classList.toggle('hidden', m !== 'clone');
   $('#colorRow').classList.toggle('hidden', m === 'local');
+  $('#fmtRow').classList.toggle('hidden', m !== 'friends' && m !== 'local');
   if (m === 'bot') paintBotResume();
   if (m === 'clone') { paintCloneResume(); if (!$('#clName').value) $('#clName').value = user.name; }
   if (m === 'local') paintLocalResume();
@@ -3973,20 +4273,37 @@ $('#localStart').onclick = async () => {
     names = localSide === 'w' ? { w: user.name, b: r.name } : { w: r.name, b: user.name };
   } else if (names.w === names.b) { names.w += ' (W)'; names.b += ' (B)'; }
   $('#err').textContent = '';
+  const lm = localMatchLoad();
+  if (lm && !lm.local.match.done) {
+    if (!confirm(`Start over? Your unfinished match (${Match.label(lm.local.match)}, ${lm.local.match.p.join(' vs ')}) will be discarded.`)) return;
+    localMatchSave(null);
+  }
   try { localStorage.setItem('chess:localNames', JSON.stringify({ w: $('#localW').value.trim(), b: $('#localB').value.trim(), flip, rated, opp: $('#localOpp').value.trim(), side: localSide })); } catch {}
   const b = makeLocal(names, flip, tcOf());
-  if (rate) { b.local.rate = rate; b.local.gid = Math.random().toString(36).slice(2, 12); }
+  if (rate) b.local.rate = rate;
+  const f = fmtOf();
+  if (f) { b.local.match = Match.start(f); b.local.match.p = [names.w, names.b]; }
   enterBot(b);
 };
 function paintLocalResume() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem('chess:local')); } catch {}
   const ok = d && d.v === 1 && d.local && Array.isArray(d.hist);
-  $('#localResume').classList.toggle('hidden', !ok);
+  const lm = !ok && localMatchLoad();
+  $('#localResume').classList.toggle('hidden', !ok && !lm);
   if (ok) $('#localResumeText').textContent = `${d.local.w} vs ${d.local.b} in progress · move ${Math.floor(d.hist.length / 2) + 1}`;
+  else if (lm) {
+    const M = lm.local.match, pts = Match.score(M).pts;
+    $('#localResumeText').textContent = `${Match.label(M)}: ${M.p.map((x) => `${x} ${half(pts[x])}`).join(' – ')}${M.done ? ' · finished' : ''}`;
+  }
 }
-$('#localResumeBtn').onclick = () => { const b = botLoad('chess:local'); if (b) enterBot(b); else { botClear('chess:local'); paintLocalResume(); } };
-$('#localDiscardBtn').onclick = () => { botClear('chess:local'); paintLocalResume(); };
+$('#localResumeBtn').onclick = () => {
+  const b = botLoad('chess:local'); if (b) return enterBot(b);
+  botClear('chess:local');
+  const lm = localMatchLoad(); if (lm) return enterBot(nextLocal(lm.local, lm.tc));   // a match between games: start its next game
+  paintLocalResume();
+};
+$('#localDiscardBtn').onclick = () => { botClear('chess:local'); localMatchSave(null); paintLocalResume(); };
 (() => {
   try {
     const d = JSON.parse(localStorage.getItem('chess:localNames')) || {};

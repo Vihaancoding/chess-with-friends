@@ -1,8 +1,9 @@
-// Chess bot: alpha-beta search over the shared engine (chess.js).
+// Chess bot: alpha-beta search over the shared engine (chess.js) for the computer opponents, and the analysis engine
+// (engine.js) for everything that grades or scores positions.
 // Runs as a Web Worker in the browser and as a plain module in Node (for tests).
-let C, Style;
-if (typeof importScripts === 'function') { importScripts('chess.js', 'style.js'); C = self.Chess; Style = self.Style; }
-else { C = require('./chess.js'); Style = require('./style.js'); }
+let C, Style, E;
+if (typeof importScripts === 'function') { importScripts('chess.js', 'style.js', 'engine.js'); C = self.Chess; Style = self.Style; E = self.Engine; }
+else { C = require('./chess.js'); Style = require('./style.js'); E = require('./engine.js'); }
 
 const VAL = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 0 };
 // Piece-square tables from White's point of view (index = row*8+col, row 0 = rank 8).
@@ -147,25 +148,13 @@ function chooseMove(state, level, seen, msScale) {
   return { move: plain(best), depth: done, nodes, score: bestScore };
 }
 
-// ---------- game review: score every legal move in a position (exact root scores, time-limited depth) ----------
-function analyzePosition(state, ms, maxDepth = 12) {
-  const moves = C.legalMoves(state);
-  if (!moves.length) return { terminal: true, best: null, scores: [], depth: 0, score: C.inCheck(state, state.turn) ? -MATE : 0 };
-  order(state, moves);
-  let scored = null, depth = 0;
-  const layers = [];                                       // every move's score at each completed depth
-  for (let d = 1; d <= maxDepth; d++) {
-    nodes = 0;
-    deadline = d === 1 ? Infinity : anT0 + ms;             // depth 1 always completes
-    try {
-      const sc = moves.map((m) => ({ m, s: -negamax(C.apply(state, m), d - 1, -INF, INF, 1) }));
-      sc.sort((a, b) => b.s - a.s);
-      scored = sc; depth = d; layers.push(sc);
-      moves.sort((a, b) => sc.findIndex((x) => x.m === a) - sc.findIndex((x) => x.m === b));
-      if (Math.abs(sc[0].s) > MATE - 1000) break;          // forced mate found
-    } catch (e) { if (e !== STOP) throw e; break; }
-  }
-  return { best: plain(scored[0].m), score: scored[0].s, scores: scored.map((x) => ({ ...plain(x.m), s: x.s })), depth, legal: moves.length, layers };
+// ---------- game review: score the legal moves in a position (time-limited depth; depth 1 always completes) ----------
+// opts (see engine.js): exact = false scores only the best two moves and opts.focus exactly (much deeper in the same time);
+// history = earlier positions of the game, so lines that repeat one of them count as draws
+function analyzePosition(state, ms, maxDepth = 24, opts) {
+  const r = E.analyze(state, ms, maxDepth, opts, anT0);
+  if (r.terminal) return r;
+  return { best: plain(r.best), score: r.score, scores: r.scores.map((x) => ({ ...plain(x.m), s: x.s })), depth: r.depth, legal: r.legal, layers: r.layers };
 }
 var anT0 = 0;
 
@@ -220,8 +209,9 @@ if (typeof importScripts === 'function') {
       const order = e.data.order || Array.from({ length: hist.length + (skipFinal ? 0 : 1) }, (_, i) => i);
       for (const i of order) {
         anT0 = now();
-        const r = analyzePosition(states[i], ms);
         const h = hist[i];
+        // only the played move and the best two need exact scores, unless the caller wants every move (the coach)
+        const r = analyzePosition(states[i], ms, 24, { exact: !!e.data.scores, focus: h ? [h] : [], history: states.slice(Math.max(0, i - 100), i) });
         const played = h && r.scores.find((x) => x.from === h.from && x.to === h.to && (x.promo || undefined) === (h.promo || undefined));
         self.postMessage({ id, i, n: hist.length, best: r.best, bestScore: r.terminal ? r.score : r.score, second: r.scores[1] ? r.scores[1].s : null,
           played: played ? played.s : null, legal: r.legal || 0, depth: r.depth, terminal: !!r.terminal, scores: e.data.scores ? r.scores : undefined });
