@@ -4,18 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chess With Friends</title>
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wQ.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wR.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wB.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wP.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bK.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bQ.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bR.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bB.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bN.svg">
-<link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bP.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wK.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wQ.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wR.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wB.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wN.svg">
+<link rel="preload" as="image" href="/piece/cburnett/wP.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bK.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bQ.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bR.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bB.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bN.svg">
+<link rel="preload" as="image" href="/piece/cburnett/bP.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -629,7 +629,7 @@
 
 <div class="app">
 <nav class="side">
-  <div class="brand"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
+  <div class="brand"><img src="/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
@@ -649,7 +649,7 @@
 
 <!-- sign in -->
 <div id="welcome" class="hidden">
-  <div class="brand"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
+  <div class="brand"><img src="/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="muted" style="font-weight:600">Play your friends. Climb the leaderboard.</div>
   <div class="panel">
     <div class="authtabs" id="authTabs"><button id="tabUp" class="on">Sign up</button><button id="tabIn">Log in</button></div>
@@ -1016,7 +1016,12 @@ const PIECE_SETS = { cburnett: 'Classic', merida: 'Merida', alpha: 'Alpha', cali
 let SKIN = (() => { try { return { board: 'green', pieces: 'cburnett', ...(JSON.parse(localStorage.getItem('chess:skin')) || {}) }; } catch { return { board: 'green', pieces: 'cburnett' }; } })();
 if (!BOARDS[SKIN.board]) SKIN.board = 'green';
 if (!PIECE_SETS[SKIN.pieces]) SKIN.pieces = 'cburnett';
-let PIECE_CDN = PIECE_ROOT + SKIN.pieces + '/';
+// The default set ships with the app, so pieces still show when the CDN is blocked or slow (school / office networks);
+// any other set falls back to it, then to a text glyph.
+const PIECE_LOCAL = '/piece/cburnett/';
+const pieceDir = (k) => k === 'cburnett' ? PIECE_LOCAL : PIECE_ROOT + k + '/';
+let PIECE_CDN = pieceDir(SKIN.pieces);
+const pieceFallback = (p) => `onerror="if(this.src.indexOf('${PIECE_LOCAL}')<0)this.src='${PIECE_LOCAL}${p}.svg';else this.remove()"`;
 function applyBoardColors() {
   const [, l, d] = BOARDS[SKIN.board];
   document.documentElement.style.setProperty('--light', l);
@@ -1025,7 +1030,7 @@ function applyBoardColors() {
 applyBoardColors();
 function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
-  return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'">`;
+  return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="if(this.src.indexOf('${PIECE_LOCAL}')<0)this.src='${PIECE_LOCAL}${p}.svg';else{this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'}">`;
 }
 const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
@@ -1559,7 +1564,7 @@ function setSkin(part, value) {
   try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
   if (part === 'board') applyBoardColors();
   if (part === 'pieces') {                       // redraw every place that shows pieces
-    PIECE_CDN = PIECE_ROOT + SKIN.pieces + '/';
+    PIECE_CDN = pieceDir(SKIN.pieces);
     $('#preview').innerHTML = ''; drawPreview();
     if (snap && view === 'game') { boardFlip = null; paintBoard(); $('#top')._h = $('#bottom')._h = $('#cbIcon')._h = null; sig = ''; render(); }
     if (LS && view === 'learn') paintLesson();
@@ -1569,7 +1574,7 @@ function setSkin(part, value) {
 function paintSkinModal() {
   if ($('#skinModal').classList.contains('hidden')) return;
   setHTML($('#boardSwatches'), Object.entries(BOARDS).map(([k, [name, l, d]]) => `<button class="${k === SKIN.board ? 'on' : ''}" data-board="${k}"><span class="mini"><i style="background:${l}"></i><i style="background:${d}"></i><i style="background:${d}"></i><i style="background:${l}"></i></span>${name}</button>`).join(''));
-  setHTML($('#pieceSwatches'), Object.entries(PIECE_SETS).map(([k, name]) => `<button class="${k === SKIN.pieces ? 'on' : ''}" data-pieces="${k}"><span class="pieceset"><img src="${PIECE_ROOT}${k}/wN.svg" alt="" loading="lazy"><img src="${PIECE_ROOT}${k}/bQ.svg" alt="" loading="lazy"></span>${name}</button>`).join(''));
+  setHTML($('#pieceSwatches'), Object.entries(PIECE_SETS).map(([k, name]) => `<button class="${k === SKIN.pieces ? 'on' : ''}" data-pieces="${k}"><span class="pieceset"><img src="${pieceDir(k)}wN.svg" alt="" loading="lazy"><img src="${pieceDir(k)}bQ.svg" alt="" loading="lazy"></span>${name}</button>`).join(''));
   // preview: the opening position of the Italian Game
   const st = Chess.initial();
   for (const [f, t] of [[52, 36], [12, 28], [62, 45], [1, 18], [61, 34]]) st.board[t] = st.board[f], st.board[f] = null;
@@ -2011,7 +2016,7 @@ function render() {
     const name = p ? esc(p.name) : '<span class="muted">Waiting for opponent…</span>';
     const you = p && !p.local && p.name === user.name ? '<span class="youtag">you</span>' : '';
     const lead = mat[c] - mat[c === 'w' ? 'b' : 'w'];
-    const capt = takenBy[c].map((pc) => `<img src="${PIECE_CDN}${pc}.svg" alt="" onerror="this.remove()">`).join('') + (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
+    const capt = takenBy[c].map((pc) => `<img src="${PIECE_CDN}${pc}.svg" alt="" ${pieceFallback(pc)}>`).join('') + (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
     return `<span class="avatar ${c}">${p ? esc(p.name[0].toUpperCase()) : '?'}<span class="dot ${present[c] ? 'on' : ''}" title="${present[c] ? 'online' : 'offline'}"></span></span>
       <span class="pcol"><span class="pinfo"><span class="pname ${p && p.name !== 'Computer' && !p.local && !p.bot ? 'plink' : ''}" data-name="${p ? esc(p.name) : ''}">${name}</span>${p ? ` <span class="prating">(${p.elo}${p.prov ? '?' : ''})</span>` : ''}${you}${dtxt}</span><span class="capt">${capt}</span></span>${clock}`;
   };
@@ -2089,7 +2094,7 @@ function render() {
   const cb = $('#colorbar');
   const cbCls = (mine ? you : 's') + (mine && !status.over && bothIn && snap.state.turn === you ? ' myturn' : '');
   if (cb.className !== cbCls) cb.className = cbCls;
-  setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" onerror="this.remove()">` : '');
+  setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" ${pieceFallback(you + 'K')}>` : '');
   const liveTurn = snap.state.turn;
   if (isLocal()) {
     setText($('#cbText'), 'Pass & play');
