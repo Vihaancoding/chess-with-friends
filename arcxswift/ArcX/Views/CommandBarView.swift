@@ -146,16 +146,16 @@ struct CommandBarView: View {
 
     // MARK: Results
 
-    private func buildGroups() -> [CommandGroup] {
+    private func buildGroups() -> [CommandResultGroup] {
         let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let needle = query.lowercased()
 
         if scope == .spaces {
-            return [CommandGroup(section: .spaces, items: spaceItems(matching: needle, includeCurrent: true))]
+            return [CommandResultGroup(section: .spaces, items: spaceItems(matching: needle, includeCurrent: true))]
                 .filter { !$0.items.isEmpty }
         }
 
-        var groups: [CommandGroup] = []
+        var groups: [CommandResultGroup] = []
         var seenURLs = Set<String>()
 
         if query.isEmpty {
@@ -163,9 +163,9 @@ struct CommandBarView: View {
                 .filter { $0 !== state.selectedTab }
                 .sorted { $0.lastActive > $1.lastActive }
                 .prefix(5)
-            groups.append(CommandGroup(section: .tabs, items: recent.map(tabItem)))
-            groups.append(CommandGroup(section: .spaces, items: spaceItems(matching: "", includeCurrent: false)))
-            groups.append(CommandGroup(section: .commands, items: Array(commandItems(matching: "").prefix(5))))
+            groups.append(CommandResultGroup(section: .tabs, items: recent.map(tabItem)))
+            groups.append(CommandResultGroup(section: .spaces, items: spaceItems(matching: "", includeCurrent: false)))
+            groups.append(CommandResultGroup(section: .commands, items: Array(commandItems(matching: "").prefix(5))))
             return groups.filter { !$0.items.isEmpty }
         }
 
@@ -179,7 +179,7 @@ struct CommandBarView: View {
         suggestions.append(CommandItem(id: "search:\(query)", section: .suggestions, title: query,
                                        subtitle: "Search \(SearchEngine.current.name)", icon: "magnifyingglass",
                                        kind: .open(URLParser.searchURL(for: query))))
-        groups.append(CommandGroup(section: .suggestions, items: suggestions))
+        groups.append(CommandResultGroup(section: .suggestions, items: suggestions))
 
         func matches(_ title: String, _ url: URL?) -> Bool {
             title.lowercased().contains(needle) || (url?.absoluteString.lowercased().contains(needle) ?? false)
@@ -188,9 +188,9 @@ struct CommandBarView: View {
         // Open tabs, all spaces.
         let tabs = state.allTabs.filter { matches($0.displayTitle, $0.url) }.prefix(6)
         tabs.forEach { if let url = $0.url { seenURLs.insert(url.absoluteString) } }
-        groups.append(CommandGroup(section: .tabs, items: tabs.map(tabItem)))
+        groups.append(CommandResultGroup(section: .tabs, items: tabs.map(tabItem)))
 
-        groups.append(CommandGroup(section: .spaces, items: spaceItems(matching: needle, includeCurrent: false)))
+        groups.append(CommandResultGroup(section: .spaces, items: spaceItems(matching: needle, includeCurrent: false)))
 
         // Favorites and bookmarks.
         var marks: [CommandItem] = []
@@ -200,7 +200,7 @@ struct CommandBarView: View {
                                      subtitle: mark.url.host() ?? mark.url.absoluteString, pageURL: mark.url,
                                      kind: .open(mark.url)))
         }
-        groups.append(CommandGroup(section: .bookmarks, items: marks))
+        groups.append(CommandResultGroup(section: .bookmarks, items: marks))
 
         // History, most recent first.
         var past: [CommandItem] = []
@@ -212,9 +212,9 @@ struct CommandBarView: View {
                                     subtitle: entry.url.host() ?? entry.url.absoluteString, pageURL: entry.url,
                                     kind: .open(entry.url)))
         }
-        groups.append(CommandGroup(section: .history, items: past))
+        groups.append(CommandResultGroup(section: .history, items: past))
 
-        groups.append(CommandGroup(section: .commands, items: Array(commandItems(matching: needle).prefix(6))))
+        groups.append(CommandResultGroup(section: .commands, items: Array(commandItems(matching: needle).prefix(6))))
         return groups.filter { !$0.items.isEmpty }
     }
 
@@ -323,7 +323,7 @@ struct CommandItem: Identifiable {
     let kind: Kind
 }
 
-struct CommandGroup: Identifiable {
+struct CommandResultGroup: Identifiable {
     let section: CommandItem.Section
     let items: [CommandItem]
     var id: String { section.rawValue }

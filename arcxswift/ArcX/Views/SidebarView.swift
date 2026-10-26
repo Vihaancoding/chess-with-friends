@@ -60,7 +60,7 @@ private struct SpaceSwipeArea: View {
             }
         }
         .offset(x: swipe.offset)
-        .opacity(1 - min(0.35, abs(swipe.offset) / 300))
+        .opacity(1 - min(0.35, Double(abs(swipe.offset)) / 300))
         .clipped()
         .animation(DS.Motion.space, value: state.currentSpace?.id)
     }
