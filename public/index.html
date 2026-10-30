@@ -1065,6 +1065,7 @@ let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
+const API_TIMEOUT = { sync: 5000, ping: 5000, move: 6000 };   // heartbeats are tiny and a move is quick: retry sooner (move retries are safe)
 async function api(route, body) {
   const headers = { 'Content-Type': 'application/json' };
   if (user) { headers['x-name'] = user.name; headers['x-token'] = user.token; }
@@ -1075,12 +1076,17 @@ async function api(route, body) {
     if (busyCount++ === 0) busyTimer = setTimeout(() => $('#busybar').classList.add('on'), 120);
     if (btn) btnTimer = setTimeout(() => btn.classList.add('busy'), 120);
   }
+  // A request that never gets an answer (a dropped phone/Wi-Fi connection) would otherwise hang forever and stall
+  // whatever awaits it, like the game heartbeat or a move. Give up and let the caller retry. The server stops at 10s anyway.
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), API_TIMEOUT[route] || 10000);
   try {
-    const r = await fetch('/api?r=' + route, { method: 'POST', headers, body: JSON.stringify(body || {}) });
-    const j = await r.json().catch(() => ({ error: 'Bad response.' }));
+    const r = await fetch('/api?r=' + route, { method: 'POST', headers, body: JSON.stringify(body || {}), signal: ctl.signal });
+    const j = await r.json().catch(() => (ctl.signal.aborted ? null : { error: 'Bad response.' }));
+    if (!j) return { ok: false, error: 'Connection problem.' };            // timed out mid-download: same as no answer
     return { ok: r.ok, status: r.status, ...j };
   } catch { return { ok: false, error: 'Connection problem.' }; }
   finally {
+    clearTimeout(timer);
     if (loud) {
       clearTimeout(btnTimer); if (btn) btn.classList.remove('busy');
       if (--busyCount === 0) { clearTimeout(busyTimer); $('#busybar').classList.remove('on'); }
