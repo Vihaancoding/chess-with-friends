@@ -5088,7 +5088,7 @@ async function tourPlay(id, fx) {
   tourBusy = true;
   const r = await api('tour_play', { id, fx });
   tourBusy = false;
-  if (!r.ok) { const el = $('#tvErr') || $('#err'); if (el) el.textContent = r.error || 'Could not open the match.'; return; }
+  if (!r.ok) { const el = view === 'tours' ? $('#tvErr') : $('#err'); if (el) el.textContent = r.error || 'Could not open the match.'; if (view === 'lobby') pollLobby(true); return; }
   enterGame(r.code);
 }
 $('#tours').addEventListener('click', async (e) => {

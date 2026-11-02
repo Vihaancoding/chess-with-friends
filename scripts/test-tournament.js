@@ -47,6 +47,12 @@ const tc = { base: 300, inc: 0 };
     const [f1, f2, f3] = r.groups[0].fixtures;
     Tour.record(r, f1.id, 'draw', [0.5, 0.5]); Tour.record(r, f2.id, 'a', [1, 0]); Tour.record(r, f3.id, 'draw', [0.5, 0.5]);
     const tb = Tour.standings(r, r.groups[0]);
+    const cyc = Tour.create({ id: 'c', name: 'c', by: 'a', cfg: { kind: 'rr' }, now: 1 });
+    ['a', 'b', 'c'].forEach((n) => Tour.join(cyc, { name: n, elo: 1 }));
+    Tour.start(cyc, 1);
+    for (const f of cyc.groups[0].fixtures) Tour.record(cyc, f.id, ({ ab: 'a', ba: 'b', bc: 'a', cb: 'b', ca: 'a', ac: 'b' })[f.a + f.b], null);   // a beats b, b beats c, c beats a
+    const orders = new Set([0, 1, 2].map((k) => { const g = { ...cyc.groups[0], players: [...cyc.groups[0].players.slice(k), ...cyc.groups[0].players.slice(0, k)] }; return Tour.standings(cyc, g).map((x) => x.name).join(); }));
+    ok('a three-way cycle sorts the same whatever the order (no head-to-head)', orders.size === 1 && [...orders][0] === 'a,b,c', [...orders]);
     ok('round robin crowns the top of the table', r.phase === 'done' && r.champion === tb[0].name && tb[0].pts === 1.5, tb);
   }
 
@@ -153,6 +159,12 @@ const tc = { base: 300, inc: 0 };
   ok('the final is set', fin.a === armaBlack && fin.b === s2.b, fin);
   r = await call('tour_delete', { id }, P.ann);
   ok('a running tournament can only be deleted by an admin', r.status === 400);
+  r = await call('tour_play', { id, fx: fin.id }, P.gus);
+  ok('a spectator cannot open a match that has no room yet', r.status === 403, r);
+  const live = await call('tour_play', { id, fx: fin.id }, P[fin.a]);
+  r = await call('tour_play', { id, fx: fin.id }, P.gus);
+  ok('…but can watch it once it is on', r.code === live.code, r);
+  r = await call('tour_get', { id }, P.ann);
   const gf = await play(r.tour, fin);
   r = await call('tour_get', { id }, P.gus);
   ok('a champion', r.tour.phase === 'done' && r.tour.champion === gf.white && r.tour.ended > 0, [r.tour.phase, r.tour.champion]);
@@ -162,6 +174,23 @@ const tc = { base: 300, inc: 0 };
   ok('no matches left to play', me.tourNext.length === 0, me.tourNext);
   const ga = await call('games', { name: gf.white }, P[gf.white]);
   ok('tournament games are archived and rated like any other', ga.games.some((x) => x.code === gf.code && x.rated), ga.games.length);
+
+  console.log('rooms that expired or were settled by hand');
+  await require('../lib/store').del('room:' + g1.code);
+  r = await call('tour_play', { id, fx: fA.id }, P[fA.a]);
+  ok('a decided match whose room expired is not played again', r.status === 404, r);
+
+  r = await call('tour_create', { name: 'Quick Cup', tc, cfg: { kind: 'ko', kn: 3 } }, P.cat);
+  const q = r.tour.id;
+  await call('tour_join', { id: q }, P.dan);
+  r = await call('tour_start', { id: q }, P.cat);
+  const qf = r.tour.ko.rounds[0][0];
+  const qr = await call('tour_play', { id: q, fx: qf.id }, P.cat);
+  await call('tour_award', { id: q, fx: qf.id, res: 'a' }, P.cat);
+  const qroom = await call('room', { code: qr.code }, P.cat);
+  ok('settling by hand closes the live room\'s match', qroom.match.done && qroom.tourDone !== false, qroom.match);
+  r = await call('tour_get', { id: q }, P.cat);
+  ok('…and the hand-set result stands', r.tour.phase === 'done' && r.tour.champion === qf.a, [r.tour.phase, r.tour.champion]);
 
   console.log('limits and clean-up');
   for (const n of ['x1', 'x2', 'x3']) await call('tour_create', { name: 'Cup ' + n, tc }, P.bob);

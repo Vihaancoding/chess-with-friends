@@ -93,7 +93,9 @@
     }
     const elo = Object.fromEntries(t.players.map((p) => [p.name, p.elo]));
     const h2h = (x, y) => { const f = g.fixtures.find((q) => q.res && ((q.a === x && q.b === y) || (q.a === y && q.b === x))); return !f || f.res === 'draw' ? 0 : (f.res === 'a') === (f.a === x) ? -1 : 1; };
-    return Object.values(row).sort((x, y) => y.pts - x.pts || y.gp - x.gp || h2h(x.name, y.name) || (elo[y.name] || 0) - (elo[x.name] || 0) || x.name.localeCompare(y.name));
+    const all = Object.values(row), level = (x, y) => x.pts === y.pts && x.gp === y.gp;
+    const pair = (x, y) => all.filter((z) => level(z, x)).length === 2;   // head-to-head only settles a two-way tie (a 3-way one can be a cycle)
+    return all.sort((x, y) => y.pts - x.pts || y.gp - x.gp || (pair(x, y) ? h2h(x.name, y.name) : 0) || (elo[y.name] || 0) - (elo[x.name] || 0) || x.name.localeCompare(y.name));
   }
 
   function buildKo(t, seeds, groupOf = {}) {
