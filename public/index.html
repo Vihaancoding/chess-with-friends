@@ -984,6 +984,11 @@
     <table><thead><tr><th>White</th><th>Black</th><th>Time</th><th class="r">Moves</th><th></th></tr></thead><tbody id="adlive"></tbody></table>
   </div>
   <div class="panel">
+    <h2 class="ph">Fair play</h2>
+    <div class="muted" style="font-size:.9rem;font-weight:600;margin-bottom:8px">Flags only: nothing here changes a game or an account. <b>Engine check</b>: recent games are replayed through the analysis engine while this page is open; people usually play its top move about half the time and lose 30+ centipawns a move on average. <b>Board reports</b>: a player's browser saw something drawing on the board during an online game, as engine extensions do (other extensions can too, so look at what it was).</div>
+    <table><thead><tr><th>Player</th><th>Engine check</th><th class="r">Board reports</th><th></th></tr></thead><tbody id="adfair"></tbody></table>
+  </div>
+  <div class="panel">
     <h2 class="ph">Players <button class="small" id="adClearChat">Clear lobby chat</button></h2>
     <table><thead><tr><th>Player</th><th>Email</th><th class="r">Rating</th><th class="r">W / L / D</th><th>Server</th><th></th></tr></thead><tbody id="adusers"></tbody></table>
   </div>
@@ -1152,7 +1157,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
+const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 async function api(route, body) {
@@ -1964,6 +1969,7 @@ async function loadAdmin() {
       <td>${tcLabel(g.tc)}</td><td class="r">${Math.ceil(g.moves / 2)}</td>
       <td><div class="acts"><button class="small" data-act="watch" data-code="${g.code}">Watch</button><button class="small danger" data-act="abort" data-code="${g.code}">End game</button></div></td></tr>`).join('')
     : '<tr><td colspan="5" class="muted">No games in progress.</td></tr>';
+  paintFair(r.users); fairTick(r.users);
   $('#adusers').innerHTML = r.users.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.admin ? '<span class="badge gold">admin</span>' : ''}${u.muted ? '<span class="badge red">muted</span>' : ''}</td>
       <td class="muted">${esc(u.email || '—')}</td><td class="r">${u.elo}</td><td class="r muted">${u.w}-${u.l}-${u.d}</td>
       <td>${u.name === user.name ? '' : `<select class="small" data-act="move" data-name="${esc(u.name)}" aria-label="Move ${esc(u.name)} to another server">${adServers.map((x) => `<option value="${x.id}"${x.id === user.srv ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`}</td>
@@ -1973,6 +1979,37 @@ async function loadAdmin() {
       <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
 }
 let adServers = [];
+// ----- fair play -----
+let adFairBusy = false, adFairOpen = null, adFairDetail = null;
+function fairCheckTxt(f) {
+  const v = f && f.verdict;
+  if (!v || !v.games) return f && f.pending ? '<span class="muted">checking…</span>' : '<span class="muted">no long games yet</span>';
+  const s = `${v.match}% top move · ${v.acpl} avg loss · ${v.games} game${v.games > 1 ? 's' : ''}`;
+  return v.flag ? `<span class="badge red">possible engine</span> ${esc(v.flag)}` : `<span class="muted">${s}</span>`;
+}
+function paintFair(users) {
+  const rows = users.filter((u) => u.fair).sort((a, b) => (!!(b.fair.verdict && b.fair.verdict.flag) - !!(a.fair.verdict && a.fair.verdict.flag)) || (b.fair.ext - a.fair.ext));
+  $('#adfair').innerHTML = rows.map((u) => {
+    const open = adFairOpen === u.name && adFairDetail && adFairDetail.name === u.name;
+    return `<tr><td><b>${esc(u.name)}</b></td><td>${fairCheckTxt(u.fair)}</td>
+      <td class="r">${u.fair.ext ? `<span class="badge red">${u.fair.ext}</span>` : '<span class="muted">0</span>'}</td>
+      <td><div class="acts"><button class="small" data-act="fair" data-name="${esc(u.name)}">${open ? 'Hide' : 'Details'}</button></div></td></tr>` + (open ? `<tr><td colspan="4">${fairDetailHTML(adFairDetail)}</td></tr>` : '');
+  }).join('') || '<tr><td colspan="4" class="muted">No players yet.</td></tr>';
+}
+function fairDetailHTML(d) {
+  const day = (ts) => new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const ext = d.ext.length ? d.ext.map((x) => `<div>${day(x.ts)} · game ${esc(x.game || '?')} · ${esc(x.what)}</div>`).join('') : '<div class="muted">No board reports.</div>';
+  const games = d.games.length ? d.games.map((g) => `<div>${day(g.at)} · vs ${esc(g.opp)} (${g.color === 'w' ? 'White' : 'Black'}, ${g.result}) · ${g.scan ? `${g.scan.match}% top move, ${g.scan.acpl} avg loss over ${g.scan.n} moves${g.scan.cv !== null ? `, move-time spread ${g.scan.cv}` : ''}` : 'too short to judge'}</div>`).join('') : '<div class="muted">No games checked yet.</div>';
+  return `<div style="font-size:.88rem;line-height:1.6"><b>Board reports</b>${ext}<b>Engine check</b>${games}</div>`;
+}
+// one player's unchecked games per tick, while the panel is open
+function fairTick(users) {
+  if (adFairBusy) return;
+  const u = users.find((x) => x.fair && x.fair.pending);
+  if (!u) return;
+  adFairBusy = true;
+  api('admin_fair', { name: u.name, scan: true }).finally(() => { adFairBusy = false; });
+}
 $('#admin').addEventListener('change', async (e) => {
   const sel = e.target.closest('select[data-act="move"]');
   if (!sel) return;
@@ -2007,6 +2044,13 @@ $('#admin').addEventListener('click', async (e) => {
     const r = await api('admin_server_edit', { id: b.dataset.id, code: act === 'srvcode' ? 'new' : 'off' }); if (!r.ok) alert(r.error); return loadAdmin();
   }
   if (act === 'watch') { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); return; }
+  if (act === 'fair') {
+    if (adFairOpen === name) { adFairOpen = adFairDetail = null; return loadAdmin(); }
+    adFairOpen = name;
+    const r = await api('admin_fair', { name });
+    if (!r.ok) return alert(r.error || 'Could not load it.');
+    adFairDetail = r; return loadAdmin();
+  }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
   if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
   if (act === 'delete') { if (!confirm(`Permanently delete ${name}'s account?`)) return; await api('admin_delete', { name }); }
@@ -3395,6 +3439,51 @@ document.addEventListener('visibilitychange', () => {
   if (view === 'game' && !isBot()) kick();
   else if (view === 'lobby') pollLobby(true);
 });
+
+// ---------- fair play: signs of an engine helper on the board ----------
+// Extensions that show engine moves draw on the board: arrows or highlights added inside it, or a layer of their own
+// laid over it. During an online game this looks for anything the app didn't make there, and for the names such
+// tools use, and tells the server once per game. That only flags the player for an admin to look at; play goes on.
+// It can't see a phone or a second screen; the admin panel's engine check of finished games covers those.
+const FP = { roots: new Set(document.body.children), sent: new Set() };
+const FP_NAMES = /stockfish|bettermint|chess[-_ ]?(helper|bot|cheat|assist|hack)|best[-_ ]?move|engine[-_ ]?(line|eval|arrow|move|hint)|\bmoveHint|lc0|leela/i;
+const FP_SQ_KIDS = new Set(['coord', 'piece', 'glyph', 'kflash']);
+const fpName = (el) => (el.tagName || '').toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : '');
+function fpFindings() {
+  const out = [], wrap = $('#boardwrap'), bd = $('#board');
+  if (!wrap || !bd) return out;
+  // 1. inside the board: only our squares, and in them only our pieces and labels
+  for (const el of wrap.children) if (!['board', 'arrows', 'pausedOv'].includes(el.id) && !el.matches('.mbadge, .mtoast')) out.push('added to the board: ' + fpName(el));
+  for (const el of bd.children) {
+    if (!el.classList.contains('sq')) { out.push('added to the board: ' + fpName(el)); continue; }
+    for (const k of el.children) if (![...k.classList].some((c) => FP_SQ_KIDS.has(c))) out.push('added to a square: ' + fpName(k));
+  }
+  const arrows = $('#arrows');
+  if (arrows) for (const k of arrows.children) if (!k.matches('line, polygon, circle, path, g')) out.push('added to the arrows layer: ' + fpName(k));
+  // 2. layers the app didn't make (at the top of the page) lying over the board
+  const b = bd.getBoundingClientRect();
+  for (const el of [...document.body.children, ...document.documentElement.children]) {
+    if (FP.roots.has(el) || el === document.body || el === document.head || el.matches('script, style, link, audio, .dragghost')) continue;
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    const over = r.width > 0 && r.height > 0 && r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top;
+    if (over && cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > 0.05) out.push('a layer over the board: ' + fpName(el));
+    else if (FP_NAMES.test(fpName(el))) out.push('engine helper on the page: ' + fpName(el));
+  }
+  // 3. the names engine helpers go by, anywhere in the board
+  if (FP_NAMES.test(wrap.innerHTML)) out.push('engine helper markup in the board');
+  return out;
+}
+function fpCheck() {
+  if (view !== 'game' || !snap || gameCode === 'BOT' || gameCode === 'ARCHIVE' || !gameCode) return;
+  if ((snap.you !== 'w' && snap.you !== 'b') || snap.status.over) return;
+  for (const what of fpFindings()) {
+    const k = gameCode + '|' + what;
+    if (FP.sent.has(k)) continue;
+    FP.sent.add(k);
+    api('fair_report', { code: gameCode, what });
+  }
+}
+setInterval(fpCheck, 3000);
 
 // ---------- sound ----------
 // Sound packs are synthesized in the browser, so there are no audio files to load.

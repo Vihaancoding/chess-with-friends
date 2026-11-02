@@ -55,6 +55,10 @@ Accounts are shared, so usernames and emails are unique across all servers.
 Emails are not verified, so admin is unlocked with a secret instead of an email address:
 log in, open `https://your-site/?admin=1`, and enter `ADMIN_KEY`. An **Admin** link then appears in the sidebar. From there you can mute, reset or delete players, end live games, post an announcement and moderate chat.
 
+**Fair play** (flags only; it never changes a game or an account):
+- **Engine check:** while the admin panel is open, each player's recent finished games (16+ moves) are replayed through the analysis engine. For every move after the opening it records whether it was the engine's top choice and how many centipawns it lost. People usually play the top move about half the time and lose 30+ centipawns a move; a player well past that over several games, or in one long game, is marked **possible engine**. Move times are shown too, since engine users tend to spend the same time on every move.
+- **Board reports:** during online games the player's browser looks for anything drawn on the board that the app didn't make (as Stockfish extensions do: arrows, highlights, a layer over the board) and for the names such tools use, and reports what it found. Other extensions can trip it, so check what was reported. Neither check can see a second device; the engine check is what catches that.
+
 ## Account recovery
 
 Players who forget their password have three ways back in. Each one sets a new password and signs out every other device.
