@@ -2,6 +2,7 @@
 // real rooms, results flowing back, the knockout filling in, permissions).
 // Runs in-process with in-memory storage. Run: node scripts/test-tournament.js
 delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+process.env.ADMIN_KEY = 'test-admin-key';
 const handler = require('../lib/app');
 const Tour = require('../public/tournament.js');
 
@@ -60,14 +61,23 @@ const tc = { base: 300, inc: 0 };
   const su = async (n) => { const r = await call('signup', { email: n + '@x.io', password: 'password1', username: n }); return { name: r.name, token: r.token }; };
   const P = {};
   for (const n of ['ann', 'bob', 'cat', 'dan', 'eve', 'fay', 'gus']) P[n] = await su(n);
-  let r = await call('tour_create', { name: 'x', tc }, P.ann);
+  let r = await call('tour_create', { name: 'Not allowed', tc }, P.ann);
+  ok('only admins can create tournaments', r.status === 403 && /admin/i.test(r.error), r);
+  for (const n of ['ann', 'cat']) await call('admin_claim', { key: 'test-admin-key' }, P[n]);
+  r = await call('tour_list', {}, P.ann);
+  ok('the list says who is an admin', r.admin === true && (await call('tour_list', {}, P.bob)).admin === false);
+  r = await call('tour_create', { name: 'x', tc }, P.ann);
   ok('a name is required', r.status === 400);
   r = await call('tour_create', { name: 'Autumn Cup', tc, cfg: { kind: 'gko', size: 3, adv: 2, gn: 1, kn: 1, max: 8 } }, P.ann);
   const id = r.tour.id;
   ok('created, organizer signed up', r.tour.phase === 'signup' && r.tour.players.length === 1 && r.tour.by === 'ann', r.tour);
   r = await call('tour_start', { id }, P.ann);
   ok('cannot start below the minimum', r.status === 400 && /at least 4/.test(r.error), r);
+  let inv = await call('me', {}, P.bob);
+  ok('an open tournament shows as an invitation on the main page', inv.tourOpen.length === 1 && inv.tourOpen[0].id === id && inv.tourOpen[0].name === 'Autumn Cup' && inv.tourOpen[0].n === 1, inv.tourOpen);
+  ok('…but not to players already in it', (await call('me', {}, P.ann)).tourOpen.length === 0);
   for (const n of ['bob', 'cat', 'dan', 'eve', 'fay']) await call('tour_join', { id }, P[n]);
+  ok('joining removes the invitation', (await call('me', {}, P.bob)).tourOpen.length === 0);
   r = await call('tour_join', { id }, P.bob);
   ok('joining twice is harmless', r.tour.players.length === 6);
   await call('tour_leave', { id }, P.fay);
@@ -157,8 +167,8 @@ const tc = { base: 300, inc: 0 };
   r = await call('tour_get', { id }, P.ann);
   const fin = r.tour.ko.rounds[1][0];
   ok('the final is set', fin.a === armaBlack && fin.b === s2.b, fin);
-  r = await call('tour_delete', { id }, P.ann);
-  ok('a running tournament can only be deleted by an admin', r.status === 400);
+  r = await call('tour_delete', { id }, P.bob);
+  ok('players cannot delete a tournament', r.status === 403);
   r = await call('tour_play', { id, fx: fin.id }, P.gus);
   ok('a spectator cannot open a match that has no room yet', r.status === 403, r);
   const live = await call('tour_play', { id, fx: fin.id }, P[fin.a]);
@@ -193,9 +203,10 @@ const tc = { base: 300, inc: 0 };
   ok('…and the hand-set result stands', r.tour.phase === 'done' && r.tour.champion === qf.a, [r.tour.phase, r.tour.champion]);
 
   console.log('limits and clean-up');
-  for (const n of ['x1', 'x2', 'x3']) await call('tour_create', { name: 'Cup ' + n, tc }, P.bob);
-  r = await call('tour_create', { name: 'One too many', tc }, P.bob);
-  ok('a player runs at most 3 at once', r.status === 429, r);
+  r = await call('tour_create', { name: 'Player Cup', tc }, P.bob);
+  ok('players still cannot create one', r.status === 403);
+  r = await call('tour_get', { id }, P.ann);
+  ok('no invitation once it has started', !(await call('me', {}, P.gus)).tourOpen.some((x) => x.id === id));
   r = await call('tour_delete', { id }, P.bob);
   ok('only the organizer deletes', r.status === 403);
   r = await call('tour_delete', { id }, P.ann);
