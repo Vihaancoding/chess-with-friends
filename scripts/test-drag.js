@@ -98,6 +98,18 @@ const ok = (name, cond, got) => { if (cond) { passed++; console.log('  ✓', nam
   await page.evaluate(() => { clickSquare(8); clickSquare(35); });   // a7 to d4 isn't a move at all: just a click away
   ok('a plain click away does not shake', !(await shook()).shake.length, await shook());
 
+  // castling through an attacked square: after 1.e4 b6 2.g3 Ba6 3.Bg2 e6 4.Nf3 Nc6 the a6 bishop hits f1
+  await page.evaluate(() => { user = { name: 'Tester' }; const b = makeBot(Object.keys(BOT_LEVELS)[0], 'w', null); for (const u of ['e2e4', 'b7b6', 'g2g3', 'c8a6', 'f1g2', 'e7e6', 'g1f3', 'b8c6']) applyBotMove(b, Chess.findUci(b.state, u), false); enterBot(b); });
+  await page.evaluate(() => { clickSquare(60); clickSquare(62); });   // e1 to g1
+  s = await shook();
+  ok('castling through an attacked square flashes the king', s.flash.join() === '60', s);
+  await page.waitForTimeout(800);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(() => { clickSquare(60); clickSquare(62); clickSquare(60); clickSquare(62); });
+  await page.waitForTimeout(900);
+  s = await shook();
+  ok('with reduced motion the markers still clear and do not pile up', !s.shake.length && !s.flash.length, s);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   await br.close(); srv.kill();
   process.exit(failed ? 1 : 0);

@@ -2396,15 +2396,24 @@ function clickSquare(sq, dragged) {
   }
   paintBoard();
 }
-// Is from→to a move the piece could make, if it didn't leave my king in check?
-const kingBlocks = (from, to) => Chess.pseudoMoves(snap.state).some((m) => m.from === from && m.to === to);
+// Is from→to a move the piece could make, if it didn't leave my king in check? Castling counts when the rights and
+// an empty path allow it but the king is in check or would cross an attacked square (pseudoMoves leaves those out).
+function kingBlocks(from, to) {
+  const st = snap.state, b = st.board, me = snap.you, home = me === 'w' ? 60 : 4;
+  if (from === home && b[from] === me + 'K' && Math.abs(to - from) === 2) {
+    const k = to > from, path = k ? [home + 1, home + 2] : [home - 1, home - 2, home - 3];
+    return !!st.castle[me + (k ? 'K' : 'Q')] && b[k ? home + 3 : home - 4] === me + 'R' && path.every((x) => !b[x]);
+  }
+  return Chess.pseudoMoves(st).some((m) => m.from === from && m.to === to);
+}
 // The chess.com "nope": the piece shakes on its square, and when the king is the reason (in check, or pinned) the king
 // shakes and its square flashes red.
 function shakeSq(sq, flash) {
   const el = sqEls[sq]; if (!el) return;
   const pc = el.querySelector('.piece, .glyph');
-  if (pc) { pc.classList.remove('shake'); void pc.offsetWidth; pc.classList.add('shake'); pc.addEventListener('animationend', () => pc.classList.remove('shake'), { once: true }); }
-  if (flash) { const f = document.createElement('span'); f.className = 'kflash'; el.appendChild(f); f.addEventListener('animationend', () => f.remove(), { once: true }); }
+  // cleared on a timer, not animationend: with reduced motion the animations never run
+  if (pc) { pc.classList.remove('shake'); void pc.offsetWidth; pc.classList.add('shake'); clearTimeout(pc._shk); pc._shk = setTimeout(() => pc.classList.remove('shake'), 400); }
+  if (flash) { el.querySelectorAll('.kflash').forEach((x) => x.remove()); const f = document.createElement('span'); f.className = 'kflash'; el.appendChild(f); setTimeout(() => f.remove(), 750); }
 }
 function rejectMove(from, to) {
   if (!snap) return;
