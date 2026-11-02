@@ -253,6 +253,11 @@
 
   #board { touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; }
   .sq.dragging img.piece { opacity: .3; }
+  /* an illegal move: the piece shakes on its square; when the king is the reason, it shakes too and its square flashes red */
+  .piece.shake, .glyph.shake { animation: pshake .32s ease-in-out; }
+  @keyframes pshake { 0%, 100% { transform: none; } 20% { transform: translateX(-11%); } 40% { transform: translateX(10%); } 60% { transform: translateX(-7%); } 80% { transform: translateX(4%); } }
+  .kflash { position: absolute; inset: 0; pointer-events: none; animation: kflash .7s ease-out; }
+  @keyframes kflash { 0%, 40% { background: rgba(235, 50, 40, .75); } 20%, 60% { background: rgba(235, 50, 40, .25); } 100% { background: transparent; } }
   .dragghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 8px 8px #0006); }
   .dragghost img { width: 100%; height: 100%; }
   .pcol { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
@@ -2381,8 +2386,32 @@ function clickSquare(sq, dragged) {
   }
   const p = actBoard()[sq];
   if (p && p[0] === you && sq !== selected) { selected = sq; legal = movesFor(snap, sq); }
-  else { const had = selected !== null; selected = null; legal = []; if (!myTurn && !had) clearPremoves(); }   // a click away first drops the pick, then the queue
+  else {                                                      // a click away first drops the pick, then the queue
+    const had = selected;
+    selected = null; legal = [];
+    if (!myTurn && had === null) clearPremoves();
+    paintBoard();
+    if (had !== null && myTurn && kingBlocks(had, sq)) rejectMove(had, sq);   // a move the king forbids: say why
+    return;
+  }
   paintBoard();
+}
+// Is from→to a move the piece could make, if it didn't leave my king in check?
+const kingBlocks = (from, to) => Chess.pseudoMoves(snap.state).some((m) => m.from === from && m.to === to);
+// The chess.com "nope": the piece shakes on its square, and when the king is the reason (in check, or pinned) the king
+// shakes and its square flashes red.
+function shakeSq(sq, flash) {
+  const el = sqEls[sq]; if (!el) return;
+  const pc = el.querySelector('.piece, .glyph');
+  if (pc) { pc.classList.remove('shake'); void pc.offsetWidth; pc.classList.add('shake'); pc.addEventListener('animationend', () => pc.classList.remove('shake'), { once: true }); }
+  if (flash) { const f = document.createElement('span'); f.className = 'kflash'; el.appendChild(f); f.addEventListener('animationend', () => f.remove(), { once: true }); }
+}
+function rejectMove(from, to) {
+  if (!snap) return;
+  const king = !premoveTurn() && kingBlocks(from, to);
+  shakeSq(from);
+  if (king) shakeSq(snap.state.board.indexOf(snap.you + 'K'), true);
+  sfx('illegal');
 }
 function clearPremoves() { if (premoves.length) { premoves = []; drawOverlay(); } }
 // Called after every new position: if premoves are queued and it is now my turn, play the first (if still legal).
@@ -3347,7 +3376,7 @@ function endDrag(e, cancel) {
   const mine = snap && to !== null && to !== d.from && (actBoard()[d.from] || '')[0] === snap.you;
   if (mine) { selected = d.from; legal = movesFor(snap, d.from); }
   if (mine && legal.some((m) => m.from === d.from && m.to === to)) clickSquare(to, true);
-  else { selected = null; legal = []; paintBoard(); }
+  else { selected = null; legal = []; paintBoard(); if (mine && (actBoard()[to] || '')[0] !== snap.you) rejectMove(d.from, to); }   // dropped on my own piece: just put it back
 }
 window.addEventListener('pointerup', (e) => { if (e.button === 2 && rdrag) finishArrow(); else endDrag(e, false); });
 window.addEventListener('pointercancel', (e) => { if (rdrag) { rdrag = null; drawOverlay(); } endDrag(e, true); });
@@ -3443,6 +3472,7 @@ function sfx(kind) {
   if (kind === 'challenge') return challengeChime();
   if (kind === 'chAccepted') return [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, { vol: 0.12, delay: i * 0.09 }));
   if (kind === 'turn') { tone(784, 0.18, { vol: 0.1 }); tone(1047, 0.3, { vol: 0.1, delay: 0.12 }); return; }
+  if (kind === 'illegal') { tone(220, 0.09, { type: 'triangle', vol: 0.12 }); tone(165, 0.14, { type: 'triangle', vol: 0.12, delay: 0.08 }); return; }
   if (kind === 'chDeclined') { tone(523, 0.25, { vol: 0.1 }); tone(392, 0.4, { vol: 0.1, delay: 0.16 }); return; }
   const fn = PACKS[SND.pack][1][kind];
   if (fn) fn();

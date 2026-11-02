@@ -192,5 +192,5 @@
     return legalMoves(state).find((m) => m.from === from && m.to === to && (m.promo || undefined) === (promo || (m.promo ? 'Q' : undefined)));
   }
 
-  return { initial, legalMoves, apply, status, inCheck, notate, sqName, key, fromFEN, findUci };
+  return { initial, legalMoves, pseudoMoves, apply, status, inCheck, notate, sqName, key, fromFEN, findUci };
 });
