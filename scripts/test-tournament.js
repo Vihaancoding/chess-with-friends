@@ -202,6 +202,36 @@ const tc = { base: 300, inc: 0 };
   r = await call('tour_get', { id: q }, P.cat);
   ok('…and the hand-set result stands', r.tour.phase === 'done' && r.tour.champion === qf.a, [r.tour.phase, r.tour.champion]);
 
+  console.log('time control by vote');
+  r = await call('tour_create', { name: 'Vote Cup', poll: [{ base: 60, inc: 0 }], cfg: { kind: 'ko' } }, P.ann);
+  ok('a vote needs two options', r.status === 400, r);
+  r = await call('tour_create', { name: 'Vote Cup', poll: [{ base: 180, inc: 2 }, { base: 600, inc: 0 }, { base: 180, inc: 2 }, null], cfg: { kind: 'ko' } }, P.ann);
+  const vid = r.tour.id;
+  ok('options are cleaned and de-duplicated; no time control yet', r.tour.poll.options.length === 3 && r.tour.poll.options[2] === null && r.tour.tc === null, r.tour.poll);
+  inv = await call('me', {}, P.dan);
+  ok('the invitation says it is a vote', inv.tourOpen.some((x) => x.id === vid && x.poll === true), inv.tourOpen);
+  r = await call('tour_vote', { id: vid, i: 1 }, P.dan);
+  ok('only signed-up players vote', r.status === 400 && /Join/.test(r.error), r);
+  for (const n of ['bob', 'dan', 'eve']) await call('tour_join', { id: vid }, P[n]);
+  await call('tour_vote', { id: vid, i: 0 }, P.ann);
+  await call('tour_vote', { id: vid, i: 1 }, P.bob); await call('tour_vote', { id: vid, i: 0 }, P.bob);   // changed their mind
+  await call('tour_vote', { id: vid, i: 1 }, P.dan); await call('tour_vote', { id: vid, i: 1 }, P.eve);
+  r = await call('tour_vote', { id: vid, i: 7 }, P.eve);
+  ok('a bad option is refused', r.status === 400);
+  r = await call('tour_get', { id: vid }, P.ann);
+  ok('votes are counted, one per player', require('../public/tournament.js').pollCounts(r.tour).join() === '2,2,0', r.tour.poll.votes);
+  await call('tour_leave', { id: vid }, P.eve);
+  r = await call('tour_start', { id: vid }, P.ann);
+  ok('leaving drops the vote; most votes wins at the start', r.tour.tc && r.tour.tc.base === 180 && r.tour.tc.inc === 2 && r.tour.poll.chosen === 0, r.tour.poll);
+  r = await call('tour_vote', { id: vid, i: 1 }, P.dan);
+  ok('voting closes once it starts', r.status === 400);
+  r = await call('tour_get', { id: vid }, P.ann);
+  const vf = Tour.allFixtures(r.tour).find(Tour.ready);
+  const vr = await call('tour_play', { id: vid, fx: vf.id }, P[vf.a]);
+  const vroom = await call('room', { code: vr.code }, P[vf.a]);
+  ok('the games use the voted time control', vroom.tc.base === 180 && vroom.tc.inc === 2 && vroom.cat === 'blitz', vroom.tc);
+  await call('tour_delete', { id: vid }, P.ann);
+
   console.log('limits and clean-up');
   r = await call('tour_create', { name: 'Player Cup', tc }, P.bob);
   ok('players still cannot create one', r.status === 403);
