@@ -20,11 +20,12 @@ let srv = null;
 process.on('exit', () => { if (srv) srv.kill(); });
 
 (async () => {
-  srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, SUPABASE_URL: '' }, stdio: 'ignore' });
+  srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, SUPABASE_URL: '', ADMIN_KEY: 'test-admin-key' }, stdio: 'ignore' });
   await sleep(800);
   const su = async (n) => { const r = await api('signup', { email: n + '@x.io', password: 'password1', username: n }); return { name: r.name, token: r.token }; };
   const P = {};
   for (const n of ['ann', 'bob', 'cat', 'dan', 'eve', 'fay']) P[n] = await su(n);
+  await api('admin_claim', { key: 'test-admin-key' }, P.ann);              // only admins create tournaments
   const br = await chromium.launch();
   const open = async (u, viewport) => {
     const ctx = await br.newContext({ viewport });
@@ -56,11 +57,21 @@ process.on('exit', () => { if (srv) srv.kill(); });
   ok('opens the new tournament', (await A.textContent('#tvHead')).includes('Autumn Cup') && /Sign-ups open/.test(await A.textContent('#tvHead')));
   ok('the organizer is signed up, and cannot start alone', /ann/.test(await A.textContent('#tvBody')) && await A.isDisabled('[data-tact="start"]'));
 
-  console.log('join and start');
+  console.log('players get an invitation on the main page');
   const B = await open(P.bob, { width: 390, height: 820 });
-  await B.goto(`http://localhost:${PORT}/?tour=${id}`);
-  await B.waitForSelector('[data-tact="join"]');
-  await B.click('[data-tact="join"]');
+  await B.goto(`http://localhost:${PORT}/?tours`);
+  await B.waitForSelector('#tourList .tl');
+  ok('players have no create form', await B.isHidden('#tourNew') && await B.isVisible('#tourAdminNote'));
+  await B.goto(`http://localhost:${PORT}/`);
+  await B.waitForSelector('#tourBanners .tinvite', { timeout: 15000 });
+  ok('the invitation shows in the lobby', /invited: Autumn Cup/.test(await B.textContent('#tourBanners')), await B.textContent('#tourBanners'));
+  await shot(B, 't0-invite-phone');
+  await B.click('#tourBanners [data-tbhide]');
+  ok('"Not now" hides it', !(await B.$('#tourBanners .tinvite')));
+  await B.evaluate(() => { localStorage.removeItem('chess:tourHidden'); tourHidden.clear(); tourBanSig = ''; renderTourNext(tourLastNext, tourLastOpen); });
+
+  console.log('join and start');
+  await B.click('#tourBanners [data-tbjoin]');
   await B.waitForSelector('[data-tact="leave"]');
   ok('bob joins from a link', /bob/.test(await B.textContent('#tvBody')));
   for (const n of ['cat', 'dan', 'eve', 'fay']) await api('tour_join', { id }, P[n]);

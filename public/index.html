@@ -631,7 +631,8 @@
   #tourHome, #tourView { display: flex; flex-direction: column; gap: 14px; } #tourHome.hidden, #tourView.hidden { display: none; }
   .tgrid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: start; }
   @media (max-width: 900px) { .tgrid { grid-template-columns: 1fr; } #tours { padding: 12px; } }
-  #tourNew { display: flex; flex-direction: column; gap: 10px; }
+  #tourNew { display: flex; flex-direction: column; gap: 10px; } #tourNew.hidden { display: none; }
+  .banner.tinvite { background: #3f381c; border-left-color: var(--gold); }
   .tf { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; flex: 1; min-width: 0; }
   .tf input, .tf select { text-transform: none; letter-spacing: 0; font-size: .95rem; min-width: 0; }
   .trow { display: flex; gap: 10px; } .trow.hidden, .tf.hidden { display: none; }
@@ -880,7 +881,8 @@
     <div class="muted" style="font-weight:600">Group stages, knockout brackets and round robins for everyone on this server. Every pairing is a match played in a normal game room, and results move the tournament on by themselves.</div>
     <div class="tgrid">
       <div class="panel"><h2 class="ph">All tournaments</h2><div id="tourList"><div class="muted">Loading…</div></div></div>
-      <form class="panel" id="tourNew" autocomplete="off">
+      <div class="panel hidden" id="tourAdminNote"><h2 class="ph">Want to run one?</h2><div class="muted" style="font-weight:600">Tournaments are set up by the admins. When one opens for sign-ups, you'll get an invitation on the main page.</div></div>
+      <form class="panel hidden" id="tourNew" autocomplete="off">
         <h2 class="ph">Create a tournament</h2>
         <label class="tf">Name<input id="tnName" maxlength="40" placeholder="e.g. Friday Night Cup"></label>
         <label class="tf">Format<select id="tnKind"><option value="gko">Groups, then knockout</option><option value="ko">Knockout</option><option value="rr">Round robin</option></select></label>
@@ -1743,7 +1745,7 @@ async function pollLobby(full = true) {
       renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
-    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || []); }
+    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); }
   } finally {
     lobbyBusy = false;
     if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
@@ -4987,7 +4989,8 @@ async function loadTours() {
     if (id && r.status === 404) { stopTour(); setHTML($('#tvHead'), '<div class="muted">This tournament no longer exists.</div>'); setHTML($('#tvBody'), ''); }
     return;
   }
-  if (id) { tourAdmin = !!r.admin; paintTour(r.tour); } else paintTourList(r.tours);
+  tourAdmin = !!r.admin;
+  if (id) paintTour(r.tour); else { $('#tourNew').classList.toggle('hidden', !tourAdmin); $('#tourAdminNote').classList.toggle('hidden', tourAdmin); paintTourList(r.tours); }
 }
 const tourKindLine = (x) => `${Tour.KINDS[x.kind || x.cfg.kind]} · ${tcLabel(x.tc)}`;
 function paintTourList(list) {
@@ -5111,16 +5114,30 @@ $('#tours').addEventListener('click', async (e) => {
 });
 // lobby: tournament matches waiting for me
 let tourBanSig = '';
-function renderTourNext(list) {
-  const sig = JSON.stringify(list);
+// tournaments open for sign-ups: an invitation on the main page until you join or dismiss it (per device)
+const tourHidden = (() => { try { return new Set(JSON.parse(localStorage.getItem('chess:tourHidden')) || []); } catch { return new Set(); } })();
+let tourLastNext = [], tourLastOpen = [];
+function renderTourNext(list, open = []) {
+  tourLastNext = list; tourLastOpen = open;
+  open = open.filter((x) => !tourHidden.has(x.id));
+  const sig = JSON.stringify([list, open]);
   if (sig === tourBanSig) return;
   tourBanSig = sig;
-  setHTML($('#tourBanners'), list.map((x) => `<div class="banner"><span>🏆 <b>${esc(x.name)}</b> · ${esc(x.stage)}: your match vs <b>${esc(x.opp)}</b> is ready.</span>
+  setHTML($('#tourBanners'), open.map((x) => `<div class="banner tinvite"><span>🏆 You're invited: <b>${esc(x.name)}</b> · ${esc(Tour.KINDS[x.kind] || '')} · ${tcLabel(x.tc)} · ${x.n} / ${x.max} signed up</span>
+    <span><button class="primary small" data-tbjoin="${esc(x.id)}">Join</button> <button class="small" data-tbopen="${esc(x.id)}">Details</button> <button class="small" data-tbhide="${esc(x.id)}">Not now</button></span></div>`).join('') + list.map((x) => `<div class="banner"><span>🏆 <b>${esc(x.name)}</b> · ${esc(x.stage)}: your match vs <b>${esc(x.opp)}</b> is ready.</span>
     <span><button class="primary small" data-tbplay="${esc(x.id)}" data-fx="${esc(x.fx)}">${x.room ? 'Rejoin' : 'Play now'}</button> <button class="small" data-tbopen="${esc(x.id)}">Tournament</button></span></div>`).join(''));
 }
 $('#tourBanners').addEventListener('click', (e) => {
-  const p = e.target.closest('[data-tbplay]'), o = e.target.closest('[data-tbopen]');
+  const p = e.target.closest('[data-tbplay]'), o = e.target.closest('[data-tbopen]'), j = e.target.closest('[data-tbjoin]'), h = e.target.closest('[data-tbhide]');
   if (p) tourPlay(p.dataset.tbplay, p.dataset.fx); else if (o) enterTours(o.dataset.tbopen);
+  else if (h) {
+    tourHidden.add(h.dataset.tbhide);
+    try { localStorage.setItem('chess:tourHidden', JSON.stringify([...tourHidden].slice(-50))); } catch {}
+    tourBanSig = ''; renderTourNext(tourLastNext, tourLastOpen);
+  } else if (j) {
+    j.disabled = true;
+    api('tour_join', { id: j.dataset.tbjoin }).then((r) => { if (!r.ok) { $('#err').textContent = r.error || 'Could not join.'; j.disabled = false; } else enterTours(j.dataset.tbjoin); });
+  }
 });
 
 $('#navLb').onclick = () => { if (view !== 'lobby') enterLobby(); setTimeout(() => $('#lbcard').scrollIntoView({ behavior: 'smooth' }), 120); };
