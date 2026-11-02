@@ -251,7 +251,7 @@
   #admin tbody td:first-child { width: auto; color: inherit; }
   #admin tbody tr:nth-child(1) td:first-child, #admin tbody tr:nth-child(2) td:first-child, #admin tbody tr:nth-child(3) td:first-child { color: inherit; }
 
-  #board { touch-action: none; }
+  #board { touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; }
   .sq.dragging img.piece { opacity: .3; }
   .dragghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 8px 8px #0006); }
   .dragghost img { width: 100%; height: 100%; }
@@ -3301,21 +3301,23 @@ board.addEventListener('pointerdown', (e) => {
     drawOverlay();
     return;
   }
-  if (e.button !== 0) return;
+  if (e.button !== 0 || drag) return;                 // one drag at a time: a second finger can't start or end it
   if (arrows.length || marks.length) { arrows = []; marks = []; drawOverlay(); }
   if (!snap || viewPly !== null || snap.status.over || snap.paused || !snap.players.w || !snap.players.b) return;
   const sqEl = e.target.closest('.sq');
   if (!sqEl) return;
   const sq = +sqEl.dataset.sq, p = actBoard()[sq];
   if (!p || p[0] !== snap.you) return;                // my pieces only (on the opponent's turn this drags a premove)
-  drag = { from: sq, x: e.clientX, y: e.clientY, moved: false, ghost: null, size: sqEl.getBoundingClientRect().width, piece: p };
+  drag = { id: e.pointerId, from: sq, x: e.clientX, y: e.clientY, moved: false, ghost: null, size: sqEl.getBoundingClientRect().width, piece: p };
 });
 window.addEventListener('pointermove', (e) => {
   if (rdrag) { const sq = sqAt(e.clientX, e.clientY); if (sq !== null && sq !== rdrag.to) { rdrag.to = sq; drawOverlay(); } return; }
-  if (!drag) return;
+  if (!drag || e.pointerId !== drag.id) return;
+  if (e.pointerType === 'mouse' && !(e.buttons & 1)) return endDrag(e, true);   // released outside the window: drop it, don't carry it on
   if (!drag.moved) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
     drag.moved = true;
+    try { board.setPointerCapture(e.pointerId); } catch {}   // only once it's a real drag, so a tap's click still lands on its square
     selected = drag.from; legal = movesFor(snap, drag.from);
     const g = document.createElement('div');
     g.className = 'dragghost'; g.style.width = g.style.height = drag.size * 1.1 + 'px';
@@ -3326,17 +3328,21 @@ window.addEventListener('pointermove', (e) => {
   drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
 });
 function endDrag(e, cancel) {
-  if (!drag) return;
+  if (!drag || (e && e.pointerId !== drag.id)) return;
   const d = drag; drag = null;
   if (!d.moved) return;
   lastDragEnd = Date.now();
   if (d.ghost) d.ghost.remove();
   const to = cancel ? null : sqAt(e.clientX, e.clientY);
-  if (to !== null && to !== d.from && legal.some((m) => m.from === d.from && m.to === to)) clickSquare(to, true);
+  // the position may have changed while dragging (a server update clears the pick), so check the drop against it now
+  const mine = snap && to !== null && to !== d.from && (actBoard()[d.from] || '')[0] === snap.you;
+  if (mine) { selected = d.from; legal = movesFor(snap, d.from); }
+  if (mine && legal.some((m) => m.from === d.from && m.to === to)) clickSquare(to, true);
   else { selected = null; legal = []; paintBoard(); }
 }
 window.addEventListener('pointerup', (e) => { if (e.button === 2 && rdrag) finishArrow(); else endDrag(e, false); });
-window.addEventListener('pointercancel', (e) => { rdrag = null; drawOverlay(); endDrag(e, true); });
+window.addEventListener('pointercancel', (e) => { if (rdrag) { rdrag = null; drawOverlay(); } endDrag(e, true); });
+window.addEventListener('blur', () => endDrag(null, true));
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (view === 'game' && !isBot()) kick();
