@@ -1,22 +1,23 @@
 // Head-to-head matches: two players play game after game in the same room until the format decides who is better.
-//   bo  best of n (3, 5, 7): a win is 1 point, a draw ½; the first past n/2 wins. Level after n games: an Armageddon decider
+//   bo  best of n (1, 3, 5, 7): a win is 1 point, a draw ½; the first past n/2 wins. Level after n games: an Armageddon decider
 //   ft  first to n wins (3, 5, 10): draws don't count
 //   mar marathon: no end, keep going and keep score; either player can stop it between games
+// tie: a level best-of ends drawn instead of going to Armageddon (tournament group games).
 // Colours alternate every game. In Armageddon Black has less time but a draw counts as a Black win.
 // Players are stored by name because colours swap. Shared by the server and the page (window.Match).
 (function (root) {
-  const SIZES = { bo: [3, 5, 7], ft: [3, 5, 10], mar: [0] };
+  const SIZES = { bo: [1, 3, 5, 7], ft: [3, 5, 10], mar: [0] };
   const MAX_GAMES = 200;                                     // a marathon stops itself here (keeps the room record small)
   const ARMA_BLACK = 0.8;                                    // Black's share of the clock in Armageddon
 
   function clean(m) {
     if (!m || !SIZES[m.fmt]) return null;
     const n = m.fmt === 'mar' ? 0 : m.n | 0;
-    return SIZES[m.fmt].includes(n) ? { fmt: m.fmt, n } : null;
+    return SIZES[m.fmt].includes(n) ? { fmt: m.fmt, n, ...(m.tie && m.fmt === 'bo' ? { tie: true } : {}) } : null;
   }
-  const start = (f, past = [], no = 1) => ({ fmt: f.fmt, n: f.n, p: null, games: [], done: false, winner: null, why: null, arma: false, no, past });
+  const start = (f, past = [], no = 1) => ({ fmt: f.fmt, n: f.n, ...(f.tie ? { tie: true } : {}), p: null, games: [], done: false, winner: null, why: null, arma: false, no, past });
 
-  const label = (m) => (m.fmt === 'bo' ? `Best of ${m.n}` : m.fmt === 'ft' ? `First to ${m.n} wins` : 'Marathon');
+  const label = (m) => (m.fmt === 'bo' ? (m.n === 1 ? 'One game' : `Best of ${m.n}`) : m.fmt === 'ft' ? `First to ${m.n} wins` : 'Marathon');
   const short = (m) => (m.fmt === 'bo' ? `Bo${m.n}` : m.fmt === 'ft' ? `FT${m.n}` : 'Marathon');
 
   // points and wins per player name
@@ -47,7 +48,7 @@
     if (m.fmt === 'bo') {
       if (last && last.arma) return finish(last.win, 'armageddon');
       for (const x of [a, b]) if (s.pts[x] > m.n / 2) return finish(x, 'score');
-      if (m.games.length >= m.n) m.arma = true;                    // level after n games: one decider
+      if (m.games.length >= m.n) { if (m.tie) return finish(null, 'level'); m.arma = true; }   // level after n games: drawn, or one decider
     } else if (m.fmt === 'ft') {
       for (const x of [a, b]) if (s.wins[x] >= m.n) return finish(x, 'score');
     }
