@@ -121,6 +121,30 @@ process.on('exit', () => { if (srv) srv.kill(); });
   await shot(A, 't4-done');
   await A.click('#tvBack');
   await A.waitForSelector('#tourList .tl');
+
+  console.log('time control by vote');
+  await A.selectOption('#tnTc', 'poll');
+  ok('picking "Players vote" shows the options', await A.isVisible('#tnPoll') && (await A.$$('#tnPollOpts input:checked')).length === 3);
+  await A.fill('#tnName', 'Vote Cup'); await A.selectOption('#tnKind', 'ko');
+  await A.click('#tourNew button[type=submit]');
+  await A.waitForSelector('.tpoll');
+  const vid = await A.evaluate(() => tourId);
+  ok('the page shows the vote', /Vote: time control/.test(await A.textContent('#tvBody')) && (await A.$$('.tpo')).length === 3);
+  await A.click('.tpo[data-tvote="1"]');
+  await A.waitForSelector('.tpo.mine[data-tvote="1"]');
+  ok('ann votes', /your vote/.test(await A.textContent('.tpo[data-tvote="1"]')));
+  await B.goto(`http://localhost:${PORT}/?tour=${vid}`);
+  await B.waitForSelector('.tpoll');
+  ok('players must join before voting', await B.isDisabled('.tpo[data-tvote="0"]') && /Join the tournament to vote/.test(await B.textContent('#tvBody')));
+  await B.click('[data-tact="join"]');
+  await B.waitForSelector('.tpo[data-tvote="0"]:not([disabled])');
+  await B.click('.tpo[data-tvote="0"]');
+  await B.waitForSelector('.tpo.mine[data-tvote="0"]');
+  await shot(B, 't5-vote-phone');
+  await api('tour_vote', { id: vid, i: 1 }, P.bob);              // bob changes his mind: 2 votes for option 1
+  await A.click('[data-tact="start"]');
+  await A.waitForSelector('.tpo.won');
+  ok('starting locks in the winner', /won the vote/.test(await A.textContent('#tvBody')) && /🏆/.test(await A.textContent('.tpo[data-tvote="1"]')) && /5 \+ 0/.test(await A.textContent('#tvHead')), await A.textContent('#tvHead'));
   ok('the list shows the winner', /Finished/.test(await A.textContent('#tourList')) && /🏆/.test(await A.textContent('#tourList')));
 
   await br.close(); srv.kill();

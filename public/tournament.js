@@ -26,8 +26,25 @@
   const groupFmt = (t) => ({ fmt: 'bo', n: t.cfg.gn, tie: true });
   const koFmt = (t) => ({ fmt: 'bo', n: t.cfg.kn });
 
-  function create({ id, name, by, tc, cfg, now }) {
-    return { id, name, by, tc: tc || null, cfg: clean(cfg), phase: 'signup', players: [], groups: null, ko: null, champion: null, created: now, started: null, ended: null };
+  // poll: 2-5 time controls the signed-up players vote on; the winner becomes t.tc when the tournament starts
+  function create({ id, name, by, tc, cfg, now, poll }) {
+    return { id, name, by, tc: tc || null, cfg: clean(cfg), phase: 'signup', players: [], groups: null, ko: null, champion: null, created: now, started: null, ended: null,
+      poll: poll && poll.length >= 2 ? { options: poll.slice(0, 5), votes: {}, chosen: null } : null };
+  }
+  function vote(t, name, i) {
+    if (!t.poll || t.poll.chosen != null || t.phase !== 'signup') throw new Error('Voting is closed.');
+    if (!t.players.some((x) => x.name === name)) throw new Error('Join the tournament to vote.');
+    if (!(i >= 0 && i < t.poll.options.length)) throw new Error('Pick one of the options.');
+    t.poll.votes[name] = i | 0;
+    return t;
+  }
+  const pollCounts = (t) => t.poll.options.map((_, i) => Object.values(t.poll.votes).filter((v) => v === i).length);
+  // most votes wins; a tie goes to the option listed first
+  function resolvePoll(t) {
+    if (!t.poll || t.poll.chosen != null) return t;
+    const c = pollCounts(t), best = c.indexOf(Math.max(...c));
+    t.poll.chosen = best; t.tc = t.poll.options[best];
+    return t;
   }
 
   function join(t, p) {
@@ -40,6 +57,7 @@
   function leave(t, name) {
     if (t.phase !== 'signup') throw new Error('The tournament has started.');
     t.players = t.players.filter((x) => x.name !== name);
+    if (t.poll) delete t.poll.votes[name];
     return t;
   }
 
@@ -67,6 +85,7 @@
     const min = MIN[t.cfg.kind];
     if (t.phase !== 'signup') throw new Error('Already started.');
     if (t.players.length < min) throw new Error(`Needs at least ${min} players.`);
+    resolvePoll(t);
     const seeds = [...t.players].sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name)).map((x) => x.name);
     t.started = now;
     if (t.cfg.kind === 'ko') { buildKo(t, seeds); return t; }
@@ -171,6 +190,6 @@
   // fixtures a player can play now
   const myFixtures = (t, name) => allFixtures(t).filter((f) => ready(f) && (f.a === name || f.b === name));
 
-  const api = { KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
+  const api = { vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tour = api;
 })(typeof self !== 'undefined' ? self : this);

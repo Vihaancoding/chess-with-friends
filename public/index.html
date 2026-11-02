@@ -670,6 +670,14 @@
   .bm .bact { display: flex; gap: 4px; padding: 4px 6px 6px; flex-wrap: wrap; }
   .bm .bact:empty { display: none; }
   .bm.final { border-color: var(--gold); }
+  .tpollpick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .tpollpick label { display: flex; align-items: center; gap: 6px; background: var(--panel2); border-radius: 8px; padding: 6px 10px; font-weight: 700; font-size: .9rem; cursor: pointer; }
+  .tpollpick input { width: 16px; height: 16px; min-height: 0; accent-color: var(--green); }
+  .tpoll { display: flex; flex-direction: column; gap: 6px; }
+  .tpo { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--panel2); border: 2px solid transparent; border-radius: 8px; padding: 10px 12px; font-weight: 700; overflow: hidden; box-shadow: none; }
+  .tpo i { position: absolute; inset: 0 auto 0 0; background: #3b4a2b; z-index: 0; transition: width .3s; } .tpo span { position: relative; z-index: 1; }
+  .tpo.mine { border-color: var(--green); } .tpo.won { border-color: var(--gold); } .tpo.won i { background: #4a3f1c; }
+  .tpo:disabled { opacity: 1; cursor: default; }
 </style>
 </head>
 <body data-view="welcome">
@@ -889,6 +897,7 @@
         <div class="trow" id="tnGroupOpts"><label class="tf">Group size<select id="tnSize"><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label><label class="tf">Go through<select id="tnAdv"><option value="1">Top 1 per group</option><option value="2" selected>Top 2 per group</option></select></label></div>
         <div class="trow"><label class="tf" id="tnGnL">Group matches<select id="tnGn"><option value="1">1 game, draws count</option><option value="3">Best of 3</option></select></label><label class="tf" id="tnKnL">Knockout matches<select id="tnKn"><option value="1">1 game, Armageddon if drawn</option><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label></div>
         <div class="trow"><label class="tf">Time control<select id="tnTc"></select></label><label class="tf">Max players<select id="tnMax"><option>4</option><option>8</option><option>12</option><option selected>16</option><option>32</option><option>64</option></select></label></div>
+        <div id="tnPoll" class="hidden"><div class="tf">Players vote between<span class="muted" style="text-transform:none;letter-spacing:0;font-weight:600">Pick 2–5. Signed-up players vote; the winner is used when you start.</span></div><div class="tpollpick" id="tnPollOpts"></div></div>
         <div class="muted tdesc" id="tnDesc"></div>
         <button class="primary big" type="submit">Create tournament</button>
         <div id="tnErr" role="alert"></div>
@@ -4998,7 +5007,8 @@ async function loadTours() {
   tourAdmin = !!r.admin;
   if (id) paintTour(r.tour); else { $('#tourNew').classList.toggle('hidden', !tourAdmin); $('#tourAdminNote').classList.toggle('hidden', tourAdmin); paintTourList(r.tours); }
 }
-const tourKindLine = (x) => `${Tour.KINDS[x.kind || x.cfg.kind]} · ${tcLabel(x.tc)}`;
+const tourVoting = (x) => (x.cfg ? !!(x.poll && x.poll.chosen == null) : !!x.poll);
+const tourKindLine = (x) => `${Tour.KINDS[x.kind || x.cfg.kind]} · ${tourVoting(x) ? 'time control by vote' : tcLabel(x.tc)}`;
 function paintTourList(list) {
   if (!list.length) return setHTML($('#tourList'), '<div class="muted empty">No tournaments yet. Create the first one!</div>');
   const order = { signup: 0, groups: 1, ko: 1, done: 2 };
@@ -5015,7 +5025,12 @@ $('#navTour').onclick = () => enterTours();
 
 // create form
 function paintTourForm() {
-  if (!$('#tnTc').options.length) $('#tnTc').innerHTML = $('#tc').innerHTML;
+  if (!$('#tnTc').options.length) {
+    $('#tnTc').innerHTML = $('#tc').innerHTML + '<option value="poll">Players vote…</option>';
+    const def = ['180,2', '300,0', '600,0'];
+    setHTML($('#tnPollOpts'), [...$('#tc').options].map((o) => `<label><input type="checkbox" value="${o.value}" ${def.includes(o.value) ? 'checked' : ''}>${esc(o.textContent)}</label>`).join(''));
+  }
+  $('#tnPoll').classList.toggle('hidden', $('#tnTc').value !== 'poll');
   const k = $('#tnKind').value;
   $('#tnGroupOpts').classList.toggle('hidden', k !== 'gko');
   $('#tnGnL').classList.toggle('hidden', k === 'ko'); $('#tnKnL').classList.toggle('hidden', k === 'rr');
@@ -5024,11 +5039,16 @@ function paintTourForm() {
   setText($('#tnDesc'), k === 'gko' ? `Players are split into groups of about ${$('#tnSize').value} (seeded by rating), play everyone in their group, and the top ${$('#tnAdv').value === '1' ? 'player' : 'two'} of each group go into a knockout bracket.`
     : k === 'ko' ? 'A seeded bracket: lose and you are out. Top seeds get byes when the numbers are uneven.' : 'Everyone plays everyone once. The table decides the winner (up to 12 players).');
 }
-['#tnKind', '#tnSize', '#tnAdv', '#tnMax'].forEach((id) => $(id).addEventListener('change', paintTourForm));
+['#tnKind', '#tnSize', '#tnAdv', '#tnMax', '#tnTc'].forEach((id) => $(id).addEventListener('change', paintTourForm));
 $('#tourNew').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const [base, inc] = $('#tnTc').value.split(',').map(Number);
-  const r = await api('tour_create', { name: $('#tnName').value, tc: base ? { base, inc } : null,
+  const toTc = (v) => { const [base, inc] = v.split(',').map(Number); return base ? { base, inc } : null; };
+  let poll;
+  if ($('#tnTc').value === 'poll') {
+    poll = [...$('#tnPollOpts').querySelectorAll('input:checked')].map((x) => toTc(x.value));
+    if (poll.length < 2 || poll.length > 5) return setText($('#tnErr'), 'Pick between 2 and 5 time controls for the vote.');
+  }
+  const r = await api('tour_create', { name: $('#tnName').value, tc: poll ? null : toTc($('#tnTc').value), poll,
     cfg: { kind: $('#tnKind').value, size: $('#tnSize').value, adv: $('#tnAdv').value, gn: $('#tnGn').value, kn: $('#tnKn').value, max: $('#tnMax').value } });
   if (!r.ok) return setText($('#tnErr'), r.error || 'Could not create it.');
   setText($('#tnErr'), ''); $('#tnName').value = '';
@@ -5086,7 +5106,13 @@ function paintTour(t) {
   const next = Tour.myFixtures(t, user.name);
   setHTML($('#tvMine'), next.map((f) => `<div class="banner"><span>Your ${esc(Tour.stageOf(t, f))} match vs <b>${esc(f.a === user.name ? f.b : f.a)}</b> is ready${f.room ? ' and waiting' : ''}.</span><button class="primary small" data-tplay="${f.id}">${f.room ? 'Rejoin' : 'Play now'}</button></div>`).join(''));
   let body = '';
-  if (t.phase === 'signup') body = `<div class="panel"><h2 class="ph">Players</h2>${t.players.length ? `<div class="tplayers">${t.players.map((p) => `<div><span>${esc(p.name)}</span><span class="muted">${p.elo}</span></div>`).join('')}</div>` : '<div class="muted">Nobody has joined yet.</div>'}
+  if (t.poll) {
+    const c = Tour.pollCounts(t), total = c.reduce((a, b) => a + b, 0), my = t.poll.votes[user.name], open = t.poll.chosen == null && t.phase === 'signup';
+    body += `<div class="panel"><h2 class="ph"><span>${open ? 'Vote: time control' : 'Time control, chosen by vote'}</span><span class="muted" style="font-size:.8rem">${total} vote${total === 1 ? '' : 's'}</span></h2><div class="tpoll">
+      ${t.poll.options.map((tc, i) => `<button class="tpo${my === i ? ' mine' : ''}${t.poll.chosen === i ? ' won' : ''}" data-tvote="${i}" ${open && mine ? '' : 'disabled'}><i style="width:${total ? Math.round((c[i] / total) * 100) : 0}%"></i><span>${tcLabel(tc)} · ${CAT_NAME[catOfTc(tc)] || ''}${my === i ? ' · your vote' : ''}${t.poll.chosen === i ? ' 🏆' : ''}</span><span>${c[i]}</span></button>`).join('')}
+      </div><div class="muted" style="font-size:.85rem;font-weight:600;margin-top:8px">${!open ? `${tcLabel(t.tc)} won the vote.` : mine ? 'Tap to vote; you can change it until the tournament starts. Most votes wins (a tie goes to the first listed).' : 'Join the tournament to vote.'}</div></div>`;
+  }
+  if (t.phase === 'signup') body += `<div class="panel"><h2 class="ph">Players</h2>${t.players.length ? `<div class="tplayers">${t.players.map((p) => `<div><span>${esc(p.name)}</span><span class="muted">${p.elo}</span></div>`).join('')}</div>` : '<div class="muted">Nobody has joined yet.</div>'}
     <div class="muted" style="font-size:.85rem;font-weight:600;margin-top:10px">${run ? `Start it when everyone is in (at least ${Tour.MIN[cfg.kind]} players). Seeding goes by rating.` : 'The organizer starts it when everyone is in.'}</div></div>`;
   if (t.ko) body += bracketHTML(t, run);
   if (t.groups) body += `${t.ko ? '<h2 class="ph" style="margin:6px 0 0">Group stage</h2>' : ''}<div class="tgroups">${t.groups.map((g) => groupHTML(t, g, run)).join('')}</div>`;
@@ -5101,6 +5127,8 @@ async function tourPlay(id, fx) {
   enterGame(r.code);
 }
 $('#tours').addEventListener('click', async (e) => {
+  const v = e.target.closest('[data-tvote]');
+  if (v && !v.disabled && tourId) { const r = await api('tour_vote', { id: tourId, i: +v.dataset.tvote }); if (r.ok) paintTour(r.tour); else setText($('#tvErr'), r.error || 'Could not vote.'); return; }
   const b = e.target.closest('[data-tplay], [data-twatch], [data-taward], [data-tact]');
   if (!b || b.disabled || !tourId) return;
   const id = tourId, err = (r) => { if (!r.ok) setText($('#tvErr'), r.error || 'Something went wrong.'); };
@@ -5129,7 +5157,7 @@ function renderTourNext(list, open = []) {
   const sig = JSON.stringify([list, open]);
   if (sig === tourBanSig) return;
   tourBanSig = sig;
-  setHTML($('#tourBanners'), open.map((x) => `<div class="banner tinvite"><span>🏆 You're invited: <b>${esc(x.name)}</b> · ${esc(Tour.KINDS[x.kind] || '')} · ${tcLabel(x.tc)} · ${x.n} / ${x.max} signed up</span>
+  setHTML($('#tourBanners'), open.map((x) => `<div class="banner tinvite"><span>🏆 You're invited: <b>${esc(x.name)}</b> · ${esc(Tour.KINDS[x.kind] || '')} · ${x.poll ? 'vote on the time control' : tcLabel(x.tc)} · ${x.n} / ${x.max} signed up</span>
     <span><button class="primary small" data-tbjoin="${esc(x.id)}">Join</button> <button class="small" data-tbopen="${esc(x.id)}">Details</button> <button class="small" data-tbhide="${esc(x.id)}">Not now</button></span></div>`).join('') + list.map((x) => `<div class="banner"><span>🏆 <b>${esc(x.name)}</b> · ${esc(x.stage)}: your match vs <b>${esc(x.opp)}</b> is ready.</span>
     <span><button class="primary small" data-tbplay="${esc(x.id)}" data-fx="${esc(x.fx)}">${x.room ? 'Rejoin' : 'Play now'}</button> <button class="small" data-tbopen="${esc(x.id)}">Tournament</button></span></div>`).join(''));
 }
