@@ -232,6 +232,47 @@ const tc = { base: 300, inc: 0 };
   ok('the games use the voted time control', vroom.tc.base === 180 && vroom.tc.inc === 2 && vroom.cat === 'blitz', vroom.tc);
   await call('tour_delete', { id: vid }, P.ann);
 
+  console.log('tournament chat and news');
+  r = await call('tour_get', { id }, P.gus);
+  const lines = r.chat.map((m) => m.t);
+  ok('the chat has news lines for what happened', lines.some((x) => /bob joined/.test(x)) && lines.some((x) => /has started: 6 players/.test(x)) && lines.some((x) => /beat .* · Group/.test(x)) && lines.some((x) => /drew · Group/.test(x)) && lines.some((x) => /knockout bracket is drawn/.test(x)) && lines.some((x) => /🏆 .* wins Autumn Cup/.test(x)), lines);
+  ok('hand-set results say so', lines.some((x) => /set by the organizer/.test(x)));
+  ok('news lines are marked as system messages', r.chat.filter((m) => m.sys).length === r.chat.length);
+  r = await call('tour_chat_send', { id, text: '  gg everyone  ' }, P.gus);
+  ok('anyone signed in can chat', r.ok && r.msg.t === 'gg everyone' && r.msg.n === 'gus' && !r.msg.p, r);
+  r = await call('tour_chat_send', { id, text: 'too fast' }, P.gus);
+  ok('chat is throttled', r.status === 429);
+  r = await call('tour_chat_send', { id, text: 'well played' }, P.bob);
+  ok('players are marked', r.msg.p === 1);
+  r = await call('tour_chat_send', { id, text: '' }, P.cat);
+  ok('empty messages are refused', r.status === 400);
+  r = await call('tour_get', { id }, P.ann);
+  ok('messages come back with the tournament', r.chat.slice(-2).map((m) => m.t).join('|') === 'gg everyone|well played', r.chat.slice(-2));
+
+  console.log('scheduled start');
+  r = await call('tour_create', { name: 'Timed Cup', tc, startAt: Date.now() + 5000, cfg: { kind: 'ko' } }, P.ann);
+  ok('a start time must be at least a minute away', r.status === 400, r);
+  r = await call('tour_create', { name: 'Timed Cup', tc, startAt: Date.now() + 3600e3, cfg: { kind: 'ko' } }, P.ann);
+  const sid = r.tour.id;
+  ok('scheduled', r.tour.startAt > Date.now() && r.tour.phase === 'signup');
+  ok('the invitation carries the start time', (await call('me', {}, P.dan)).tourOpen.some((x) => x.id === sid && x.startAt === r.tour.startAt));
+  const store = require('../lib/store');
+  const due = async () => {                                      // move the start time into the past (record and list)
+    const t = await store.get('tour:' + sid), at = Date.now() - 1000; t.startAt = at; await store.set('tour:' + sid, t);
+    const idx = await store.get('tours'); idx.list = idx.list.map((x) => (x.id === sid ? { ...x, startAt: at } : x)); await store.set('tours', idx);
+  };
+  await due();
+  r = await call('tour_get', { id: sid }, P.dan);
+  ok('too few players at the start time: it waits for the organizer', r.tour.phase === 'signup' && !r.tour.startAt && /needs at least 2 players/.test(r.chat[r.chat.length - 1].t), [r.tour.phase, r.chat.slice(-1)]);
+  await call('tour_join', { id: sid }, P.dan);
+  await due();
+  r = await call('tour_list', {}, P.eve);
+  ok('due tournaments start by themselves (from the list too)', r.tours.find((x) => x.id === sid).phase === 'ko', r.tours.find((x) => x.id === sid));
+  r = await call('tour_get', { id: sid }, P.ann);
+  ok('…with the news in the chat', r.chat.some((m) => /has started: 2 players/.test(m.t)) && r.tour.ko.rounds[0][0].a, r.chat.map((m) => m.t));
+  await call('tour_delete', { id: sid }, P.ann);
+  ok('deleting removes the chat too', !(await store.get('tchat:' + sid)));
+
   console.log('limits and clean-up');
   r = await call('tour_create', { name: 'Player Cup', tc }, P.bob);
   ok('players still cannot create one', r.status === 403);
