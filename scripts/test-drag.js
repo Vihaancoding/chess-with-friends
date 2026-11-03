@@ -74,6 +74,42 @@ const ok = (name, cond, got) => { if (cond) { passed++; console.log('  ✓', nam
   await page.evaluate(() => { clickSquare(36); });
   ok('clicking e2 then e4 plays e4', (await T('get')).moves === 'e4', await T('get'));
 
+  console.log('\nIllegal moves shake');
+  const shook = () => page.evaluate(() => ({ shake: [...document.querySelectorAll('#board .shake')].map((e) => +e.closest('.sq').dataset.sq).sort(), flash: [...document.querySelectorAll('#board .kflash')].map((e) => +e.closest('.sq').dataset.sq) }));
+  await T('setup');
+  await T('drag', 'e2', 'e5'); await T('ev', 'pointerup', 'e5');
+  let s = await shook();
+  ok('a pawn dropped three squares up shakes, and the king does not', (await T('get')).moves === '' && s.shake.join() === '52' && !s.flash.length, s);
+  await page.waitForTimeout(800);
+  s = await shook();
+  ok('the shake clears itself', !s.shake.length && !s.flash.length, s);
+  await T('drag', 'e2', 'd2'); await T('ev', 'pointerup', 'd2');
+  ok('dropping on my own piece just puts it back', !(await shook()).shake.length, await shook());
+  // Black is in check from Qh5 after 1.e4 f6 2.Qh5+
+  await page.evaluate(() => { user = { name: 'Tester' }; const b = makeBot(Object.keys(BOT_LEVELS)[0], 'b', null); for (const u of ['e2e4', 'f7f6', 'd1h5']) applyBotMove(b, Chess.findUci(b.state, u), false); enterBot(b); });
+  await T('drag', 'a7', 'a6'); await T('ev', 'pointerup', 'a6');
+  s = await shook();
+  ok('a move that ignores check shakes the piece and the king, and flashes the king red', s.shake.join() === '4,8' && s.flash.join() === '4', s);
+  await page.waitForTimeout(800);
+  await page.evaluate(() => { clickSquare(8); clickSquare(16); });   // the same move, click-click
+  s = await shook();
+  ok('click-click of a move the king forbids flashes too', s.flash.join() === '4', s);
+  await page.waitForTimeout(800);
+  await page.evaluate(() => { clickSquare(8); clickSquare(35); });   // a7 to d4 isn't a move at all: just a click away
+  ok('a plain click away does not shake', !(await shook()).shake.length, await shook());
+
+  // castling through an attacked square: after 1.e4 b6 2.g3 Ba6 3.Bg2 e6 4.Nf3 Nc6 the a6 bishop hits f1
+  await page.evaluate(() => { user = { name: 'Tester' }; const b = makeBot(Object.keys(BOT_LEVELS)[0], 'w', null); for (const u of ['e2e4', 'b7b6', 'g2g3', 'c8a6', 'f1g2', 'e7e6', 'g1f3', 'b8c6']) applyBotMove(b, Chess.findUci(b.state, u), false); enterBot(b); });
+  await page.evaluate(() => { clickSquare(60); clickSquare(62); });   // e1 to g1
+  s = await shook();
+  ok('castling through an attacked square flashes the king', s.flash.join() === '60', s);
+  await page.waitForTimeout(800);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(() => { clickSquare(60); clickSquare(62); clickSquare(60); clickSquare(62); });
+  await page.waitForTimeout(900);
+  s = await shook();
+  ok('with reduced motion the markers still clear and do not pile up', !s.shake.length && !s.flash.length, s);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   await br.close(); srv.kill();
   process.exit(failed ? 1 : 0);
