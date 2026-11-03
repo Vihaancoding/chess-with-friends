@@ -77,11 +77,24 @@ process.on('exit', () => { if (srv) srv.kill(); });
   for (const n of ['cat', 'dan', 'eve', 'fay']) await api('tour_join', { id }, P[n]);
   await A.waitForFunction(() => /6 \/ 12 players/.test(document.querySelector('#tvHead').textContent), null, { timeout: 8000 });
   ok('the organizer sees the players arrive', true);
+  ok('join news shows in the tournament chat', /dan joined/.test(await A.textContent('#tcLog')), await A.textContent('#tcLog'));
+  await A.fill('#tcIn', 'Welcome everyone, good luck!');
+  await A.click('#tcForm button');
+  await B.waitForFunction(() => /Welcome everyone/.test(document.querySelector('#tcLog').textContent), null, { timeout: 8000 });
+  ok('a chat message reaches the other players', true);
   await shot(A, 't1-signup');
   await A.click('[data-tact="start"]');
   await A.waitForSelector('.tgroups');
   ok('two groups with tables', (await A.$$('.tgroups > .panel')).length === 2);
   ok('ann has a match to play', (await A.$$('#tvMine .banner')).length >= 1);
+  ok('the chat announces the start', /has started: 6 players/.test(await A.textContent('#tcLog')));
+  { const tt = (await api('tour_get', { id }, P.ann)).tour, f = tt.groups[1].fixtures.find((x) => x.a !== 'ann' && x.b !== 'ann' && x.a !== 'bob' && x.b !== 'bob');
+    if (f) {
+      await api('tour_play', { id, fx: f.id }, P[f.a]);
+      await A.waitForSelector('#tvLive .tlive', { timeout: 8000 });
+      ok('a game being played shows under Live now', new RegExp(`${f.a} vs ${f.b}`).test(await A.textContent('#tvLive')), await A.textContent('#tvLive'));
+      await shot(A, 't2b-live-chat');
+    } }
 
   console.log('play a group match from the lobby banner');
   await B.goto(`http://localhost:${PORT}/`);
@@ -116,11 +129,25 @@ process.on('exit', () => { if (srv) srv.kill(); });
   }
   await A.waitForSelector('.tchamp', { timeout: 8000 });
   ok('a champion is crowned', /Champion/.test(await A.textContent('.tchamp')));
+  ok('with confetti', (await A.$$('.confetti')).length > 0);
+  ok('and the news in the chat', /🏆 .* wins Autumn Cup/.test(await A.textContent('#tcLog')));
   ok('the bracket shows the final', /Final/.test(await A.textContent('.bracket')) && /Semi-finals/.test(await A.textContent('.bracket')));
   ok('the group stage stays visible', (await A.$$('.tgroups > .panel')).length === 2);
   await shot(A, 't4-done');
   await A.click('#tvBack');
   await A.waitForSelector('#tourList .tl');
+
+  console.log('scheduled start');
+  await A.fill('#tnName', 'Timed Cup');
+  await A.selectOption('#tnTc', '300,0');
+  await A.fill('#tnStart', await A.evaluate(() => { const d = new Date(Date.now() + 2 * 3600e3 + 120e3), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }));
+  await A.click('#tourNew button[type=submit]');
+  await A.waitForSelector('#tvHead .tcount');
+  ok('the page counts down to the start', /Starts in 2h 0[01]m/.test(await A.textContent('#tvHead')), await A.textContent('#tvHead'));
+  await A.click('#tvBack');
+  await A.waitForSelector('#tourList .tcount');
+  ok('the list shows when it starts', /starts in 2h/.test(await A.textContent('#tourList')));
+  await A.fill('#tnStart', '');
 
   console.log('time control by vote');
   await A.selectOption('#tnTc', 'poll');

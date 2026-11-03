@@ -675,6 +675,23 @@
   .bm .bact { display: flex; gap: 4px; padding: 4px 6px 6px; flex-wrap: wrap; }
   .bm .bact:empty { display: none; }
   .bm.final { border-color: var(--gold); }
+  .tvgrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+  .tvgrid > #tvBody { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  #tvChat { position: sticky; top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  @media (max-width: 900px) { .tvgrid { grid-template-columns: 1fr; } #tvChat { position: static; } }
+  #tcLog { height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+  .tcm { font-size: .9rem; line-height: 1.35; overflow-wrap: anywhere; } .tcm b { margin-right: 6px; } .tcm b.p { color: var(--green); } .tcm b.a { color: var(--gold); }
+  .tcm.sys { color: var(--muted); font-size: .82rem; font-weight: 600; background: var(--panel2); border-radius: 8px; padding: 6px 9px; }
+  .tcm time { color: var(--muted); font-size: .72rem; margin-left: 6px; }
+  #tcErr { color: var(--bad); font-size: .85rem; font-weight: 600; }
+  .tcount { color: var(--gold); font-weight: 800; }
+  .tlive { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tlive .lv { display: flex; gap: 8px; align-items: center; background: var(--panel2); border-radius: 8px; padding: 6px 6px 6px 10px; font-weight: 700; font-size: .9rem; }
+  .tlive .dotlive { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); animation: tpulse 1.4s infinite; }
+  @keyframes tpulse { 50% { opacity: .3; } }
+  .confetti { position: fixed; top: -12px; width: 8px; height: 14px; z-index: 30; pointer-events: none; border-radius: 2px; animation: cfall linear forwards; }
+  @keyframes cfall { to { transform: translate3d(var(--dx), 105vh, 0) rotate(var(--r)); opacity: .9; } }
+  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } .tlive .dotlive { animation: none; } }
   .tpollpick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .tpollpick label { display: flex; align-items: center; gap: 6px; background: var(--panel2); border-radius: 8px; padding: 6px 10px; font-weight: 700; font-size: .9rem; cursor: pointer; }
   .tpollpick input { width: 16px; height: 16px; min-height: 0; accent-color: var(--green); }
@@ -902,6 +919,7 @@
         <div class="trow" id="tnGroupOpts"><label class="tf">Group size<select id="tnSize"><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label><label class="tf">Go through<select id="tnAdv"><option value="1">Top 1 per group</option><option value="2" selected>Top 2 per group</option></select></label></div>
         <div class="trow"><label class="tf" id="tnGnL">Group matches<select id="tnGn"><option value="1">1 game, draws count</option><option value="3">Best of 3</option></select></label><label class="tf" id="tnKnL">Knockout matches<select id="tnKn"><option value="1">1 game, Armageddon if drawn</option><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label></div>
         <div class="trow"><label class="tf">Time control<select id="tnTc"></select></label><label class="tf">Max players<select id="tnMax"><option>4</option><option>8</option><option>12</option><option selected>16</option><option>32</option><option>64</option></select></label></div>
+        <label class="tf">Start time (optional)<input type="datetime-local" id="tnStart"><span class="muted" style="text-transform:none;letter-spacing:0;font-weight:600">Leave empty to start it yourself. With a time set, it starts by itself.</span></label>
         <div id="tnPoll" class="hidden"><div class="tf">Players vote between<span class="muted" style="text-transform:none;letter-spacing:0;font-weight:600">Pick 2–5. Signed-up players vote; the winner is used when you start.</span></div><div class="tpollpick" id="tnPollOpts"></div></div>
         <div class="muted tdesc" id="tnDesc"></div>
         <button class="primary big" type="submit">Create tournament</button>
@@ -913,7 +931,16 @@
     <button class="small" id="tvBack" type="button">← All tournaments</button>
     <div class="panel" id="tvHead"></div>
     <div id="tvMine"></div>
-    <div id="tvBody"></div>
+    <div id="tvLive"></div>
+    <div class="tvgrid">
+      <div id="tvBody"></div>
+      <aside class="panel" id="tvChat">
+        <h2 class="ph"><span>Tournament chat</span></h2>
+        <div id="tcLog" aria-live="polite"></div>
+        <form id="tcForm" class="row" autocomplete="off"><input id="tcIn" maxlength="200" placeholder="Say something to the tournament…"><button class="primary small" type="submit">Send</button></form>
+        <div id="tcErr" role="alert"></div>
+      </aside>
+    </div>
   </div>
 </div>
 
@@ -5143,6 +5170,8 @@ function enterTours(id) {
   else paintTourForm();
   loadTours();
   tourTimer = setInterval(() => { if (!document.hidden) loadTours(); }, 4000);
+  clearInterval(tourClock); tourClock = setInterval(tickCountdowns, 1000);
+  tcSig = ''; setHTML($('#tcLog'), ''); setText($('#tcErr'), '');
 }
 async function loadTours() {
   if (view !== 'tours') return stopTour();
@@ -5154,16 +5183,59 @@ async function loadTours() {
     return;
   }
   tourAdmin = !!r.admin;
-  if (id) paintTour(r.tour); else { $('#tourNew').classList.toggle('hidden', !tourAdmin); $('#tourAdminNote').classList.toggle('hidden', tourAdmin); paintTourList(r.tours); }
+  if (id) { paintTour(r.tour); paintTourChat(r.chat || []); } else { $('#tourNew').classList.toggle('hidden', !tourAdmin); $('#tourAdminNote').classList.toggle('hidden', tourAdmin); paintTourList(r.tours); }
 }
 const tourVoting = (x) => (x.cfg ? !!(x.poll && x.poll.chosen == null) : !!x.poll);
 const tourKindLine = (x) => `${Tour.KINDS[x.kind || x.cfg.kind]} · ${tourVoting(x) ? 'time control by vote' : tcLabel(x.tc)}`;
+// "in 2h 05m": a countdown that the 1-second ticker keeps fresh
+let tourClock = null;
+const untilText = (at) => { const s = Math.max(0, Math.round((at - Date.now()) / 1000)); if (!s) return 'any moment now'; const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60); return 'in ' + (d ? `${d}d ${h}h` : h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}:${String(s % 60).padStart(2, '0')}`); };
+const countdownHTML = (at) => `<span class="tcount" data-at="${+at}">${untilText(at)}</span>`;
+function tickCountdowns() {
+  if (view !== 'tours') { clearInterval(tourClock); tourClock = null; return; }
+  document.querySelectorAll('#tours .tcount').forEach((el) => { const t = untilText(+el.dataset.at); if (el.textContent !== t) el.textContent = t; });
+}
+// tournament chat
+let tcSig = '';
+function paintTourChat(msgs) {
+  const sig = msgs.map((m) => m.id).join();
+  if (sig === tcSig) return;
+  tcSig = sig;
+  const log = $('#tcLog'), atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  const when = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  log.innerHTML = msgs.length ? msgs.map((m) => m.sys ? `<div class="tcm sys">${esc(m.t)}</div>`
+    : `<div class="tcm"><b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${esc(m.t)}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
+  if (atEnd || !log.dataset.seen) log.scrollTop = log.scrollHeight;
+  log.dataset.seen = '1';
+}
+$('#tcForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = $('#tcIn').value.trim(); if (!text || !tourId) return;
+  $('#tcIn').value = '';
+  const r = await api('tour_chat_send', { id: tourId, text });
+  if (!r.ok) { $('#tcIn').value = text; return setText($('#tcErr'), r.error || 'Could not send.'); }
+  setText($('#tcErr'), ''); loadTours();
+});
+// the champion gets confetti, once per tournament per visit
+const celebrated = new Set();
+function celebrate(id) {
+  if (celebrated.has(id)) return;
+  celebrated.add(id);
+  const colors = ['#f7c631', '#81b64c', '#5c8bb0', '#fa412d', '#ffffff', '#a57fd8'];
+  for (let i = 0; i < 90; i++) {
+    const c = document.createElement('i');
+    c.className = 'confetti';
+    c.style.cssText = `left:${Math.random() * 100}vw;background:${colors[i % colors.length]};animation-duration:${2.2 + Math.random() * 2}s;animation-delay:${Math.random() * .6}s;--dx:${(Math.random() - .5) * 200}px;--r:${Math.random() * 900}deg`;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 5000);
+  }
+}
 function paintTourList(list) {
   if (!list.length) return setHTML($('#tourList'), '<div class="muted empty">No tournaments yet. Create the first one!</div>');
   const order = { signup: 0, groups: 1, ko: 1, done: 2 };
   setHTML($('#tourList'), [...list].sort((a, b) => order[a.phase] - order[b.phase] || b.created - a.created).map((x) => {
     const mine = (x.players || []).includes(user.name);
-    const sub = x.phase === 'done' && x.champion ? `🏆 ${esc(x.champion)}` : `${x.n}${x.phase === 'signup' ? ' / ' + x.max : ''} players`;
+    const sub = (x.phase === 'done' && x.champion ? `🏆 ${esc(x.champion)}` : `${x.n}${x.phase === 'signup' ? ' / ' + x.max : ''} players`) + (x.phase === 'signup' && x.startAt ? ` · starts ${countdownHTML(x.startAt)}` : '');
     return `<div class="tl"><span class="tbadge ${x.phase}">${PHASE[x.phase]}</span><span class="tn"><b>${esc(x.name)}</b><span class="muted">${tourKindLine(x)} · ${sub} · by ${esc(x.by)}${mine ? ' · <b style="display:inline;color:var(--green)">you\'re in</b>' : ''}</span></span>
       <button class="small ${x.phase === 'signup' && !mine ? 'primary' : ''}" data-topen="${esc(x.id)}">${x.phase === 'signup' && !mine ? 'View &amp; join' : 'Open'}</button></div>`;
   }).join(''));
@@ -5198,6 +5270,7 @@ $('#tourNew').addEventListener('submit', async (e) => {
     if (poll.length < 2 || poll.length > 5) return setText($('#tnErr'), 'Pick between 2 and 5 time controls for the vote.');
   }
   const r = await api('tour_create', { name: $('#tnName').value, tc: poll ? null : toTc($('#tnTc').value), poll,
+    startAt: $('#tnStart').value ? new Date($('#tnStart').value).getTime() : null,
     cfg: { kind: $('#tnKind').value, size: $('#tnSize').value, adv: $('#tnAdv').value, gn: $('#tnGn').value, kn: $('#tnKn').value, max: $('#tnMax').value } });
   if (!r.ok) return setText($('#tnErr'), r.error || 'Could not create it.');
   setText($('#tnErr'), ''); $('#tnName').value = '';
@@ -5251,7 +5324,11 @@ function paintTour(t) {
   setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${PHASE[t.phase]}</span></div>
     <div class="muted" style="font-weight:600">${tourKindLine(t)} · ${fmts} · ${t.players.length}${t.phase === 'signup' ? ' / ' + cfg.max : ''} players · organized by ${esc(t.by)}</div>
     ${t.champion ? `<div class="tchamp">🏆 Champion: <b>${esc(t.champion)}</b></div>` : ''}
+    ${t.phase === 'signup' && t.startAt ? `<div style="font-weight:700">⏰ Starts ${countdownHTML(t.startAt)} <span class="muted">(${new Date(t.startAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })})</span></div>` : ''}
     <div class="tvacts">${acts.join('')}</div><div id="tvErr" role="alert" style="color:var(--bad);font-weight:600"></div>`);
+  if (t.champion) celebrate(t.id);
+  const live = Tour.allFixtures(t).filter((f) => f.room && !f.res);
+  setHTML($('#tvLive'), live.length ? `<div class="panel tlive"><b>Live now</b>${live.map((f) => `<span class="lv"><span class="dotlive"></span>${esc(f.a)} vs ${esc(f.b)} <span class="muted">· ${esc(Tour.stageOf(t, f))}</span><button class="small" data-twatch="${f.room}">${f.a === user.name || f.b === user.name ? 'Rejoin' : 'Watch'}</button></span>`).join('')}</div>` : '');
   const next = Tour.myFixtures(t, user.name);
   setHTML($('#tvMine'), next.map((f) => `<div class="banner"><span>Your ${esc(Tour.stageOf(t, f))} match vs <b>${esc(f.a === user.name ? f.b : f.a)}</b> is ready${f.room ? ' and waiting' : ''}.</span><button class="primary small" data-tplay="${f.id}">${f.room ? 'Rejoin' : 'Play now'}</button></div>`).join(''));
   let body = '';
@@ -5277,7 +5354,7 @@ async function tourPlay(id, fx) {
 }
 $('#tours').addEventListener('click', async (e) => {
   const v = e.target.closest('[data-tvote]');
-  if (v && !v.disabled && tourId) { const r = await api('tour_vote', { id: tourId, i: +v.dataset.tvote }); if (r.ok) paintTour(r.tour); else setText($('#tvErr'), r.error || 'Could not vote.'); return; }
+  if (v && !v.disabled && tourId) { const r = await api('tour_vote', { id: tourId, i: +v.dataset.tvote }); if (r.ok) { paintTour(r.tour); loadTours(); } else setText($('#tvErr'), r.error || 'Could not vote.'); return; }
   const b = e.target.closest('[data-tplay], [data-twatch], [data-taward], [data-tact]');
   if (!b || b.disabled || !tourId) return;
   const id = tourId, err = (r) => { if (!r.ok) setText($('#tvErr'), r.error || 'Something went wrong.'); };
@@ -5285,7 +5362,7 @@ $('#tours').addEventListener('click', async (e) => {
   if (b.dataset.twatch) { const r = await api('join', { code: b.dataset.twatch }); return r.ok ? enterGame(r.code, r.snap) : err(r); }
   if (b.dataset.taward) {
     if (!confirm(`Set this result by hand? ${b.textContent}.`)) return;
-    const r = await api('tour_award', { id, fx: b.dataset.taward, res: b.dataset.res }); err(r); if (r.ok) paintTour(r.tour); return;
+    const r = await api('tour_award', { id, fx: b.dataset.taward, res: b.dataset.res }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return;
   }
   const a = b.dataset.tact;
   if (a === 'link') return copy(location.origin + '/?tour=' + id, '[data-tact="link"]');
@@ -5293,7 +5370,7 @@ $('#tours').addEventListener('click', async (e) => {
   if (a === 'start' && !confirm('Start the tournament now? Sign-ups close and the draw is made.')) return;
   b.disabled = true;
   const r = await api('tour_' + a, { id });
-  err(r); if (r.ok) paintTour(r.tour); else b.disabled = false;
+  err(r); if (r.ok) { paintTour(r.tour); loadTours(); } else b.disabled = false;
 });
 // lobby: tournament matches waiting for me
 let tourBanSig = '';
@@ -5306,7 +5383,7 @@ function renderTourNext(list, open = []) {
   const sig = JSON.stringify([list, open]);
   if (sig === tourBanSig) return;
   tourBanSig = sig;
-  setHTML($('#tourBanners'), open.map((x) => `<div class="banner tinvite"><span>🏆 You're invited: <b>${esc(x.name)}</b> · ${esc(Tour.KINDS[x.kind] || '')} · ${x.poll ? 'vote on the time control' : tcLabel(x.tc)} · ${x.n} / ${x.max} signed up</span>
+  setHTML($('#tourBanners'), open.map((x) => `<div class="banner tinvite"><span>🏆 You're invited: <b>${esc(x.name)}</b> · ${esc(Tour.KINDS[x.kind] || '')} · ${x.poll ? 'vote on the time control' : tcLabel(x.tc)} · ${x.n} / ${x.max} signed up${x.startAt ? ` · starts ${esc(untilText(x.startAt))}` : ''}</span>
     <span><button class="primary small" data-tbjoin="${esc(x.id)}">Join</button> <button class="small" data-tbopen="${esc(x.id)}">Details</button> <button class="small" data-tbhide="${esc(x.id)}">Not now</button></span></div>`).join('') + list.map((x) => `<div class="banner"><span>🏆 <b>${esc(x.name)}</b> · ${esc(x.stage)}: your match vs <b>${esc(x.opp)}</b> is ready.</span>
     <span><button class="primary small" data-tbplay="${esc(x.id)}" data-fx="${esc(x.fx)}">${x.room ? 'Rejoin' : 'Play now'}</button> <button class="small" data-tbopen="${esc(x.id)}">Tournament</button></span></div>`).join(''));
 }
