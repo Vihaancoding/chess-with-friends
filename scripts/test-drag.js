@@ -41,6 +41,23 @@ const ok = (name, cond, got) => { if (cond) { passed++; console.log('  ✓', nam
   await T('drag', 'e2', 'e4'); await T('ev', 'pointerup', 'e4');
   ok('dragging e2 to e4 and letting go plays e4', (await T('get')).moves === 'e4', await T('get'));
 
+  console.log('\nThe hover square');
+  const hov = () => page.evaluate(() => ({ over: [...document.querySelectorAll('#board .sq.dragover')].map((e) => +e.dataset.sq), grabbing: document.body.classList.contains('grabbing') }));
+  await T('setup');
+  await T('drag', 'e2', 'e4');
+  let h = await hov();
+  ok('the square under the dragged piece is outlined, and the cursor grabs', h.over.join() === '36' && h.grabbing, h);
+  await T('ev', 'pointermove', 'd5');
+  h = await hov();
+  ok('the outline follows the piece, onto any square', h.over.join() === '27', h);
+  await T('ev', 'pointermove', 'e4'); await T('ev', 'pointerup', 'e4');
+  h = await hov();
+  ok('dropping clears the outline and the cursor', !h.over.length && !h.grabbing && (await T('get')).moves === 'e4', h);
+  await T('setup');
+  await T('drag', 'e2', 'e5'); await T('ev', 'pointerup', 'e5');
+  h = await hov();
+  ok('an illegal drop clears them too', !h.over.length && !h.grabbing, h);
+
   console.log('\nA release that never reached the page (mouse let go outside the window)');
   await T('setup');
   await T('drag', 'e2', 'e3');

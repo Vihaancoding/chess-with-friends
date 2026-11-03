@@ -258,6 +258,9 @@
   @keyframes pshake { 0%, 100% { transform: none; } 20% { transform: translateX(-11%); } 40% { transform: translateX(10%); } 60% { transform: translateX(-7%); } 80% { transform: translateX(4%); } }
   .kflash { position: absolute; inset: 0; pointer-events: none; animation: kflash .7s ease-out; }
   @keyframes kflash { 0%, 40% { background: rgba(235, 50, 40, .75); } 20%, 60% { background: rgba(235, 50, 40, .25); } 100% { background: transparent; } }
+  /* while dragging: the square under the piece gets a white outline, like chess.com's hover square */
+  .sq.dragover { outline: 4px solid rgba(255, 255, 255, .75); outline-offset: -4px; z-index: 2; }
+  body.grabbing, body.grabbing * { cursor: grabbing !important; }
   .dragghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 8px 8px #0006); }
   .dragghost img { width: 100%; height: 100%; }
   .pcol { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
@@ -2577,6 +2580,7 @@ function paintBoard() {
     if (active && p && p[0] === you) f += ' mine';
     if (pre && pre.has(sq)) f += ' premove';
     if (sq === dragFrom) f += ' dragging';
+    if (dragFrom >= 0 && sq === drag.over) f += ' dragover';
     if (el._f !== f) { el.className = el._base + f; el._f = f; }
   }
 }
@@ -3462,9 +3466,12 @@ window.addEventListener('pointermove', (e) => {
     g.className = 'dragghost'; g.style.width = g.style.height = drag.size * 1.1 + 'px';
     g.innerHTML = pieceHTML(drag.piece);
     document.body.appendChild(g); drag.ghost = g;
+    document.body.classList.add('grabbing');
     paintBoard();
   }
   drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
+  const over = sqAt(e.clientX, e.clientY);
+  if (over !== drag.over) { drag.over = over; paintBoard(); }
 });
 function endDrag(e, cancel) {
   if (!drag || (e && e.pointerId !== drag.id)) return;
@@ -3472,6 +3479,7 @@ function endDrag(e, cancel) {
   if (!d.moved) return;
   lastDragEnd = Date.now();
   if (d.ghost) d.ghost.remove();
+  document.body.classList.remove('grabbing');
   const to = cancel ? null : sqAt(e.clientX, e.clientY);
   // the position may have changed while dragging (a server update clears the pick), so check the drop against it now
   const mine = snap && to !== null && to !== d.from && (actBoard()[d.from] || '')[0] === snap.you;
