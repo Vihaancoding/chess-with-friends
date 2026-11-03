@@ -657,8 +657,18 @@
   .tgroups { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
   .tgroups table td, .tgroups table th { padding: 6px 6px; } .tgroups tr.q td:first-child { box-shadow: inset 3px 0 var(--green); }
   .tgroups td.pn { font-weight: 700; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fxl { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
-  .fxr { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: center; background: var(--panel2); border-radius: 8px; padding: 6px 8px; font-size: .9rem; }
+  .fxl { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .fxround { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 2px 2px; font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .fxround:first-child { margin-top: 0; } .fxround .rdone { color: var(--green); }
+  .fxr { display: grid; grid-template-columns: minmax(0, 1fr) 3.8em minmax(0, 1fr) 5.6em; gap: 8px; align-items: center; background: var(--panel2); border-radius: 8px; padding: 6px 8px; font-size: .9rem; min-height: 40px; }
+  .fxr.done { opacity: .75; } .fxr .fx-act .later { font-size: .75rem; color: var(--muted); font-weight: 700; background: none; border: 0; box-shadow: none; padding: 4px 2px; min-height: 0; text-decoration: underline dotted; cursor: pointer; }
+  .fxr .ytag { grid-column: 1 / -1; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--green); margin-bottom: -4px; }
+  .fxr .fxedit { grid-column: 1 / -1; display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; padding-top: 4px; border-top: 1px dashed var(--line); }
+  .fxr .fxedit::before { content: 'Set result:'; font-size: .75rem; color: var(--muted); font-weight: 700; align-self: center; margin-right: 4px; }
+  .tvacts button.on { border: 2px solid var(--gold); }
+  .banner.twait { background: #3f381c; border-left-color: var(--gold); animation: twpulse 2s ease-in-out 3; }
+  @keyframes twpulse { 50% { box-shadow: 0 0 0 3px #f7c63155; } }
+  @media (prefers-reduced-motion: reduce) { .banner.twait { animation: none; } }
   .fxr .fa { text-align: right; } .fxr .fa, .fxr .fb { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
   .fxr .w { font-weight: 800; color: var(--green); } .fxr .fs { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 3.6em; text-align: center; }
   .fxr .fx-act { display: flex; gap: 4px; justify-content: flex-end; } .fxr.me { outline: 2px solid var(--green); outline-offset: -2px; }
@@ -673,6 +683,7 @@
   .bm .bl + .bl { border-top: 1px solid var(--line); } .bm .bl.w { font-weight: 800; color: var(--green); } .bm .bl.tbd { color: var(--muted); font-style: italic; }
   .bm .bl span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bm .bact { display: flex; gap: 4px; padding: 4px 6px 6px; flex-wrap: wrap; }
+  .bm .fxedit { display: flex; gap: 4px; flex-wrap: wrap; width: 100%; border-top: 1px dashed var(--line); padding-top: 4px; }
   .bm .bact:empty { display: none; }
   .bm.final { border-color: var(--gold); }
   .tvgrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
@@ -1040,7 +1051,7 @@
       <div id="mpScore"></div>
       <div class="mpdots" id="mpDots"></div>
       <div class="mpnote" id="mpNote" aria-live="polite"></div>
-      <div class="row" id="mpActs"><button class="small" id="mpHold">Wait</button><button class="small" id="mpEnd">End match</button></div>
+      <div class="row" id="mpActs"><button class="small primary hidden" id="mpRemind">Remind them</button><button class="small" id="mpHold">Wait</button><button class="small" id="mpEnd">End match</button></div>
     </div>
     <div class="panel hidden" id="coachpanel">
       <div class="cohead"><span class="coav sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg></span><b>Coach</b><span class="muted" id="coLvl"></span></div>
@@ -1323,6 +1334,17 @@ function ensureSessionSubs() {
 function onUserPing(d) {
   if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
+  if (d.why === 'tourwait' && d.code) {                                 // a tournament opponent is in the room, waiting for me
+    if (view === 'game' && gameCode === d.code) return;
+    sfx('challenge');
+    showToast('🏆', `<b>${esc(d.from)}</b> is ${d.remind ? 'still ' : ''}waiting for you · ${esc(d.name)} (${esc(d.stage)})`, 'Tap to join the game', d.code);
+    clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 30000);   // longer than a chat pop-up: it's a game waiting
+    if (document.hidden && window.Notification && Notification.permission === 'granted') {
+      try { new Notification(`${d.from} is waiting for you`, { body: `${d.name} · ${d.stage}`, tag: 'chess-tour-' + d.code }); } catch {}
+    }
+    if (view === 'lobby') pollLobby(true); else if (view === 'tours') loadTours();
+    return;
+  }
   if (d.why === 'clone' && d.c) {
     if (view === 'lobby') pollLobby(true);
     else if (view !== 'game') { showToast('♞', cloneLine(d.c), 'Click to open the lobby'); $('#chatToast').dataset.lobby = '1'; }   // never mid-game: it waits in the lobby
@@ -2304,6 +2326,11 @@ function render() {
     const nm = (c) => players[c].name;
     if (status.over) t = status.result === 'draw' ? `Draw · ${status.reason}` : `${nm(status.result)} wins by ${status.reason}`;
     else { t = `${nm(state.turn)} to move (${state.turn === 'w' ? 'White' : 'Black'})`; s = (status.check ? 'Check! · ' : '') + 'Pass & play · ' + tcLabel(snap.tc); }
+  }
+  const oppC = you === 'w' ? 'b' : 'w';
+  if (snap.tour && mine && !status.over && !moves.length && players.w && players.b && !present[oppC]) {   // tournament waiting room
+    t = `Waiting for ${players[oppC].name}…`;
+    s = `They've been sent a notification. ${you === 'w' ? 'You play White: make your first move when they arrive.' : 'They play White and will move first.'}`;
   }
   if (snap.paused && !status.over) { t = 'Game paused'; s = 'Both players must press Resume to continue'; }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
@@ -3812,7 +3839,7 @@ function paintMatch() {
   const m = snap.match, s = Match.score(m), sides = matchSides(snap), lead = Match.leader(m, s);
   const gameNo = m.done ? m.games.length : snap.status.over ? m.games.length : m.games.length + 1;
   setText($('#mpTitle'), snap.tour ? `🏆 ${snap.tour.name} · ${snap.tour.stage}` : `${Match.label(m)}${m.no > 1 ? ` · match ${m.no}` : ''}`);
-  setText($('#mpSub'), m.done ? 'Finished' : snap.arma && !snap.status.over ? 'Armageddon' : `Game ${gameNo}${m.fmt === 'bo' ? ` of ${m.n}` : ''}`);
+  setText($('#mpSub'), m.done ? 'Finished' : snap.arma && !snap.status.over ? 'Armageddon' : m.fmt === 'bo' && m.n === 1 ? 'One game' : `Game ${gameNo}${m.fmt === 'bo' ? ` of ${m.n}` : ''}`);
   setHTML($('#mpScore'), sides.map((x) => `<div class="mprow${x.name === lead ? ' lead' : ''}"><span class="avatar ${x.c}">${esc(x.name[0].toUpperCase())}</span><span class="mpn">${esc(x.name)}${x.name === meN() ? ' <span class="youtag">you</span>' : ''}</span><span class="mps">${half(s.pts[x.name])}</span></div>`).join(''));
   // one square per game: green = the first-listed player won, red = the other, grey = draw; empty squares still to play
   const a = sides[0] && sides[0].name;
@@ -3828,7 +3855,9 @@ function paintMatch() {
   setHTML($('#mpNote'), (matchNote(snap) || '') + series);
   const mine = snap.you === 'w' || snap.you === 'b';
   $('#mpActs').classList.toggle('hidden', !mine || m.done || !(snap.status.over || !snap.moves.length));
-  $('#mpEnd').classList.toggle('hidden', !!snap.tour);                     // tournament matches are played to the end
+  $('#mpEnd').classList.toggle('hidden', !!snap.tour);
+  const oc = snap.you === 'w' ? 'b' : 'w';
+  $('#mpRemind').classList.toggle('hidden', !(snap.tour && mine && !snap.status.over && !snap.moves.length && snap.players[oc] && !snap.present[oc]));                     // tournament matches are played to the end
   const c = paintCount();
   if (c && c.hold && !mTimer) mTimer = setInterval(matchTick, 250);
 }
@@ -3843,6 +3872,13 @@ function paintOverMatch(r) {
   paintCount();
 }
 document.addEventListener('click', (e) => { if (e.target.closest('[data-mhold], #mpHold')) { mAuto.held = true; paintMatch(); updateOver(); } });
+$('#mpRemind').onclick = async () => {
+  const b = $('#mpRemind'); if (!snap || !snap.tour) return;
+  b.disabled = true;
+  const r = await api('tour_remind', { id: snap.tour.id, fx: snap.tour.fx });
+  b.textContent = r.ok ? 'Reminded ✓' : r.status === 429 ? 'Just reminded them' : 'Could not remind';
+  setTimeout(() => { b.disabled = false; b.textContent = 'Remind them'; }, 30000);
+};
 $('#mpEnd').onclick = async () => {
   const s = Match.score(snap.match), lead = Match.leader(snap.match, s);
   if (!confirm(`End the match now?${lead ? ` ${lead === meN() ? 'You lead, so you take it' : lead + ' leads, so they take it'}.` : ' It is level, so nobody wins it.'}`)) return;
@@ -5280,19 +5316,23 @@ $('#tourNew').addEventListener('submit', async (e) => {
 
 // one tournament
 const fxScore = (f) => (f.by === 'bye' ? 'bye' : f.by === 'awarded' ? (f.res === 'draw' ? '½–½' : f.res === 'a' ? '1–0' : '0–1') : f.score ? `${half(f.score[0])}–${half(f.score[1])}` : f.room ? 'live' : 'vs');
-function fxActions(t, f, run) {
-  const me = f.a === user.name || f.b === user.name, out = [];
-  if (Tour.ready(f) && me) out.push(`<button class="small primary" data-tplay="${f.id}">${f.room ? 'Rejoin' : 'Play'}</button>`);
-  else if (f.room) out.push(`<button class="small" data-twatch="${f.room}">${f.res ? 'Replay' : 'Watch'}</button>`);
-  if (run && Tour.ready(f)) {
-    const draw = f.id[0] === 'g' ? `<button class="small" data-taward="${f.id}" data-res="draw">Draw</button>` : '';
-    out.push(`<details><summary>Set result</summary><div><button class="small" data-taward="${f.id}" data-res="a">${esc(f.a)} wins</button>${draw}<button class="small" data-taward="${f.id}" data-res="b">${esc(f.b)} wins</button></div></details>`);
-  }
-  return out.join('');
+// organizers set results by hand only in "Edit results" mode, so the normal view stays clean
+let tourEdit = false;
+function fxActions(t, f, next) {
+  const me = f.a === user.name || f.b === user.name;
+  if (Tour.ready(f) && me) return f.id === next || f.room ? `<button class="small primary" data-tplay="${f.id}">${f.room ? 'Rejoin' : 'Play'}</button>`
+    : `<button class="later" data-tplay="${f.id}" title="Your next game is in an earlier round. Play this one now if both of you are ready.">later</button>`;
+  if (f.room) return `<button class="small" data-twatch="${f.room}">${f.res ? 'Replay' : 'Watch'}</button>`;
+  return '';
 }
-function fxRow(t, f, run) {
-  const w = Tour.winnerOf(f), me = Tour.ready(f) && (f.a === user.name || f.b === user.name);
-  return `<div class="fxr${me ? ' me' : ''}"><span class="fa${w && w === f.a ? ' w' : ''}">${esc(f.a)}</span><span class="fs">${fxScore(f)}</span><span class="fb${w && w === f.b ? ' w' : ''}">${esc(f.b)}</span><span class="fx-act">${fxActions(t, f, run)}</span></div>`;
+function fxEdit(t, f, run) {
+  if (!run || !tourEdit || !Tour.ready(f)) return '';
+  const draw = f.id[0] === 'g' ? `<button class="small" data-taward="${f.id}" data-res="draw">Draw</button>` : '';
+  return `<div class="fxedit"><button class="small" data-taward="${f.id}" data-res="a">${esc(f.a)} wins</button>${draw}<button class="small" data-taward="${f.id}" data-res="b">${esc(f.b)} wins</button></div>`;
+}
+function fxRow(t, f, run, next) {
+  const w = Tour.winnerOf(f), mine = f.a === user.name || f.b === user.name, me = Tour.ready(f) && mine;
+  return `<div class="fxr${me && f.id === next ? ' me' : ''}${f.res ? ' done' : ''}">${me && f.id === next ? '<span class="ytag">Your next game</span>' : ''}<span class="fa${w && w === f.a ? ' w' : ''}">${esc(f.a)}</span><span class="fs">${fxScore(f)}</span><span class="fb${w && w === f.b ? ' w' : ''}">${esc(f.b)}</span><span class="fx-act">${fxActions(t, f, next)}</span>${fxEdit(t, f, run)}</div>`;
 }
 function groupHTML(t, g, run) {
   const rows = Tour.standings(t, g), adv = t.cfg.kind === 'gko' ? t.cfg.adv : 1;
@@ -5300,7 +5340,15 @@ function groupHTML(t, g, run) {
   return `<div class="panel"><h2 class="ph"><span>${t.cfg.kind === 'rr' ? 'Table' : 'Group ' + g.name}</span><span class="muted" style="font-size:.8rem">${done} / ${g.fixtures.length} played</span></h2>
     <table><thead><tr><th>#</th><th>Player</th><th class="r">P</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r" title="Game points">GP</th><th class="r">Pts</th></tr></thead><tbody>
     ${rows.map((x, i) => `<tr class="${i < adv ? 'q' : ''}"><td>${i + 1}</td><td class="pn">${esc(x.name)}${x.name === user.name ? ' <span class="youtag">you</span>' : ''}</td><td class="r">${x.pl}</td><td class="r">${x.w}</td><td class="r">${x.d}</td><td class="r">${x.l}</td><td class="r">${half(x.gp)}</td><td class="r"><b>${half(x.pts)}</b></td></tr>`).join('')}
-    </tbody></table><div class="fxl">${g.fixtures.map((f) => fxRow(t, f, run)).join('')}</div></div>`;
+    </tbody></table><div class="fxl">${fixturesByRound(t, g, run)}</div></div>`;
+}
+function fixturesByRound(t, g, run) {
+  const next = (Tour.myFixtures(t, user.name)[0] || {}).id, rounds = new Map();
+  for (const f of g.fixtures) { const r = Tour.roundOf(t, f); if (!rounds.has(r)) rounds.set(r, []); rounds.get(r).push(f); }
+  return [...rounds].map(([r, list]) => {
+    const left = list.filter((f) => !f.res).length;
+    return `<div class="fxround"><span>Round ${r}</span><span class="${left ? '' : 'rdone'}">${left ? `${left} to play` : '✓ done'}</span></div>${list.map((f) => fxRow(t, f, run, next)).join('')}`;
+  }).join('');
 }
 function bracketHTML(t, run) {
   const R = t.ko.rounds;
@@ -5310,7 +5358,7 @@ function bracketHTML(t, run) {
     return `<div class="bl${w === n ? ' w' : ''}"><span>${esc(n)}${n === user.name ? ' <span class="youtag">you</span>' : ''}</span><span>${sc}</span></div>`;
   };
   return `<div class="panel"><h2 class="ph">Knockout</h2><div class="bracket">${R.map((round, r) => `<div class="bcol"><h3>${Tour.ROUND_NAMES[round.length] || 'Round ' + (r + 1)}</h3>
-    ${round.map((f) => `<div class="bm${Tour.ready(f) && (f.a === user.name || f.b === user.name) ? ' me' : f.room && !f.res ? ' live' : ''}${r === R.length - 1 ? ' final' : ''}">${line(f, 'a')}${line(f, 'b')}<div class="bact">${fxActions(t, f, run)}</div></div>`).join('')}</div>`).join('')}</div></div>`;
+    ${round.map((f) => `<div class="bm${Tour.ready(f) && (f.a === user.name || f.b === user.name) ? ' me' : f.room && !f.res ? ' live' : ''}${r === R.length - 1 ? ' final' : ''}">${line(f, 'a')}${line(f, 'b')}<div class="bact">${fxActions(t, f, (Tour.myFixtures(t, user.name)[0] || {}).id)}${fxEdit(t, f, run).replace('fxedit', 'fxedit b')}</div></div>`).join('')}</div>`).join('')}</div></div>`;
 }
 function paintTour(t) {
   const mine = t.players.some((p) => p.name === user.name), run = t.by === user.name || tourAdmin;
@@ -5321,6 +5369,7 @@ function paintTour(t) {
     if (run) acts.push(`<button class="primary" data-tact="start" ${t.players.length < Tour.MIN[cfg.kind] ? `disabled title="Needs ${Tour.MIN[cfg.kind]} players"` : ''}>Start now</button>`);
   }
   if (run && (t.phase === 'signup' || t.phase === 'done' || tourAdmin)) acts.push('<button data-tact="delete">Delete</button>');
+  if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
   acts.push('<button data-tact="link">Copy link</button>');
   setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${PHASE[t.phase]}</span></div>
     <div class="muted" style="font-weight:600">${tourKindLine(t)} · ${fmts} · ${t.players.length}${t.phase === 'signup' ? ' / ' + cfg.max : ''} players · organized by ${esc(t.by)}</div>
@@ -5331,7 +5380,8 @@ function paintTour(t) {
   const live = Tour.allFixtures(t).filter((f) => f.room && !f.res);
   setHTML($('#tvLive'), live.length ? `<div class="panel tlive"><b>Live now</b>${live.map((f) => `<span class="lv"><span class="dotlive"></span>${esc(f.a)} vs ${esc(f.b)} <span class="muted">· ${esc(Tour.stageOf(t, f))}</span><button class="small" data-twatch="${f.room}">${f.a === user.name || f.b === user.name ? 'Rejoin' : 'Watch'}</button></span>`).join('')}</div>` : '');
   const next = Tour.myFixtures(t, user.name);
-  setHTML($('#tvMine'), next.map((f) => `<div class="banner"><span>Your ${esc(Tour.stageOf(t, f))} match vs <b>${esc(f.a === user.name ? f.b : f.a)}</b> is ready${f.room ? ' and waiting' : ''}.</span><button class="primary small" data-tplay="${f.id}">${f.room ? 'Rejoin' : 'Play now'}</button></div>`).join(''));
+  const waiting = (f) => f.wait && f.wait.n !== user.name && Date.now() - f.wait.ts < 20 * 60e3;
+  setHTML($('#tvMine'), next.slice(0, 1).map((f) => `<div class="banner${waiting(f) ? ' twait' : ''}"><span>${waiting(f) ? `🔔 <b>${esc(f.wait.n)}</b> is waiting for you in the game room (${esc(agoText(f.wait.ts))}) · ` : 'Your next game: '}<b>vs ${esc(f.a === user.name ? f.b : f.a)}</b> · ${esc(Tour.stageOf(t, f))}${f.id[0] === 'g' ? ` · round ${Tour.roundOf(t, f)}` : ''}${next.length > 1 ? ` <span class="muted">(${next.length - 1} more after this)</span>` : ''}</span><button class="primary small" data-tplay="${f.id}">${waiting(f) ? 'Join now' : f.room ? 'Rejoin' : 'Play now'}</button></div>`).join(''));
   let body = '';
   if (t.poll) {
     const c = Tour.pollCounts(t), total = c.reduce((a, b) => a + b, 0), my = t.poll.votes[user.name], open = t.poll.chosen == null && t.phase === 'signup';
@@ -5366,6 +5416,7 @@ $('#tours').addEventListener('click', async (e) => {
     const r = await api('tour_award', { id, fx: b.dataset.taward, res: b.dataset.res }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return;
   }
   const a = b.dataset.tact;
+  if (a === 'edit') { tourEdit = !tourEdit; return loadTours(); }
   if (a === 'link') return copy(location.origin + '/?tour=' + id, '[data-tact="link"]');
   if (a === 'delete') { if (!confirm('Delete this tournament for everyone?')) return; const r = await api('tour_delete', { id }); return r.ok ? enterTours() : err(r); }
   if (a === 'start' && !confirm('Start the tournament now? Sign-ups close and the draw is made.')) return;
@@ -5385,9 +5436,10 @@ function renderTourNext(list, open = []) {
   if (sig === tourBanSig) return;
   tourBanSig = sig;
   setHTML($('#tourBanners'), open.map((x) => `<div class="banner tinvite"><span>🏆 You're invited: <b>${esc(x.name)}</b> · ${esc(Tour.KINDS[x.kind] || '')} · ${x.poll ? 'vote on the time control' : tcLabel(x.tc)} · ${x.n} / ${x.max} signed up${x.startAt ? ` · starts ${esc(untilText(x.startAt))}` : ''}</span>
-    <span><button class="primary small" data-tbjoin="${esc(x.id)}">Join</button> <button class="small" data-tbopen="${esc(x.id)}">Details</button> <button class="small" data-tbhide="${esc(x.id)}">Not now</button></span></div>`).join('') + list.map((x) => `<div class="banner"><span>🏆 <b>${esc(x.name)}</b> · ${esc(x.stage)}: your match vs <b>${esc(x.opp)}</b> is ready.</span>
+    <span><button class="primary small" data-tbjoin="${esc(x.id)}">Join</button> <button class="small" data-tbopen="${esc(x.id)}">Details</button> <button class="small" data-tbhide="${esc(x.id)}">Not now</button></span></div>`).join('') + list.map((x) => `<div class="banner${x.wait ? ' twait' : ''}"><span>🏆 <b>${esc(x.name)}</b> · ${esc(x.stage)}: ${x.wait ? `<b>${esc(x.opp)}</b> is waiting for you in the game room (${esc(agoText(x.wait))})` : `your next match vs <b>${esc(x.opp)}</b> is ready`}.</span>
     <span><button class="primary small" data-tbplay="${esc(x.id)}" data-fx="${esc(x.fx)}">${x.room ? 'Rejoin' : 'Play now'}</button> <button class="small" data-tbopen="${esc(x.id)}">Tournament</button></span></div>`).join(''));
 }
+const agoText = (ts) => { const s = Math.max(0, Math.round((Date.now() - ts) / 1000)); return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`; };
 // main page: a Tournaments card
 let tourMiniSig = '';
 function renderTourMini(list, admin) {
