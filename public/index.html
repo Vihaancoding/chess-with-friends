@@ -782,6 +782,7 @@
   <div class="lobby-grid">
     <div class="leftcol">
       <div id="previewwrap"><div id="preview"></div></div>
+      <div class="panel" id="tourcard"><h2 class="ph"><span>Tournaments</span><button class="small" id="tcAll">See all</button></h2><div id="tourmini"><div class="muted">Loading…</div></div></div>
       <div class="panel" id="livecard"><h2 class="ph"><span>Live games<span class="rtdot" id="rtDot" title="Live updates"></span><span class="rtnote" id="rtNote"></span></span></h2><div id="livelist"><div class="liverow"><span class="lv"><span class="sk" style="width:220px"></span></span></div></div></div>
       <div class="panel" id="onlinecard">
         <h2 class="ph"><span>Players <span class="muted" id="onlineN"></span></span></h2>
@@ -1812,7 +1813,7 @@ async function pollLobby(full = true) {
       renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
-    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); }
+    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); renderTourMini(r.tours || [], !!r.user.admin); }
   } finally {
     lobbyBusy = false;
     if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
@@ -5387,6 +5388,31 @@ function renderTourNext(list, open = []) {
     <span><button class="primary small" data-tbjoin="${esc(x.id)}">Join</button> <button class="small" data-tbopen="${esc(x.id)}">Details</button> <button class="small" data-tbhide="${esc(x.id)}">Not now</button></span></div>`).join('') + list.map((x) => `<div class="banner"><span>🏆 <b>${esc(x.name)}</b> · ${esc(x.stage)}: your match vs <b>${esc(x.opp)}</b> is ready.</span>
     <span><button class="primary small" data-tbplay="${esc(x.id)}" data-fx="${esc(x.fx)}">${x.room ? 'Rejoin' : 'Play now'}</button> <button class="small" data-tbopen="${esc(x.id)}">Tournament</button></span></div>`).join(''));
 }
+// main page: a Tournaments card
+let tourMiniSig = '';
+function renderTourMini(list, admin) {
+  const sig = JSON.stringify([list, admin]);
+  if (sig === tourMiniSig) return;
+  tourMiniSig = sig;
+  setHTML($('#tourmini'), list.length ? list.map((x) => {
+    const join = x.phase === 'signup' && !x.in && x.n < x.max;
+    const info = x.phase === 'done' ? `🏆 ${esc(x.champion || '')}` : x.phase === 'signup' ? `${x.n} / ${x.max} signed up${x.startAt ? ` · starts ${esc(untilText(x.startAt))}` : ''}` : `${x.n} players · ${x.phase === 'groups' ? 'group stage' : 'knockout'}`;
+    return `<div class="tl"><span class="tbadge ${x.phase}">${PHASE[x.phase]}</span><span class="tn"><b>${esc(x.name)}</b><span class="muted">${tourKindLine(x)} · ${info}${x.in ? ' · <b style="display:inline;color:var(--green)">you\'re in</b>' : ''}</span></span>
+      <button class="small ${join ? 'primary' : ''}" data-tm${join ? 'join' : 'open'}="${esc(x.id)}">${join ? 'Join' : x.phase === 'done' ? 'Results' : 'Open'}</button></div>`;
+  }).join('') : `<div class="muted">No tournaments right now.${admin ? ' <button class="small primary" data-tmnew="1">Create one</button>' : ' When an admin opens one, it shows up here.'}</div>`);
+}
+$('#tcAll').onclick = () => enterTours();
+$('#tourmini').addEventListener('click', async (e) => {
+  const o = e.target.closest('[data-tmopen]'), j = e.target.closest('[data-tmjoin]');
+  if (e.target.closest('[data-tmnew]')) return enterTours();
+  if (o) return enterTours(o.dataset.tmopen);
+  if (j) {
+    j.disabled = true;
+    const r = await api('tour_join', { id: j.dataset.tmjoin });
+    if (!r.ok) { $('#err').textContent = r.error || 'Could not join.'; j.disabled = false; return; }
+    enterTours(j.dataset.tmjoin);
+  }
+});
 $('#tourBanners').addEventListener('click', (e) => {
   const p = e.target.closest('[data-tbplay]'), o = e.target.closest('[data-tbopen]'), j = e.target.closest('[data-tbjoin]'), h = e.target.closest('[data-tbhide]');
   if (p) tourPlay(p.dataset.tbplay, p.dataset.fx); else if (o) enterTours(o.dataset.tbopen);
