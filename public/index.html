@@ -261,7 +261,7 @@
   /* while dragging: the square under the piece gets a white outline, like chess.com's hover square */
   .sq.dragover { outline: 4px solid rgba(255, 255, 255, .75); outline-offset: -4px; z-index: 2; }
   body.grabbing, body.grabbing * { cursor: grabbing !important; }
-  .dragghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 8px 8px #0006); }
+  .dragghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -30%); transform-origin: 50% 30%; filter: drop-shadow(0 8px 8px #0006); will-change: transform; }
   .dragghost img { width: 100%; height: 100%; }
   .pcol { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
   .capt { display: flex; align-items: center; min-height: 20px; }
@@ -3467,12 +3467,33 @@ window.addEventListener('pointermove', (e) => {
     g.innerHTML = pieceHTML(drag.piece);
     document.body.appendChild(g); drag.ghost = g;
     document.body.classList.add('grabbing');
+    drag.px = e.clientX; swing(drag);
     paintBoard();
   }
-  drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
+  drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px'; drag.px = e.clientX;
   const over = sqAt(e.clientX, e.clientY);
   if (over !== drag.over) { drag.over = over; paintBoard(); }
 });
+// A picked-up piece dangles from the pointer: it hangs a little below it and swings like a pendulum when the
+// pointer speeds up or slows down sideways, trails behind while it moves, then settles upright. Off with reduced motion.
+const SWING = { G: 60, D: 4.5, K: 0.002, V: 0.014, MAX: 0.6 };   // gravity, damping, push per px/s² and per px/s (air), max angle (rad)
+const calm = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+function swing(d) {
+  if (calm.matches) return;
+  let a = 0, w = 0, last = performance.now(), lx = d.px, vx = 0;
+  const step = (t) => {
+    if (drag !== d || !d.ghost) return;
+    const dt = Math.min(0.05, Math.max(0.001, (t - last) / 1000)); last = t;
+    const v = (d.px - lx) / dt; lx = d.px;
+    const nv = vx + (v - vx) * Math.min(1, dt * 20), ax = (nv - vx) / dt; vx = nv;   // smoothed sideways speed, and its change
+    w += (SWING.K * ax + SWING.V * vx - SWING.G * Math.sin(a) - SWING.D * w) * dt;
+    a = Math.max(-SWING.MAX, Math.min(SWING.MAX, a + w * dt));
+    d.angle = a;
+    d.ghost.style.transform = `translate(-50%, -30%) rotate(${a.toFixed(4)}rad)`;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 function endDrag(e, cancel) {
   if (!drag || (e && e.pointerId !== drag.id)) return;
   const d = drag; drag = null;

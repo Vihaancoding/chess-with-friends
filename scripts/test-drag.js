@@ -58,6 +58,28 @@ const ok = (name, cond, got) => { if (cond) { passed++; console.log('  ✓', nam
   h = await hov();
   ok('an illegal drop clears them too', !h.over.length && !h.grabbing, h);
 
+  console.log('\nThe picked-up piece dangles');
+  await T('setup');
+  await page.waitForTimeout(2600);                                    // the "you are playing" note gets out of the way
+  const at = (q) => page.evaluate((s) => { const r = sqEls['abcdefgh'.indexOf(s[0]) + (8 - +s[1]) * 8].getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, q);
+  const deg = () => page.evaluate(() => (drag && drag.angle !== undefined ? drag.angle * 57.3 : null));
+  const [gx, gy] = await at('g1');
+  await page.mouse.move(gx, gy); await page.mouse.down(); await page.mouse.move(gx, gy - 160);
+  for (let i = 1; i <= 10; i++) { await page.mouse.move(gx - i * 25, gy - 160); await page.waitForTimeout(16); }
+  let d = await deg();
+  ok('moving left, the piece trails to the right (tilts counter-clockwise)', d < -6, d);
+  let peak = -99;
+  for (let i = 0; i < 10; i++) { await page.waitForTimeout(50); peak = Math.max(peak, await deg()); }
+  ok('stopping, it swings back the other way', peak > 3, peak);
+  await page.waitForTimeout(1500);
+  d = await deg();
+  ok('then it settles upright', Math.abs(d) < 1, d);
+  for (let i = 1; i <= 10; i++) { await page.mouse.move(gx - 250 + i * 25, gy - 160); await page.waitForTimeout(16); }
+  d = await deg();
+  ok('moving right, it trails to the left', d > 6, d);
+  await page.mouse.move(gx, gy); await page.mouse.up();
+  ok('dropping it back ends the drag cleanly', (await T('get')).moves === '' && !(await page.$('.dragghost')), await T('get'));
+
   console.log('\nA release that never reached the page (mouse let go outside the window)');
   await T('setup');
   await T('drag', 'e2', 'e3');
@@ -122,6 +144,12 @@ const ok = (name, cond, got) => { if (cond) { passed++; console.log('  ✓', nam
   ok('castling through an attacked square flashes the king', s.flash.join() === '60', s);
   await page.waitForTimeout(800);
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await T('setup');
+  await T('drag', 'e2', 'e4'); await T('ev', 'pointermove', 'a4'); await page.waitForTimeout(100);
+  ok('with reduced motion the piece does not swing', (await deg()) === null, await deg());
+  await T('ev', 'pointerup', 'e4');
+  await T('setup');
+  await page.evaluate(() => { user = { name: 'Tester' }; const b = makeBot(Object.keys(BOT_LEVELS)[0], 'w', null); for (const u of ['e2e4', 'b7b6', 'g2g3', 'c8a6', 'f1g2', 'e7e6', 'g1f3', 'b8c6']) applyBotMove(b, Chess.findUci(b.state, u), false); enterBot(b); });
   await page.evaluate(() => { clickSquare(60); clickSquare(62); clickSquare(60); clickSquare(62); });
   await page.waitForTimeout(900);
   s = await shook();
