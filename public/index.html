@@ -1091,6 +1091,8 @@
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
       <label class="sktoggle"><input type="checkbox" id="evalToggle"> Show the evaluation bar in computer and pass &amp; play games</label>
+      <div class="label">Analysis engine</div><div class="swatches" id="engPick"></div>
+      <div class="muted" style="font-size:.82rem;font-weight:600;margin:-2px 0 10px">For game review, move badges, the evaluation bar and the coach's grading. Stockfish is stronger (a 2 MB download the first time); computer opponents always play with ours.</div>
       <div class="label">Sounds</div><div class="swatches" id="sndPacks"></div>
       <label class="sndvol">Volume <input type="range" id="sndVol" min="0" max="100" step="5"></label>
       <div class="sndtest"><span class="muted">Test:</span><button class="small" data-play="move">Move</button><button class="small" data-play="capture">Capture</button><button class="small" data-play="check">Check</button><button class="small" data-play="end">Game over</button><button class="small" data-play="challenge">Challenge</button><button class="small" data-play="chAccepted">Accepted</button><button class="small" data-play="chDeclined">Declined</button><button class="small" data-play="turn">Your turn</button></div>
@@ -1109,6 +1111,7 @@
 <script src="style.js"></script>
 <script src="match.js"></script>
 <script src="tournament.js"></script>
+<script src="sfengine.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
@@ -1710,7 +1713,25 @@ function paintSkinModal() {
   for (let sq = 0; sq < 64; sq++) h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}">${st.board[sq] ? pieceHTML(st.board[sq]) : ''}</div>`;
   setHTML($('#skinPreview'), h);
 }
-function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; $('#evalToggle').checked = SKIN.evalbar !== false; paintSkinModal(); paintSounds(); }
+function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; $('#evalToggle').checked = SKIN.evalbar !== false; paintSkinModal(); paintSounds(); paintEngPick(); }
+// ----- analysis engine: ours (bot.js) or Stockfish (sfengine.js); both answer the same "analyze" messages -----
+const ENGINES = { ours: 'Ours', stockfish: 'Stockfish' };
+const useStockfish = () => SKIN.engine === 'stockfish' && window.Stockfish && Stockfish.available;
+const anaWorker = () => (useStockfish() ? new StockfishWorker() : new Worker('bot.js'));
+function paintEngPick() {
+  setHTML($('#engPick'), Object.entries(ENGINES).map(([k, name]) => `<button class="${(useStockfish() ? 'stockfish' : 'ours') === k ? 'on' : ''}" data-engine="${k}"${k === 'stockfish' && !(window.Stockfish && Stockfish.available) ? ' disabled title="Not supported in this browser"' : ''}>${name}</button>`).join(''));
+}
+$('#engPick').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-engine]'); if (!b || b.disabled) return;
+  SKIN.engine = b.dataset.engine;
+  try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
+  // searches already running were asked of the old engine: drop them, and their results, so the next ones use the new one
+  for (const o of [EV, LB, CO]) if (o.worker) { o.worker.terminate(); o.worker = null; }
+  EV.cache.clear(); EV.key = null; EV.busy = false; CO.ply = -1;
+  if (LB.cur) { LB.queue.unshift(LB.cur); LB.cur = null; nextBadgeJob(); }   // the badge it was working on, again
+  if (snap && view === 'game') render();
+  paintEngPick();
+});
 $('#navSkin').onclick = openSkins;
 $('#skinBtn').onclick = openSkins;
 $('#skinDone').onclick = () => $('#skinModal').classList.add('hidden');
@@ -3076,7 +3097,7 @@ function anRun(from) {
   for (let k = 0; k <= AN.n; k++) { const i = (from + k) % (AN.n + 1); if (!AN.res[i]) order.push(i); }
   if (!order.length) { AN.done = true; return; }
   AN.id++; AN.queue = order; AN.got = 0;
-  try { AN.worker = new Worker('bot.js'); } catch { setText($('#anStatus'), 'Not supported in this browser'); return; }
+  try { AN.worker = anaWorker(); } catch { setText($('#anStatus'), 'Not supported in this browser'); return; }
   AN.worker.onmessage = onAnalysis;
   AN.worker.onerror = () => setText($('#anStatus'), 'The review stopped unexpectedly.');
   AN.worker.postMessage({ type: 'analyze', id: AN.id, states: AN.states, hist: AN.hist, ms: AN.n > 80 ? 120 : 180, order });
@@ -3217,7 +3238,7 @@ function liveBadge(before, move, ply, mine) {
 function nextBadgeJob() {
   LB.cur = LB.queue.shift() || null;
   if (!LB.cur) return;
-  if (!LB.worker) { try { LB.worker = new Worker('bot.js'); LB.worker.onmessage = onBadge; LB.worker.onerror = (ev) => { ev.preventDefault(); LB.worker = null; nextBadgeJob(); }; } catch { LB.cur = null; return; } }
+  if (!LB.worker) { try { LB.worker = anaWorker(); LB.worker.onmessage = onBadge; LB.worker.onerror = (ev) => { ev.preventDefault(); LB.worker = null; nextBadgeJob(); }; } catch { LB.cur = null; return; } }
   LB.worker.postMessage({ type: 'analyze', id: ++LB.id, states: [LB.cur.before], hist: [LB.cur.h], ms: 220, skipFinal: true });
 }
 function onBadge(e) {
@@ -3254,7 +3275,7 @@ const evShown = () => SKIN.evalbar !== false && !!window.Worker && isBot() && !!
 function evWorker() {
   if (EV.worker) return EV.worker;
   try {
-    EV.worker = new Worker('bot.js');
+    EV.worker = anaWorker();
     EV.worker.onmessage = (e) => {
       const d = e.data;
       if (d.done || d.id !== EV.id) return;
@@ -4615,7 +4636,7 @@ function coachReset() {
 function coachWorker() {
   if (CO.worker) return CO.worker;
   try {
-    CO.worker = new Worker('bot.js');
+    CO.worker = anaWorker();
     CO.worker.onmessage = onCoachResult;
     CO.worker.onerror = (ev) => { ev.preventDefault(); CO.worker = null; CO.ply = -1; };
   } catch { CO.worker = null; }
