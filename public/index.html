@@ -289,6 +289,7 @@
   #colorbar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 8; display: none; align-items: center; gap: 12px;
     padding: 7px 20px 7px 10px; border-radius: 999px; font-weight: 800; border: 2px solid transparent; box-shadow: 0 8px 24px -8px #000c; max-width: calc(100vw - 20px); white-space: nowrap; }
   body[data-view="game"] #colorbar { display: flex; }
+  body[data-view="game"] #colorbar.spec { display: none; }   /* spectating: the status card says it, and the pill would cover the player bar */
   body[data-view="game"] #game { padding-bottom: 86px; }
   #colorbar.w { background: #f4f2dc; color: #262421; border-color: #fff; }
   #colorbar.b { background: #1b1a18; color: #fff; border-color: #6b6966; }
@@ -1205,6 +1206,7 @@ let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
+const API_TIMEOUT = { sync: 5000, ping: 5000, move: 6000 };   // heartbeats are tiny and a move is quick: retry sooner (move retries are safe)
 async function api(route, body) {
   const headers = { 'Content-Type': 'application/json' };
   if (user) { headers['x-name'] = user.name; headers['x-token'] = user.token; }
@@ -1215,12 +1217,17 @@ async function api(route, body) {
     if (busyCount++ === 0) busyTimer = setTimeout(() => $('#busybar').classList.add('on'), 120);
     if (btn) btnTimer = setTimeout(() => btn.classList.add('busy'), 120);
   }
+  // A request that never gets an answer (a dropped phone/Wi-Fi connection) would otherwise hang forever and stall
+  // whatever awaits it, like the game heartbeat or a move. Give up and let the caller retry. The server stops at 10s anyway.
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), API_TIMEOUT[route] || 10000);
   try {
-    const r = await fetch('/api?r=' + route, { method: 'POST', headers, body: JSON.stringify(body || {}) });
-    const j = await r.json().catch(() => ({ error: 'Bad response.' }));
+    const r = await fetch('/api?r=' + route, { method: 'POST', headers, body: JSON.stringify(body || {}), signal: ctl.signal });
+    const j = await r.json().catch(() => (ctl.signal.aborted ? null : { error: 'Bad response.' }));
+    if (!j) return { ok: false, error: 'Connection problem.' };            // timed out mid-download: same as no answer
     return { ok: r.ok, status: r.status, ...j };
   } catch { return { ok: false, error: 'Connection problem.' }; }
   finally {
+    clearTimeout(timer);
     if (loud) {
       clearTimeout(btnTimer); if (btn) btn.classList.remove('busy');
       if (--busyCount === 0) { clearTimeout(busyTimer); $('#busybar').classList.remove('on'); }
@@ -1407,6 +1414,9 @@ function finishAuth(r) {
   user = { name: r.name, token: r.token, topic: r.topic, srv: r.srv, ns: r.ns || '' };
   if (r.ratings) myRatings = r.ratings;
   localStorage.setItem('chess:user', JSON.stringify(user));
+  // the sidebar account card: filled here too, so it isn't left as placeholders when a game link opens straight into a game
+  $('#meName').textContent = r.name; paintMyRating();
+  if (r.w != null) $('#meRec').textContent = `${r.w}W ${r.l}L ${r.d}D`;
 }
 async function login(name, token) {
   const r = await api('resume', { name, token });
@@ -2335,6 +2345,11 @@ function render() {
     t = `Waiting for ${players[oppC].name}…`;
     s = `They've been sent a notification. ${you === 'w' ? 'You play White: make your first move when they arrive.' : 'They play White and will move first.'}`;
   }
+  const specWait = !mine && !isArchive() && !isLocal() && !status.over && !moves.length && players.w && players.b && !(present.w && present.b) ? ['w', 'b'].filter((c) => !present[c]).map((c) => players[c].name) : null;
+  if (specWait) {   // spectating a game nobody has started yet (e.g. a tournament match whose players haven't both arrived)
+    t = `Waiting for ${specWait.join(' and ')}…`;
+    s = 'The game starts when both players are here · You are spectating';
+  }
   if (snap.paused && !status.over) { t = 'Game paused'; s = 'Both players must press Resume to continue'; }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
   if (isArchive()) {
@@ -2384,7 +2399,7 @@ function render() {
 
   // permanent colour indicator (fixed to the bottom of the screen)
   const cb = $('#colorbar');
-  const cbCls = (mine ? you : 's') + (mine && !status.over && bothIn && snap.state.turn === you ? ' myturn' : '');
+  const cbCls = (mine ? you : 's') + (mine && !status.over && bothIn && snap.state.turn === you ? ' myturn' : '') + (!mine && !isArchive() && !isLocal() ? ' spec' : '');
   if (cb.className !== cbCls) cb.className = cbCls;
   setHTML($('#cbIcon'), mine ? `<img src="${PIECE_CDN}${you}K.svg" alt="" ${pieceFallback(you + 'K')}>` : '');
   const liveTurn = snap.state.turn;
@@ -3876,7 +3891,7 @@ function paintMatch() {
     const k = !g.win ? 'd' : g.win === a ? 'a' : 'b', who = g.win ? `${g.win} won` : 'Draw';
     return `<i class="${k}${g.arma ? ' x' : ''}" title="Game ${i + 1}${g.arma ? ' (Armageddon)' : ''}: ${esc(who)}, ${esc(g.why)} · ${esc(g.w)} had White">${g.win ? esc(g.win[0].toUpperCase()) : '½'}</i>`;
   }).join('');
-  if (!m.done && m.fmt === 'bo') for (let i = m.games.length; i < m.n; i++) dots += '<i></i>';
+  if (!m.done && m.fmt === 'bo' && m.n > 1) for (let i = m.games.length; i < m.n; i++) dots += '<i></i>';   // one game: nothing to track
   if (!m.done && m.arma) dots += '<i class="x" title="Armageddon decider">A</i>';
   setHTML($('#mpDots'), dots);
   const past = (m.past || []).filter((x) => x.winner), wonBy = (n) => past.filter((x) => x.winner === n).length;
