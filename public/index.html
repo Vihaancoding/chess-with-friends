@@ -512,6 +512,10 @@
   #pausebox { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 14px; font-weight: 700; background: #3b4a2b; }
   /* game review */
   .anhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .aneng { display: inline-flex; gap: 4px; margin-left: auto; }
+  .aneng button { min-height: 0; padding: 3px 9px; font-size: .72rem; font-weight: 700; background: #1f1e1b; box-shadow: none; border: 2px solid transparent; color: var(--muted); }
+  .aneng button:active { transform: none; }
+  .aneng button.on { border-color: var(--green); color: #fff; }
   #anProg { margin-bottom: 10px; }
   .ansum { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 2px 8px; font-size: .85rem; align-items: center; }
   .ansum .h { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; text-align: center; }
@@ -1095,7 +1099,7 @@
       <button id="leave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Lobby</button>
     </div>
     <div class="panel hidden" id="anpanel">
-      <div class="anhead"><b>Game review</b><span class="muted" id="anStatus"></span></div>
+      <div class="anhead"><b>Game review</b><span class="aneng" id="anEngPick" title="Analysis engine"></span><span class="muted" id="anStatus"></span></div>
       <div class="pbar" id="anProg"><i style="width:0%"></i></div>
       <div id="anSummary"></div>
       <div id="anGraph" title="Click to jump to a move"></div>
@@ -1781,19 +1785,26 @@ function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeTogg
 const ENGINES = { ours: 'Ours', stockfish: 'Stockfish' };
 const useStockfish = () => SKIN.engine === 'stockfish' && window.Stockfish && Stockfish.available;
 const anaWorker = () => (useStockfish() ? new StockfishWorker() : new Worker('bot.js'));
-function paintEngPick() {
-  setHTML($('#engPick'), Object.entries(ENGINES).map(([k, name]) => `<button class="${(useStockfish() ? 'stockfish' : 'ours') === k ? 'on' : ''}" data-engine="${k}"${k === 'stockfish' && !(window.Stockfish && Stockfish.available) ? ' disabled title="Not supported in this browser"' : ''}>${name}</button>`).join(''));
+function engPickHTML() {
+  return Object.entries(ENGINES).map(([k, name]) => `<button class="${(useStockfish() ? 'stockfish' : 'ours') === k ? 'on' : ''}" data-engine="${k}"${k === 'stockfish' && !(window.Stockfish && Stockfish.available) ? ' disabled title="Not supported in this browser"' : ''}>${name}</button>`).join('');
 }
-$('#engPick').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-engine]'); if (!b || b.disabled) return;
-  SKIN.engine = b.dataset.engine;
+function paintEngPick() { setHTML($('#engPick'), engPickHTML()); setHTML($('#anEngPick'), engPickHTML()); }
+function setEngine(k) {
+  if ((useStockfish() ? 'stockfish' : 'ours') === k) return;
+  SKIN.engine = k;
   try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
   // searches already running were asked of the old engine: drop them, and their results, so the next ones use the new one
   for (const o of [EV, LB, CO]) if (o.worker) { o.worker.terminate(); o.worker = null; }
   EV.cache.clear(); EV.key = null; EV.busy = false; CO.ply = -1;
   if (LB.cur) { LB.queue.unshift(LB.cur); LB.cur = null; nextBadgeJob(); }   // the badge it was working on, again
+  // a game review on screen is redone with the new engine
+  if (AN.key) { const wasOpen = !$('#anpanel').classList.contains('hidden'); resetAnalysis(); if (wasOpen) startAnalysis(false); }
   if (snap && view === 'game') render();
   paintEngPick();
+}
+for (const id of ['#engPick', '#anEngPick']) $(id).addEventListener('click', (e) => {
+  const b = e.target.closest('[data-engine]'); if (!b || b.disabled) return;
+  setEngine(b.dataset.engine);
 });
 $('#navSkin').onclick = openSkins;
 $('#skinBtn').onclick = openSkins;
@@ -3154,6 +3165,7 @@ function startAnalysis(scroll = true) {
   if (!snap || !snap.status.over) return;
   const hist = snap.hist || [];
   if (!hist.length) return;
+  paintEngPick();
   if (AN.key === gameKey()) { $('#anpanel').classList.remove('hidden'); anFocus(); return; }
   resetAnalysis();
   const H = buildStates(hist);
