@@ -174,6 +174,24 @@ process.on('exit', () => { if (srv) srv.kill(); });
   ok('starting locks in the winner', /won the vote/.test(await A.textContent('#tvBody')) && /🏆/.test(await A.textContent('.tpo[data-tvote="1"]')) && /5 \+ 0/.test(await A.textContent('#tvHead')), await A.textContent('#tvHead'));
   ok('the list shows the winner', /Finished/.test(await A.textContent('#tourList')) && /🏆/.test(await A.textContent('#tourList')));
 
+  console.log('Tournaments card on the main page');
+  const mc = await api('tour_create', { name: 'Lobby Cup', tc: { base: 300, inc: 0 }, cfg: { kind: 'ko' } }, P.ann);
+  await B.goto(`http://localhost:${PORT}/`);
+  await B.waitForSelector('#tourmini .tl');
+  const mini = await B.textContent('#tourmini');
+  ok('the main page lists tournaments', /Lobby Cup/.test(mini) && /Sign-ups open/.test(mini) && /Autumn Cup/.test(mini), mini);
+  ok('finished ones show the champion', /🏆/.test(mini));
+  await shot(B, 't7-lobby-card');
+  await B.click(`#tourmini [data-tmjoin="${mc.tour.id}"]`);
+  await B.waitForSelector('#tourView:not(.hidden) [data-tact="leave"]');
+  ok('Join from the card signs you up and opens it', (await api('tour_get', { id: mc.tour.id }, P.ann)).tour.players.some((p) => p.name === 'bob'));
+  await B.click('#navPlay');
+  await B.waitForFunction((id) => /you're in/.test(document.querySelector('#tourmini').textContent) && document.querySelector(`#tourmini [data-tmopen="${id}"]`), mc.tour.id, { timeout: 15000 });
+  ok('then it says you are in, with Open', true);
+  await B.click('#tcAll');
+  await B.waitForSelector('#tourHome:not(.hidden) #tourList .tl');
+  ok('See all opens the Tournaments page', true);
+
   await br.close(); srv.kill();
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
