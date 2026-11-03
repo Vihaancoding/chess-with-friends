@@ -68,7 +68,7 @@
     for (let r = 0; r < n - 1; r++) {
       for (let i = 0; i < n / 2; i++) {
         const a = p[i], b = p[n - 1 - i];
-        if (a && b) out.push(r % 2 ? [b, a] : [a, b]);
+        if (a && b) out.push(r % 2 ? [b, a, r + 1] : [a, b, r + 1]);   // [white-ish, other, round]
       }
       p.splice(1, 0, p.pop());
     }
@@ -92,7 +92,7 @@
     const ng = t.cfg.kind === 'rr' ? 1 : Math.max(2, Math.round(seeds.length / t.cfg.size));
     const groups = Array.from({ length: ng }, (_, i) => ({ name: String.fromCharCode(65 + i), players: [], fixtures: [] }));
     seeds.forEach((s, i) => { const r = Math.floor(i / ng), k = r % 2 ? ng - 1 - (i % ng) : i % ng; groups[k].players.push(s); });   // snake: groups of even strength
-    for (const g of groups) g.fixtures = roundRobin(g.players).map(([a, b], i) => fx(`g${g.name}${i + 1}`, a, b, groupFmt(t)));
+    for (const g of groups) g.fixtures = roundRobin(g.players).map(([a, b, r], i) => ({ ...fx(`g${g.name}${i + 1}`, a, b, groupFmt(t)), r }));
     t.groups = groups;
     t.phase = 'groups';
     return t;
@@ -188,8 +188,15 @@
   }
 
   // fixtures a player can play now
-  const myFixtures = (t, name) => allFixtures(t).filter((f) => ready(f) && (f.a === name || f.b === name));
+  // a group fixture's round (older tournaments didn't store it: each round has floor(players / 2) games, in order)
+  const roundOf = (t, f) => {
+    if (f.r) return f.r;
+    const g = (t.groups || []).find((x) => x.fixtures.includes(f)) || (t.groups || []).find((x) => x.fixtures.some((y) => y.id === f.id));
+    return g ? Math.floor(g.fixtures.findIndex((y) => y.id === f.id) / Math.max(1, Math.floor(g.players.length / 2))) + 1 : 0;
+  };
+  // fixtures a player can play now, the one they should play next first
+  const myFixtures = (t, name) => allFixtures(t).filter((f) => ready(f) && (f.a === name || f.b === name)).sort((x, y) => (x.room ? 0 : 1) - (y.room ? 0 : 1) || roundOf(t, x) - roundOf(t, y));
 
-  const api = { vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
+  const api = { roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tour = api;
 })(typeof self !== 'undefined' ? self : this);

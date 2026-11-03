@@ -15,6 +15,7 @@ function call(route, body, who) {
     handler(req, res);
   });
 }
+const store0 = () => require('../lib/store');
 const sq = (s) => 'abcdefgh'.indexOf(s[0]) + (8 - +s[1]) * 8;
 const MATE = ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'];   // white mates
 const tc = { base: 300, inc: 0 };
@@ -201,6 +202,34 @@ const tc = { base: 300, inc: 0 };
   ok('settling by hand closes the live room\'s match', qroom.match.done && qroom.tourDone !== false, qroom.match);
   r = await call('tour_get', { id: q }, P.cat);
   ok('…and the hand-set result stands', r.tour.phase === 'done' && r.tour.champion === qf.a, [r.tour.phase, r.tour.champion]);
+
+  console.log('waiting for the opponent');
+  {
+    r = await call('tour_create', { name: 'Wait Cup', tc, cfg: { kind: 'rr' } }, P.ann);
+    const wid = r.tour.id;
+    for (const n of ['bob', 'cat']) await call('tour_join', { id: wid }, P[n]);
+    r = await call('tour_start', { id: wid }, P.ann);
+    ok('round robin fixtures know their round', r.tour.groups[0].fixtures.every((f) => f.r >= 1 && f.r <= 3), r.tour.groups[0].fixtures.map((f) => f.r));
+    const me0 = await call('me', {}, P.ann);
+    ok('the lobby offers only your next game per tournament', me0.tourNext.filter((x) => x.id === wid).length === 1, me0.tourNext);
+    const wf = Tour.myFixtures(r.tour, 'ann')[0], opp = wf.a === 'ann' ? wf.b : wf.a;
+    const pr = await call('tour_play', { id: wid, fx: wf.id }, P.ann);
+    r = await call('tour_get', { id: wid }, P.ann);
+    ok('pressing Play records that you are waiting', Tour.find(r.tour, wf.id).wait.n === 'ann', Tour.find(r.tour, wf.id).wait);
+    const mo = await call('me', {}, P[opp]);
+    ok('the opponent\'s lobby says ann is waiting', mo.tourNext.some((x) => x.fx === wf.id && x.wait > 0), mo.tourNext);
+    ok('…but not your own', !(await call('me', {}, P.ann)).tourNext.some((x) => x.wait));
+    r = await call('tour_remind', { id: wid, fx: wf.id }, P.ann);
+    ok('a reminder right after is rate-limited', r.status === 429, r);
+    r = await call('tour_remind', { id: wid, fx: wf.id }, P.gus);
+    ok('only the players can remind', r.status === 403);
+    const ws = await store0().get('tour:' + wid); Tour.find(ws, wf.id).wait.ts -= 31e3; await store0().set('tour:' + wid, ws);
+    r = await call('tour_remind', { id: wid, fx: wf.id }, P.ann);
+    ok('after 30 seconds you can remind again', r.ok, r);
+    r = await call('tour_play', { id: wid, fx: wf.id }, P[opp]);
+    ok('the opponent joins the same room', r.code === pr.code);
+    await call('tour_delete', { id: wid }, P.ann);
+  }
 
   console.log('time control by vote');
   r = await call('tour_create', { name: 'Vote Cup', poll: [{ base: 60, inc: 0 }], cfg: { kind: 'ko' } }, P.ann);
