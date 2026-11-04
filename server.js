@@ -15,6 +15,7 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/events') return realtime.sseHandler(req, res);
+  if (url.pathname.startsWith('/d/')) return handler(req, res);                  // The Damage Report share page
   if (url.pathname === '/api') {
     if (DEV_LATENCY) return setTimeout(() => handler(req, res), DEV_LATENCY);   // simulate a slow network while developing
     return handler(req, res);

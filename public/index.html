@@ -1029,6 +1029,64 @@
     .cmrow { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 12px -12px 0; padding: 0 12px 4px; }
     .cmrow .cmc { flex: 0 0 82%; scroll-snap-align: start; }
   }
+  /* ---- The Damage Report ---- */
+  #dmgcard { padding-bottom: 14px; overflow: hidden; }
+  #dmgcard h2.ph .dmgttl { letter-spacing: .09em; text-transform: uppercase; font-weight: 900; }
+  #dmgcard h2.ph .dmgttl i { color: var(--bad); font-style: normal; }
+  .dmgtools { display: flex; gap: 6px; }
+  .dmgcd { --ac: #8fa3b8; position: relative; overflow: hidden; border-radius: 12px; padding: 14px 16px; background: linear-gradient(160deg, #2f2c28, #201f1c); border: 1px solid var(--line); box-shadow: inset 4px 0 0 var(--ac); }
+  .dmgcd::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5; background: conic-gradient(#ffffff08 25%, transparent 0 50%, #ffffff08 0 75%, transparent 0) 0 0 / 38px 38px; }
+  .dmgcd > * { position: relative; }
+  .dmgcd.b-slight { --ac: #8fa3b8; } .dmgcd.b-dominant { --ac: #81b64c; } .dmgcd.b-brutal { --ac: #ee6a3c; } .dmgcd.b-complete { --ac: #fa412d; } .dmgcd.b-comeback { --ac: #f7c631; }
+  .dmgcd.b-brutal { background: linear-gradient(160deg, #38261f, #201f1c 70%); border-color: #ee6a3c44; }
+  .dmgcd.b-brutal::after { content: ''; position: absolute; right: 14%; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, transparent, #ee6a3c55 30%, transparent 55%, #ee6a3c33 80%, transparent); transform: skewX(-14deg); pointer-events: none; }
+  .dmgcd.b-complete { background: radial-gradient(120% 90% at 85% 0, #5a1b14, #251513 55%, #1d1b19); border-color: #fa412d77; box-shadow: inset 4px 0 0 var(--ac), 0 0 26px -10px #fa412d99; }
+  .dmgcd.b-comeback { background: linear-gradient(160deg, #3a3320, #201f1c 70%); border-color: #f7c63144; }
+  .dmgtop { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .72rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .dmgtag { color: var(--ac); }
+  .dmgprov { border: 1px solid #ffffff22; border-radius: 99px; padding: 0 7px; letter-spacing: .04em; text-transform: none; font-weight: 700; }
+  .dmgmain { display: flex; gap: 14px; align-items: stretch; justify-content: space-between; margin-top: 8px; }
+  .dmgwho { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+  .dmgp { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; color: var(--muted); }
+  .dmgp.win { color: #fff; font-weight: 900; }
+  .dmgp b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: inherit; }
+  .dmgp small { color: var(--muted); font-weight: 700; flex: none; }
+  .dmgp .res { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; font-weight: 900; color: var(--muted); }
+  .dmgp.win .res { color: var(--green); }
+  .dmgsc { flex: none; text-align: center; min-width: 78px; display: flex; flex-direction: column; justify-content: center; }
+  .dmgsc b { font-size: 3rem; line-height: .95; font-weight: 900; color: var(--ac); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .dmgsc small { font-size: .66rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: var(--ac); margin-top: 4px; }
+  .dmgsc.cb b { font-size: 2.2rem; }
+  .dmgln { margin: 12px 0 0; font-size: 1.02rem; font-weight: 700; line-height: 1.35; color: #f2f1ec; }
+  .dmgbig .dmgln { font-size: 1.22rem; }
+  .dmgbig .dmgsc b { font-size: 4.2rem; }
+  .dmgdt { margin-top: 8px; font-size: .8rem; font-weight: 700; color: var(--muted); }
+  .dmgact { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .dmgstamp { position: absolute !important; right: 10px; bottom: 44px; transform: rotate(-9deg); border: 3px solid #fa412dcc; color: #fa412dcc; font-weight: 900; letter-spacing: .14em; font-size: 1rem; padding: 1px 9px; border-radius: 4px; opacity: .85; pointer-events: none; }
+  .dmgbig .dmgstamp { font-size: 1.35rem; bottom: 52px; }
+  #dmgstripw { margin-top: 12px; }
+  #dmgstrip { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 2px 1px 6px; outline-offset: 3px; overscroll-behavior-x: contain; }
+  #dmgstrip::-webkit-scrollbar { display: none; }
+  #dmgstrip .dmgcd { flex: 0 0 min(300px, 86%); scroll-snap-align: start; padding: 12px 14px; }
+  #dmgstrip .dmgsc b { font-size: 2.3rem; } #dmgstrip .dmgsc { min-width: 62px; }
+  #dmgstrip .dmgln { font-size: .93rem; margin-top: 8px; }
+  #dmgstrip .dmgstamp { font-size: .78rem; bottom: 40px; }
+  .dmgnav { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .dmgdots { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+  .dmgdots button { width: 9px; height: 9px; min-height: 0; padding: 0; border-radius: 50%; background: #ffffff2a; box-shadow: none; }
+  .dmgdots button.on { background: var(--ac2, #fff); width: 22px; border-radius: 6px; }
+  .dmgempty { text-align: center; padding: 22px 12px; font-weight: 700; color: var(--muted); }
+  .dmgempty b { display: block; color: #fff; font-size: 1.05rem; margin-bottom: 4px; }
+  .dmgskel { height: 150px; border-radius: 12px; background: linear-gradient(90deg, #2d2b28 0%, #3a3835 50%, #2d2b28 100%); background-size: 200% 100%; animation: sk 1.2s linear infinite; }
+  #dmgNote { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #111e; color: #fff; padding: 8px 14px; border-radius: 99px; font-weight: 700; font-size: .88rem; z-index: 40; border: 1px solid var(--line); }
+  #dmgModal { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 31; padding: 16px; }
+  #dmgModal .box { background: var(--panel); border-radius: 14px; width: min(100%, 520px); max-height: 94vh; overflow-y: auto; padding: 18px 20px; box-shadow: 0 30px 70px -20px #000; }
+  #dmgModal .pv { display: block; width: auto; max-width: 100%; max-height: 52vh; margin: 12px auto; border-radius: 10px; background: #1b1a18; min-height: 120px; }
+  #dmgModal .fmts { display: flex; gap: 6px; }
+  #dmgModal .fmts button.on { background: #3b4a2b; color: #fff; }
+  #dmgModal .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  @media (max-width: 520px) { .dmgsc b { font-size: 2.5rem; } .dmgbig .dmgsc b { font-size: 3.2rem; } .dmgln { font-size: .96rem; } .dmgbig .dmgln { font-size: 1.05rem; } .dmgcd { padding: 12px 12px; } }
+  @media (prefers-reduced-motion: reduce) { #dmgstrip { scroll-behavior: auto; } .dmgskel { animation: none; } }
 </style>
 </head>
 <body data-view="welcome">
@@ -1112,6 +1170,7 @@
   <div class="lobby-grid">
     <div class="leftcol">
       <div id="previewwrap"><div id="preview"></div></div>
+      <div class="panel hidden" id="dmgcard" role="region" aria-label="The Damage Report"><h2 class="ph"><span class="dmgttl">The <i>Damage</i> Report</span><span class="dmgtools"><button class="small" id="dmgHide" title="Hide the Damage Report (Shift+D). Saved to your account." aria-keyshortcuts="Shift+D">Hide</button></span></h2><div id="dmgbody"><div class="dmgskel"></div></div></div>
       <div class="panel hidden" id="rvwatch"><h2 class="ph"><span>Rivalries to watch</span><button class="small" id="rvwAll">See all</button></h2><div id="rvwlist"></div></div>
       <div class="panel" id="tourcard"><h2 class="ph"><span>Tournaments</span><button class="small" id="tcAll">See all</button></h2><div id="tourmini"><div class="muted">Loading…</div></div></div>
       <div class="panel" id="livecard"><h2 class="ph"><span>Live games<span class="rtdot" id="rtDot" title="Live updates"></span><span class="rtnote" id="rtNote"></span></span></h2><div id="livelist"><div class="liverow"><span class="lv"><span class="sk" style="width:220px"></span></span></div></div></div>
@@ -1469,6 +1528,14 @@
   <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button class="hidden" id="oBo3" title="Offer a three-game series">Best of 3</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
 
+<div id="dmgModal" class="hidden" role="dialog" aria-modal="true" aria-label="Share the damage"><div class="box">
+  <div class="skhead"><h2 class="ptitle">Share the damage</h2><button class="primary" id="dmgModalDone">Done</button></div>
+  <div class="fmts"><button class="small on" data-dfmt="portrait">Portrait</button><button class="small" data-dfmt="wide">Wide</button></div>
+  <img class="pv" id="dmgPv" alt="The Damage Report card">
+  <div class="acts"><button class="primary" id="dmgDl" type="button">Download image</button><button id="dmgCopyImg" type="button">Copy image</button><button id="dmgCopyLink" type="button">Copy link</button></div>
+  <div class="muted" id="dmgShareMsg" style="margin-top:10px;font-weight:600;font-size:.85rem" role="status"></div>
+</div></div>
+
 <div id="skinModal" class="hidden"><div class="box">
   <div class="skhead"><h2 class="ptitle">Board, pieces &amp; sounds</h2><button class="primary" id="skinDone">Done</button></div>
   <div class="muted" style="font-weight:600;margin-bottom:14px">Changes apply instantly and are saved on this device.</div>
@@ -1479,6 +1546,8 @@
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
       <label class="sktoggle"><input type="checkbox" id="presToggle"> Show a quiet note when players come online or go offline (never during your games)</label>
+      <label class="sktoggle"><input type="checkbox" id="dmgShowToggle"> Show The Damage Report on the main page (saved to your account, Shift+D toggles it)</label>
+      <label class="sktoggle"><input type="checkbox" id="dmgOutToggle"> Let my games be featured in The Damage Report</label>
       <label class="sktoggle"><input type="checkbox" id="evalToggle"> Show the evaluation bar in computer and pass &amp; play games</label>
       <div class="label">Analysis engine</div><div class="swatches" id="engPick"></div>
       <div class="muted" style="font-size:.82rem;font-weight:600;margin:-2px 0 10px">For game review, move badges, the evaluation bar and the coach's grading. Stockfish is stronger (a 2 MB download the first time); computer opponents always play with ours.</div>
@@ -2128,7 +2197,7 @@ function paintSkinModal() {
   for (let sq = 0; sq < 64; sq++) h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}">${st.board[sq] ? pieceHTML(st.board[sq]) : ''}</div>`;
   setHTML($('#skinPreview'), h);
 }
-function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; $('#evalToggle').checked = SKIN.evalbar !== false; $('#presToggle').checked = SKIN.presence !== false; paintSkinModal(); paintSounds(); paintEngPick(); }
+function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; $('#evalToggle').checked = SKIN.evalbar !== false; $('#presToggle').checked = SKIN.presence !== false; $('#dmgShowToggle').checked = !DMG.hide; $('#dmgOutToggle').checked = !DMG.out; paintSkinModal(); paintSounds(); paintEngPick(); }
 // ----- analysis engine: ours (bot.js) or Stockfish (sfengine.js); both answer the same "analyze" messages -----
 const ENGINES = { ours: 'Ours', stockfish: 'Stockfish' };
 const useStockfish = () => SKIN.engine === 'stockfish' && window.Stockfish && Stockfish.available;
@@ -2197,6 +2266,7 @@ async function pollLobby(full = true) {
       myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
       $('#navAdmin').classList.toggle('hidden', !r.user.admin);
+      dmgPrefs(r.user);
       $('#claimForm').classList.toggle('hidden', !(wantAdmin && !r.user.admin));
       $('#announce').textContent = r.announce || '';
       $('#announce').classList.toggle('hidden', !r.announce);
@@ -2207,7 +2277,7 @@ async function pollLobby(full = true) {
       renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
-    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); renderTourMini(r.tours || [], !!r.user.admin); loadRvWatch(); }
+    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); renderTourMini(r.tours || [], !!r.user.admin); loadRvWatch(); loadDamage(); }
   } finally {
     lobbyBusy = false;
     if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
@@ -6475,6 +6545,157 @@ function loadRvWatch() {
 $('#rvwAll').onclick = () => enterRivals();
 $('#rvwlist').addEventListener('click', (e) => { const x = e.target.closest('[data-rvwpub]'); if (!x) return; const [a, b] = x.dataset.rvwpub.split('~'); enterRivals(null, { a, b }); });
 $('#rvwlist').addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; const x = e.target.closest('[data-rvwpub]'); if (!x) return; const [a, b] = x.dataset.rvwpub.split('~'); enterRivals(null, { a, b }); });
+// ---------- The Damage Report (main page) ----------
+var DMG = { hide: false, out: false, at: 0, rows: [], i: 0, paused: false, hover: false, until: 0, share: '1', timer: null, sig: '', fmt: 'portrait', cur: null, busy: false };
+const dmgReduced = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dmgAgo = (ts) => { const s = Math.max(0, Math.round((Date.now() - ts) / 1000)); return s < 90 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} d ago`; };
+const DMG_SCOPE = { today: 'Worst of today', week: 'Worst of the week', earlier: 'Worst on record' };
+function dmgNote(t) {
+  let n = $('#dmgNote'); if (!n) { n = document.createElement('div'); n.id = 'dmgNote'; n.setAttribute('role', 'status'); document.body.appendChild(n); }
+  n.textContent = t; clearTimeout(n._t); n._t = setTimeout(() => n.remove(), 2600);
+}
+function dmgCardHTML(r, big, scope) {
+  const cb = r.kind === 'comeback', win = r.result;
+  const p = (c) => { const nm = c === 'w' ? r.w : r.b, el = c === 'w' ? r.rw : r.rb; return `<div class="dmgp${win === c ? ' win' : ''}">${rvCircle(nm, c === 'w' ? 'a' : 'b')}<b>${esc(nm)}</b><small>${el}</small><span class="res">${win === c ? '1' : '0'}</span></div>`; };
+  const stamp = r.band === 'complete' && !r.prov ? `<span class="dmgstamp" aria-hidden="true">${(r.id.charCodeAt(0) + r.moves) % 2 ? 'FINISHED' : 'NO SURVIVORS'}</span>` : '';
+  const sc = cb ? `<div class="dmgsc cb"><b aria-hidden="true">↺</b><small>Comeback</small></div>` : `<div class="dmgsc"><b>${r.score}</b><small>${esc(r.label)}</small></div>`;
+  const tag = cb ? 'Comeback' : r.label;
+  return `<article class="dmgcd ${cb ? 'b-comeback' : 'b-' + esc(r.band)}${big ? ' dmgbig' : ''}" aria-label="${esc(r.w)} against ${esc(r.b)}: ${cb ? 'comeback' : 'domination score ' + r.score}">
+    <div class="dmgtop"><span class="dmgtag">${esc(tag)}</span><span>${esc(scope || dmgAgo(r.at))}</span>${r.prov ? '<span class="dmgprov" title="Still being analysed">live estimate</span>' : ''}</div>
+    <div class="dmgmain"><div class="dmgwho">${p('w')}${p('b')}</div>${sc}</div>
+    <p class="dmgln">${esc(r.line || '')}</p>
+    <div class="dmgdt">${esc(r.headline || r.detail || '')}${scope ? ` · ${esc(dmgAgo(r.at))}` : ''}</div>
+    ${stamp}
+    <div class="dmgact"><button class="primary small" data-dmgview="${esc(r.id)}">View the damage</button><button class="small" data-dmgshare="${esc(r.id)}">Share</button></div>
+  </article>`;
+}
+function dmgRender(d) {
+  const body = $('#dmgbody');
+  DMG.rows = [d.headline, ...(d.strip || [])].filter(Boolean);
+  if (!d.headline) {
+    setHTML(body, `<div class="dmgempty"><b>Nobody has been humiliated yet.</b>${d.pending ? `${d.pending} game${d.pending === 1 ? ' is' : 's are'} being looked at.` : 'Win a game by a mile and you will be the first.'}</div>`);
+    DMG.sig = ''; stopDmgTimer(); return;
+  }
+  const strip = d.strip || [];
+  const sig = JSON.stringify([d.headline.id, d.headline.line, d.headline.score, strip.map((x) => [x.id, x.line, x.score, x.prov])]);
+  if (sig === DMG.sig) return;
+  DMG.sig = sig;
+  const keep = $('#dmgstrip') ? $('#dmgstrip').scrollLeft : 0;
+  setHTML(body, `${dmgCardHTML(d.headline, true, DMG_SCOPE[d.scope] || '')}
+    ${strip.length ? `<div id="dmgstripw"><div id="dmgstrip" tabindex="0" role="group" aria-roledescription="carousel" aria-label="More damage. Left and right arrows move through the cards.">${strip.map((x) => dmgCardHTML(x, false)).join('')}</div>
+      <div class="dmgnav"><div class="dmgdots" role="tablist" aria-label="Cards">${strip.map((x, i) => `<button type="button" data-dmgdot="${i}" aria-label="Card ${i + 1} of ${strip.length}"${i === 0 ? ' class="on"' : ''}></button>`).join('')}</div>
+      <button class="small" id="dmgPause" aria-pressed="${DMG.paused}">${DMG.paused ? 'Play' : 'Pause'}</button></div></div>` : ''}`);
+  const st = $('#dmgstrip'); if (st) { st.scrollLeft = keep; DMG.i = 0; }
+  startDmgTimer();
+}
+function dmgPrefs(u) {
+  if (!u) return;
+  DMG.hide = !!u.dmgHide; DMG.out = !!u.dmgOut;
+  $('#dmgcard').classList.toggle('hidden', DMG.hide || (!DMG.rows.length && !DMG.loaded));
+}
+async function loadDamage(force) {
+  if (DMG.hide) { $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
+  if (!force && Date.now() - DMG.at < 45e3) return;
+  if (DMG.busy) return; DMG.busy = true; DMG.at = Date.now();
+  if (!DMG.loaded) $('#dmgcard').classList.remove('hidden');
+  const r = await api('damage_feed');
+  DMG.busy = false;
+  if (view !== 'lobby') return;
+  if (!r.ok) { DMG.at = 0; if (!DMG.loaded) $('#dmgcard').classList.add('hidden'); return; }
+  DMG.loaded = true; DMG.share = r.share || '1'; DMG.out = !!r.optOut;
+  if (r.hide) { DMG.hide = true; $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
+  $('#dmgcard').classList.remove('hidden');
+  dmgRender(r);
+}
+// the strip drifts along slowly; it stops for hover, focus, a touch, a hidden tab, reduced motion or the Pause button
+function dmgGo(i, smooth = true) {
+  const st = $('#dmgstrip'); if (!st) return;
+  const items = [...st.children]; if (!items.length) return;
+  DMG.i = (i + items.length) % items.length;
+  const x = items[DMG.i].offsetLeft - items[0].offsetLeft;
+  st.scrollTo({ left: x, behavior: smooth && !dmgReduced() ? 'smooth' : 'auto' });
+  dmgDots();
+}
+function dmgDots() { document.querySelectorAll('[data-dmgdot]').forEach((b, k) => b.classList.toggle('on', k === DMG.i)); }
+function startDmgTimer() { stopDmgTimer(); if (dmgReduced()) return; DMG.timer = setInterval(() => { if (DMG.paused || DMG.hover || document.hidden || view !== 'lobby' || Date.now() < DMG.until || !$('#dmgstrip')) return; dmgGo(DMG.i + 1); }, 6500); }
+function stopDmgTimer() { clearInterval(DMG.timer); DMG.timer = null; }
+function dmgTouched() { DMG.until = Date.now() + 12000; }
+document.addEventListener('pointerover', (e) => { if (e.target.closest && e.target.closest('#dmgstripw')) DMG.hover = true; });
+document.addEventListener('pointerout', (e) => { if (e.target.closest && e.target.closest('#dmgstripw') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#dmgstripw'))) DMG.hover = false; });
+document.addEventListener('focusin', (e) => { if (e.target.closest && e.target.closest('#dmgstripw')) dmgTouched(); });
+document.addEventListener('touchstart', (e) => { if (e.target.closest && e.target.closest('#dmgstripw')) dmgTouched(); }, { passive: true });
+document.addEventListener('scroll', (e) => {
+  const st = $('#dmgstrip'); if (!st || e.target !== st) return;
+  clearTimeout(st._t); st._t = setTimeout(() => {
+    const items = [...st.children]; let best = 0, bd = 1e9;
+    items.forEach((it, k) => { const d = Math.abs(it.offsetLeft - items[0].offsetLeft - st.scrollLeft); if (d < bd) { bd = d; best = k; } });
+    if (best !== DMG.i) { DMG.i = best; dmgDots(); }
+  }, 80);
+}, true);
+document.addEventListener('keydown', (e) => {
+  const st = $('#dmgstrip');
+  if (st && e.target === st && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); dmgTouched(); dmgGo(DMG.i + (e.key === 'ArrowRight' ? 1 : -1)); }
+});
+$('#dmgbody').addEventListener('click', (e) => {
+  const v = e.target.closest('[data-dmgview]'), s = e.target.closest('[data-dmgshare]'), d = e.target.closest('[data-dmgdot]'), p = e.target.closest('#dmgPause');
+  if (v) enterArchive(v.dataset.dmgview);
+  else if (s) openDmgShare(s.dataset.dmgshare);
+  else if (d) { dmgTouched(); dmgGo(+d.dataset.dmgdot); }
+  else if (p) { DMG.paused = !DMG.paused; p.textContent = DMG.paused ? 'Play' : 'Pause'; p.setAttribute('aria-pressed', DMG.paused); }
+});
+// hide or show it: saved to the account, so it follows the player to every device
+async function setDmgHidden(hide) {
+  DMG.hide = hide;
+  $('#dmgcard').classList.toggle('hidden', hide);
+  if (hide) stopDmgTimer();
+  const t = $('#dmgShowToggle'); if (t) t.checked = !hide;
+  dmgNote(hide ? 'Damage Report hidden. Shift+D brings it back.' : 'Damage Report is back.');
+  const r = await api('damage_prefs', { hide });
+  if (!r.ok) { DMG.hide = !hide; $('#dmgcard').classList.toggle('hidden', !DMG.hide && !DMG.loaded); dmgNote('Could not save that. Try again.'); return; }
+  if (!hide) loadDamage(true);
+}
+$('#dmgHide').onclick = () => setDmgHidden(true);
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'D' || !e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const t = e.target, tag = t && t.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+  if (view !== 'lobby' || !user) return;
+  e.preventDefault(); setDmgHidden(!DMG.hide);
+});
+// settings
+$('#dmgShowToggle').addEventListener('change', (e) => setDmgHidden(!e.target.checked));
+$('#dmgOutToggle').addEventListener('change', async (e) => {
+  const r = await api('damage_prefs', { optOut: !e.target.checked });
+  if (!r.ok) { e.target.checked = !e.target.checked; return; }
+  DMG.out = !e.target.checked; DMG.at = 0;
+  dmgNote(DMG.out ? 'Your games will not be featured.' : 'Your games can be featured again.');
+});
+// share
+const dmgImg = (id, fmt, dl) => `/api?r=damage_img&fmt=${fmt}&s=${encodeURIComponent(DMG.share)}&id=${encodeURIComponent(id)}${dl ? '&dl=1' : ''}`;
+const dmgLink = (id) => `${location.origin}/d/${DMG.share && DMG.share !== '1' ? DMG.share + '.' : ''}${encodeURIComponent(id)}`;
+function dmgPaintShare() {
+  const id = DMG.cur; if (!id) return;
+  const pv = $('#dmgPv'); pv.src = dmgImg(id, DMG.fmt);
+    document.querySelectorAll('[data-dfmt]').forEach((b) => b.classList.toggle('on', b.dataset.dfmt === DMG.fmt));
+}
+function openDmgShare(id) { DMG.cur = id; $('#dmgShareMsg').textContent = ''; $('#dmgModal').classList.remove('hidden'); dmgPaintShare(); $('#dmgModalDone').focus(); }
+function closeDmgShare() { $('#dmgModal').classList.add('hidden'); $('#dmgPv').removeAttribute('src'); }
+$('#dmgModalDone').onclick = closeDmgShare;
+$('#dmgModal').addEventListener('click', (e) => { if (e.target.id === 'dmgModal') closeDmgShare(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#dmgModal').classList.contains('hidden')) closeDmgShare(); });
+$('#dmgModal').addEventListener('click', (e) => { const b = e.target.closest('[data-dfmt]'); if (b) { DMG.fmt = b.dataset.dfmt; dmgPaintShare(); } });
+$('#dmgDl').onclick = () => { const a = document.createElement('a'); a.href = dmgImg(DMG.cur, DMG.fmt, true); a.download = ''; document.body.appendChild(a); a.click(); a.remove(); };
+$('#dmgCopyLink').onclick = async () => {
+  try { await navigator.clipboard.writeText(dmgLink(DMG.cur)); $('#dmgShareMsg').textContent = 'Link copied.'; } catch { $('#dmgShareMsg').textContent = dmgLink(DMG.cur); }
+};
+$('#dmgCopyImg').onclick = async () => {
+  const msg = $('#dmgShareMsg');
+  try {
+    if (!window.ClipboardItem || !navigator.clipboard.write) throw new Error('no');
+    const item = new ClipboardItem({ 'image/png': fetch(dmgImg(DMG.cur, DMG.fmt)).then((r) => { if (!r.ok) throw new Error('bad'); return r.blob(); }) });
+    await navigator.clipboard.write([item]); msg.textContent = 'Image copied.';
+  } catch { msg.textContent = 'This browser will not copy images. Use Download instead.'; }
+};
 // main page: a Tournaments card
 let tourMiniSig = '';
 function renderTourMini(list, admin) {
