@@ -1097,6 +1097,8 @@
   #dmgRep .dmgcd { margin-bottom: 12px; }
   .dmghl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   .dmghl li { display: flex; gap: 10px; align-items: baseline; font-weight: 700; }
+  .dmghb { all: unset; box-sizing: border-box; display: flex; gap: 10px; align-items: baseline; width: 100%; cursor: pointer; border-radius: 8px; padding: 3px 4px; } .dmghb:hover, .dmghb:focus-visible { background: #ffffff10; }
+  .dmghb .mk { font-style: normal; font-weight: 800; font-size: .72rem; border-radius: 999px; padding: 1px 7px; color: #fff; flex: none; margin-left: auto; } .mk.bl { background: #fa412d; } .mk.br { background: #1baca6; } .mk.ms { background: #ff8c3a; }
   .dmghl li b { flex: none; min-width: 3.4em; text-align: center; border-radius: 6px; padding: 1px 6px; background: #ffffff14; color: var(--muted); font-size: .78rem; }
   #dmgModal { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 31; padding: 16px; }
   #dmgModal .box { background: var(--panel); border-radius: 14px; width: min(100%, 520px); max-height: 94vh; overflow-y: auto; padding: 18px 20px; box-shadow: 0 30px 70px -20px #000; }
@@ -6774,13 +6776,14 @@ function openDmgReport(id) {
   DMG.rep = r;
   const hl = (r.hl || []).slice(0, 5);
   setHTML($('#dmgRepBody'), `${dmgCardHTML(r, false).replace(/<div class="dmgact">[\s\S]*?<\/div>\s*<\/article>/, '</article>')}
-    ${hl.length ? `<div class="label" style="margin-top:0">Key moments</div><ul class="dmghl">${hl.map((h) => `<li><b>Move ${h.move}</b><span>${esc(h.text)}</span></li>`).join('')}</ul>` : ''}`);
+    ${hl.length ? `<div class="label" style="margin-top:0">Key moments</div><ul class="dmghl">${hl.map((h) => `<li><button type="button" class="dmghb" data-ply="${h.ply == null ? 9999 : h.ply}" title="Watch this moment in the replay"><b>Move ${h.move}</b><span>${esc(h.text)}</span>${h.kind === 'blunder' ? '<i class="mk bl">??</i>' : h.kind === 'brilliant' ? '<i class="mk br">!!</i>' : h.kind === 'missed' ? '<i class="mk ms">?</i>' : ''}</button></li>`).join('')}</ul>` : ''}`);
   $('#dmgRep').classList.remove('hidden'); $('#dmgRepWatch').focus();
 }
 const closeDmgReport = () => $('#dmgRep').classList.add('hidden');
 $('#dmgRepClose').onclick = closeDmgReport;
 $('#dmgRep').addEventListener('click', (e) => { if (e.target.id === 'dmgRep') closeDmgReport(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#dmgRep').classList.contains('hidden')) closeDmgReport(); });
+$('#dmgRepBody').addEventListener('click', (e) => { const b = e.target.closest('.dmghb'); if (!b) return; closeDmgReport(); enterArchive(DMG.rep.id, { analyze: true, at: +b.dataset.ply }); });   // opens the replay at that moment with the move badges (blunder, brilliant...) on
 $('#dmgRepWatch').onclick = () => { closeDmgReport(); enterArchive(DMG.rep.id); };
 $('#dmgRepShare').onclick = () => { closeDmgReport(); openDmgShare(DMG.rep.id); };
 // share
