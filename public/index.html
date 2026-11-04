@@ -764,6 +764,148 @@
   .mentbox button { text-align: left; justify-content: flex-start; background: none; border: 0; box-shadow: none; min-height: 34px; padding: 6px 10px; border-radius: 7px; font-weight: 700; color: var(--text); }
   .mentbox button.on, .mentbox button:hover { background: #3b4a2b; color: var(--green); }
   .mentbox .mh { font-size: .68rem; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: 4px 10px 2px; }
+  /* ---------- rivalries ---------- */
+  #rivals { max-width: 1120px; margin: 0 auto; padding: 22px 20px 40px; display: flex; flex-direction: column; gap: 18px; }
+  #rivals.hidden, #rvHome.hidden, #rvDetail.hidden { display: none; }
+  #rvHome, #rvDetail { display: flex; flex-direction: column; gap: 18px; }
+  .rvhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  .rvhead .ptitle { font-size: 1.9rem; margin: 0; }
+  .rvsub { font-weight: 600; margin-top: 4px; }
+  .rvins { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .rvins:empty { display: none; }
+  .rvi { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; cursor: pointer; border: 1px solid transparent; transition: border-color .15s; text-align: left; box-shadow: none; min-height: 0; color: var(--text); }
+  .rvi:hover { border-color: #3a3936; } .rvi:active { transform: none; }
+  .rvi small { font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .rvi b { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .rvi span { font-size: .82rem; color: var(--muted); font-weight: 600; }
+  .rvgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 12px; transition: opacity .16s ease; }
+  .rvgrid.fade { opacity: 0; }
+  .rvc { background: var(--panel); border-radius: 10px; padding: 14px 16px 12px; border: 1px solid transparent; display: flex; flex-direction: column; gap: 11px; cursor: pointer; transition: border-color .15s, background-color .15s; outline: none; }
+  .rvc:hover, .rvc:focus-visible { border-color: #3a3936; } .rvc:focus-visible { border-color: var(--green-dark); }
+  .rvm { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; }
+  .rvp { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .rvp.them { justify-content: flex-end; text-align: right; }
+  .rav { position: relative; width: 38px; height: 38px; border-radius: 6px; display: grid; place-items: center; font-weight: 800; font-size: 1.05rem; flex: none; background: #4b4845; color: #fff; }
+  .rav.me { background: #ebecd0; color: #302e2b; } .rav.gone { background: #33312e; color: var(--muted); }
+  .rav .dot { width: 11px; height: 11px; right: -3px; bottom: -3px; border-color: var(--panel); }
+  .rpn { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+  .rpn b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .98rem; }
+  .rpn span { font-size: .78rem; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rvscore { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 92px; }
+  .rvscore .n { display: flex; align-items: baseline; gap: 8px; font-size: 1.75rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .rvscore .n i { font-style: normal; color: #6b6966; font-weight: 700; font-size: 1.2rem; }
+  .rvscore .n span { color: #8b8a87; } .rvscore .n span.lead { color: var(--text); }
+  .rvscore small { font-size: .7rem; color: var(--muted); font-weight: 700; }
+  .rvrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 22px; }
+  .rvlead { font-size: .82rem; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rvlead b { color: var(--text); font-weight: 700; }
+  .rvlead .chg { color: var(--gold); font-weight: 700; }
+  .rtier { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; padding: 2px 8px; border-radius: 999px; border: 1px solid #4a4845; color: var(--muted); white-space: nowrap; }
+  .rtier.riv { color: #d8d6d2; border-color: #5c5a56; } .rtier.nem { color: #f2a097; border-color: #6a3a34; } .rtier.leg { color: var(--gold); border-color: #6a5a24; }
+  .rstrip { display: inline-flex; gap: 3px; align-items: center; }
+  .rstrip i { width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; font-style: normal; font-size: .62rem; font-weight: 800; }
+  .rstrip i.w { background: #34442a; color: #a6d47a; } .rstrip i.l { background: #46292a; color: #f2a097; } .rstrip i.d { background: #353331; color: #b7b5b1; }
+  .rstreak { font-size: .74rem; font-weight: 800; color: var(--muted); margin-left: 6px; white-space: nowrap; }
+  .rvfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; flex-wrap: wrap; }
+  .rvwhen { font-size: .78rem; color: var(--muted); font-weight: 600; }
+  .rvact { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+  .rvact button { min-height: 34px; }
+  .rvact .rvstate { font-size: .8rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .rvact .rvstate.bad { color: #f2a097; } .rvact .rvstate .spin { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #5c8bb0; border-top-color: transparent; animation: rvspin .8s linear infinite; }
+  @keyframes rvspin { to { transform: rotate(360deg); } }
+  .rvnote { font-size: .74rem; color: var(--muted); font-weight: 600; width: 100%; text-align: right; }
+  .rvempty { background: var(--panel); border-radius: 10px; padding: 34px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .rvempty h2 { margin: 0; font-size: 1.25rem; } .rvempty p { margin: 0; color: var(--muted); font-weight: 600; max-width: 460px; line-height: 1.45; }
+  .rvempty .row { justify-content: center; margin-top: 6px; }
+  .rvsk { height: 158px; border-radius: 10px; background: var(--panel); position: relative; overflow: hidden; }
+  .rvsk::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #ffffff08, transparent); animation: rvsh 1.3s infinite; }
+  @keyframes rvsh { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  /* the head-to-head page */
+  .rvback { align-self: flex-start; }
+  .rvhero { background: var(--panel); border-radius: 12px; padding: 22px 24px 18px; display: flex; flex-direction: column; gap: 16px; }
+  .rvhero .rvm { gap: 18px; }
+  .rvhero .rav { width: 56px; height: 56px; font-size: 1.5rem; border-radius: 8px; }
+  .rvhero .rpn b { font-size: 1.2rem; } .rvhero .rpn span { font-size: .85rem; }
+  .rvhero .rvscore .n { font-size: 2.8rem; gap: 12px; } .rvhero .rvscore .n i { font-size: 1.8rem; }
+  .rvhero .rvscore small { font-size: .78rem; }
+  .rvbar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: #353331; gap: 2px; }
+  .rvbar i { display: block; height: 100%; } .rvbar .w { background: var(--green); } .rvbar .d { background: #6b6966; } .rvbar .l { background: #c4554a; }
+  .rvbarl { display: flex; justify-content: space-between; font-size: .78rem; font-weight: 700; color: var(--muted); margin-top: 6px; }
+  .rvtierrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); font-weight: 600; }
+  .rvprog { flex: 1; min-width: 120px; max-width: 220px; height: 4px; background: #353331; border-radius: 999px; overflow: hidden; } .rvprog i { display: block; height: 100%; background: #8b8a87; }
+  .rvheroact { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+  .rvheroact .rvact { margin-left: 0; justify-content: flex-start; }
+  .rvheroact .rvact button.primary { min-width: 170px; }
+  .rvheroact .rvnote { text-align: left; flex-basis: 100%; }
+  .rvheroact { align-items: flex-start; }
+  .rvheroact .ghost { margin-left: auto; background: none; box-shadow: none; color: var(--muted); font-size: .8rem; min-height: 34px; }
+  .rvheroact .ghost:hover { color: var(--text); }
+  .rvstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border-radius: 10px; overflow: hidden; }
+  .rvst { background: var(--panel); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .rvst small { font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .rvst b { font-size: 1.05rem; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rvst span { font-size: .76rem; color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rvst button { all: unset; cursor: pointer; color: var(--muted); font-size: .76rem; font-weight: 600; text-decoration: underline dotted; }
+  .rvcols { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .rvcols > div { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .rvsec { background: var(--panel); border-radius: 10px; padding: 16px 16px 12px; }
+  .rvsec h2 { margin: 0 0 10px; font-size: 1rem; font-weight: 800; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .rvsec h2 small { font-size: .78rem; color: var(--muted); font-weight: 600; }
+  .rve { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .rve:first-of-type { border-top: 0; }
+  .rve .rpill { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; font-weight: 800; font-size: .75rem; }
+  .rve .rpill.w { background: #34442a; color: #a6d47a; } .rve .rpill.l { background: #46292a; color: #f2a097; } .rve .rpill.d { background: #353331; color: #b7b5b1; }
+  .rve .rinfo { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .rve .rinfo b { font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .rve .rinfo span { font-size: .75rem; color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rve .rdelta { font-size: .82rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 3em; text-align: right; color: var(--muted); }
+  .rve .rdelta.pos { color: #a6d47a; } .rve .rdelta.neg { color: #f2a097; }
+  .rvmore { width: 100%; margin-top: 8px; }
+  .rtl { list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; }
+  .rtl li { position: relative; padding: 0 0 14px 20px; }
+  .rtl li::before { content: ''; position: absolute; left: 3px; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: #6b6966; }
+  .rtl li::after { content: ''; position: absolute; left: 6px; top: 16px; bottom: 0; width: 1px; background: var(--line); }
+  .rtl li:last-child::after { display: none; } .rtl li:last-child { padding-bottom: 2px; }
+  .rtl li.acc::before { background: var(--gold); } .rtl li.me::before { background: var(--green); } .rtl li.them::before { background: #c4554a; }
+  .rtl .t { font-size: .88rem; font-weight: 600; line-height: 1.35; } .rtl .m { font-size: .74rem; color: var(--muted); font-weight: 600; display: flex; gap: 8px; margin-top: 1px; }
+  .rtl .m button { all: unset; cursor: pointer; color: #9fd0f0; font-weight: 700; } .rtl .m button:hover { text-decoration: underline; }
+  .rvseason .sc { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .rvseason .big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .rvseason .sub { font-size: .78rem; color: var(--muted); font-weight: 600; }
+  .rvseason .start { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+  .rvseason .start select { width: auto; min-height: 34px; }
+  .rvpast { margin-top: 12px; display: flex; flex-direction: column; }
+  .rvpast div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: .82rem; font-weight: 600; }
+  .rvpast div span:last-child { color: var(--muted); text-align: right; }
+  /* the result card after a game */
+  #orival { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--panel2); text-align: left; display: flex; flex-direction: column; gap: 8px; }
+  #orival.hidden { display: none; }
+  #orival .rvrow { min-height: 0; }
+  #orival .os { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #oBo3.hidden { display: none; }
+  @media (max-width: 900px) {
+    .rvcols { grid-template-columns: 1fr; }
+    .rvstats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    #rivals { padding: 14px 12px 32px; gap: 14px; }
+    .rvhead .ptitle { font-size: 1.55rem; }
+    .rvins { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .rvi { padding: 10px 12px; } .rvi b { font-size: .95rem; }
+    .rvgrid { grid-template-columns: 1fr; }
+    .rvc { padding: 12px 12px 10px; }
+    .rvm { gap: 8px; }
+    .rvp, .rvp.them { flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; gap: 5px; }
+    .rvp.them .rav { order: -1; }
+    .rpn { align-items: center; max-width: 100%; }
+    .rvscore { min-width: 74px; } .rvscore .n { font-size: 1.55rem; }
+    .rvfoot .rvact { width: 100%; } .rvfoot .rvact button.primary { flex: 1; }
+    .rvhero { padding: 16px 14px 14px; }
+    .rvhero .rav { width: 46px; height: 46px; font-size: 1.25rem; }
+    .rvhero .rvscore .n { font-size: 2.2rem; }
+    .rvheroact .rvact { width: 100%; } .rvheroact .rvact button.primary { flex: 1; min-width: 0; }
+    .rvheroact .ghost { margin-left: 0; }
+    .rve { grid-template-columns: auto minmax(0, 1fr) auto; } .rve .rdelta { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .rvgrid { transition: none; } .rvsk::after, .rvact .rvstate .spin { animation: none; } }
 </style>
 </head>
 <body data-view="welcome">
@@ -776,6 +918,7 @@
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
     <button id="navCoach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
     <button id="navTour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg> Tournaments</button>
+    <button id="navRivals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3"/></svg> Rivalries</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
     <button id="navProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile</button>
@@ -970,6 +1113,18 @@
 </div>
 
 <!-- coach -->
+<div id="rivals" class="hidden">
+  <div id="rvHome">
+    <header class="rvhead">
+      <div><h1 class="ptitle">Rivalries</h1><div class="muted rvsub">Your head-to-head record with everyone you play.</div></div>
+      <div class="lbtabs" id="rvFilter" role="tablist" aria-label="Show"><button data-f="active" data-l="Active" role="tab">Active</button><button data-f="all" data-l="All" role="tab">All</button><button data-f="arch" data-l="Archived" role="tab">Archived</button></div>
+    </header>
+    <div id="rvInsights" class="rvins" aria-label="Highlights"></div>
+    <div id="rvList" class="rvgrid" aria-live="polite"></div>
+  </div>
+  <div id="rvDetail" class="hidden"></div>
+</div>
+
 <div id="tours" class="hidden">
   <div id="tourHome">
     <h1 class="ptitle">Tournaments</h1>
@@ -1171,7 +1326,8 @@
   <div id="orating"></div>
   <div id="omatch" class="hidden"></div>
   <div class="ostats"><div><b id="oMoves"></b><span>Moves</span></div><div><b id="oDur"></b><span>Duration</span></div><div><b id="oCat"></b><span>Time control</span></div></div>
-  <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
+  <div id="orival" class="hidden"></div>
+  <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button class="hidden" id="oBo3" title="Offer a three-game series">Best of 3</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
 
 <div id="skinModal" class="hidden"><div class="box">
@@ -1241,7 +1397,7 @@ function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
   return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="if(this.src.indexOf('${PIECE_LOCAL}')<0)this.src='${PIECE_LOCAL}${p}.svg';else{this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'}">`;
 }
-const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -1568,6 +1724,8 @@ async function start() {
   if (params.has('coach')) return enterCoach();
   if (params.has('tour')) return enterTours(params.get('tour'));
   if (params.has('tours')) return enterTours();
+  if (params.has('rival')) return enterRivals(params.get('rival'));
+  if (params.has('rivals')) return enterRivals();
   if (params.has('admin')) wantAdmin = true;
   const q = params.get('game'), aid = params.get('archive');
   if (aid) return enterArchive(aid);
@@ -2057,6 +2215,266 @@ $('#chatlog').addEventListener('click', async (e) => {
   if (!r.ok) $('#chatErr').textContent = r.error || 'Could not delete.';
   pollLobby(true);
 });
+// ---------- rivalries: head-to-head records with the people you play (the numbers come from the server's game archive) ----------
+const RV = { filter: 'active', data: null, detail: null, name: null, timer: null, tick: 0, inbox: [], outbox: null, sending: null, notice: {}, encShown: 15, tlAll: false };
+try { const f = localStorage.getItem('chess:rvFilter'); if (['active', 'all', 'arch'].includes(f)) RV.filter = f; } catch {}
+const rvKey = (n) => String(n || '').toLowerCase();
+const rvAgo = (t) => { const s = (Date.now() - t) / 1000; return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)} min ago` : s < 86400 ? `${Math.floor(s / 3600)} h ago` : s < 2 * 86400 ? 'yesterday' : s < 30 * 86400 ? `${Math.floor(s / 86400)} days ago` : new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }); };
+const rvDate = (t) => new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short' });
+const rvRating = (x) => (x ? `${x.r}${x.prov ? '?' : ''}` : '');
+const RES = { win: ['w', 'W', 'Win'], loss: ['l', 'L', 'Loss'], draw: ['d', 'D', 'Draw'] };
+function stopRivals() { clearInterval(RV.timer); RV.timer = null; }
+function enterRivals(name) {
+  stopLobby(); stopGame(); stopAdmin(); stopTour(); stopRivals();
+  view = 'rivals'; gameCode = null; RV.name = name || null;
+  history.replaceState(null, '', name ? '/?rival=' + encodeURIComponent(name) : '/?rivals');
+  show('rivals');
+  $('#rvHome').classList.toggle('hidden', !!name); $('#rvDetail').classList.toggle('hidden', !name);
+  if (name) { RV.detail = null; RV.encShown = 15; RV.tlAll = false; setHTML($('#rvDetail'), rvDetailSkeleton()); }
+  else if (!RV.data) { setHTML($('#rvList'), '<div class="rvsk"></div>'.repeat(4)); setHTML($('#rvInsights'), ''); }
+  paintRvFilter();
+  window.scrollTo(0, 0);
+  rvLoad(); rvPing();
+  RV.timer = setInterval(() => {
+    if (view !== 'rivals') return stopRivals();
+    if (document.hidden) return;
+    RV.tick++; rvPing();
+    if (RV.tick % 8 === 0) rvLoad();                                    // the records themselves change only when a game ends
+  }, 2500);
+}
+$('#navRivals').onclick = () => enterRivals();
+async function rvLoad() {
+  const name = RV.name;
+  const r = name ? await api('rivalry', { name }) : await api('rivalries');
+  if (view !== 'rivals' || RV.name !== name) return;
+  if (!r.ok) {
+    if (name) setHTML($('#rvDetail'), `<button class="small rvback" data-rvhome>← Rivalries</button><div class="rvempty"><h2>${r.status === 404 ? 'No games yet' : 'Could not load this rivalry'}</h2><p>${esc(r.error || 'Try again in a moment.')}</p></div>`);
+    else if (!RV.data) setHTML($('#rvList'), `<div class="rvempty"><h2>Could not load your rivalries</h2><p>${esc(r.error || 'Try again in a moment.')}</p><div class="row"><button class="primary" data-rvretry>Try again</button></div></div>`);
+    return;
+  }
+  if (name) { RV.detail = r; paintRivalDetail(); } else { RV.data = r; paintRivals(); }
+}
+// challenges: what the server says is pending, accepted, declined or gone
+async function rvPing() {
+  const r = await api('ping');
+  if (!r.ok || view !== 'rivals') return;
+  const prev = RV.outbox, out = r.outbox;
+  if (out && out.status === 'accepted' && out.code) { RV.outbox = null; api('cancel'); return enterGame(out.code); }
+  if (prev && prev.status === 'pending' && !RV.cancelling && !out && Date.now() - (prev.ts || 0) > 9.5 * 60e3) RV.notice[rvKey(prev.to)] = { kind: 'expired', at: Date.now() };   // gone after 10 minutes: no answer (otherwise it was withdrawn)
+  if (out && out.status === 'declined' && !(prev && prev.status === 'declined' && prev.id === out.id)) RV.notice[rvKey(out.to)] = { kind: 'declined', at: Date.now() };
+  RV.cancelling = false;
+  RV.outbox = out && out.status !== 'accepted' ? out : null;
+  const inSig = (r.inbox || []).map((c) => c.id).join();
+  RV.inbox = r.inbox || [];
+  if (inSig !== RV.inSig && RV.data && !RV.name) { RV.inSig = inSig; paintRivals(); }   // a challenge from a rival puts their card first
+  RV.inSig = inSig;
+  rvRepaintActions();
+}
+const rvLabel = (s) => (s.last.result === 'loss' ? 'Settle the score' : s.lead > 0 ? 'Defend your lead' : 'Run it back');
+function rvActions(s, big) {
+  const k = rvKey(s.name), out = RV.outbox, inc = RV.inbox.find((c) => rvKey(c.from) === k), note = RV.notice[k];
+  if (!s.available) return `<div class="rvact"><span class="rvwhen">This account is no longer available</span></div>`;
+  if (inc) return `<div class="rvact"><span class="rvstate">${esc(s.name)} challenged you${inc.match ? ` · ${esc(Match.label(inc.match))}` : ''} · ${tcLabel(inc.tc)}</span><button class="small" data-rva="decline" data-id="${esc(inc.id)}">Decline</button><button class="small primary" data-rva="accept" data-id="${esc(inc.id)}">Accept</button></div>`;
+  if (RV.sending === k) return `<div class="rvact"><span class="rvstate"><i class="spin"></i>Sending…</span></div>`;
+  if (out && out.status === 'pending' && rvKey(out.to) === k) {
+    return `<div class="rvact"><span class="rvstate"><i class="spin"></i>Challenge sent · waiting for ${esc(s.name)}</span><button class="small" data-rva="cancel">Cancel</button>${!s.online ? `<span class="rvnote">${esc(s.name)} is offline. The challenge stays open for 10 minutes.</span>` : s.playing ? `<span class="rvnote">${esc(s.name)} is in a game; they'll see it when they're back.</span>` : ''}</div>`;
+  }
+  const busy = !!(out && out.status === 'pending'), dis = busy ? `disabled title="You already have a challenge waiting for ${esc(out.to)}"` : '';
+  const msg = note && Date.now() - note.at < 90e3 ? `<span class="rvstate bad">${note.kind === 'declined' ? `${esc(s.name)} declined` : note.kind === 'error' ? esc(note.text) : 'No answer: the challenge expired'}</span>` : '';
+  return `<div class="rvact">${msg}<button class="small" data-rva="bo3" ${dis}>Best of 3</button><button class="small primary" data-rva="run" ${dis}>${rvLabel(s)}</button>${big && !msg && !busy ? `<span class="rvnote">${s.playing ? `${esc(s.name)} is playing a game right now` : s.online ? `${esc(s.name)} is online` : `${esc(s.name)} is offline; a challenge stays open for 10 minutes`} · ${tcLabel(s.last.tc)}</span>` : ''}</div>`;
+}
+function rvFind(k) {
+  if (RV.detail && rvKey(RV.detail.rival.name) === k) return RV.detail.rival;
+  return RV.data && RV.data.list.find((s) => rvKey(s.name) === k);
+}
+function rvRepaintActions() {
+  document.querySelectorAll('#rivals [data-actfor]').forEach((el) => { const s = rvFind(el.dataset.actfor); if (s) setHTML(el, rvActions(s, el.dataset.big === '1')); });
+}
+function rvAvatar(name, cls, online) { return `<span class="rav ${cls || ''}">${esc((name || '?')[0].toUpperCase())}${online != null ? `<span class="dot ${online ? 'on' : ''}" title="${online ? 'online' : 'offline'}"></span>` : ''}</span>`; }
+const rvStrip = (strip) => `<span class="rstrip" aria-label="Recent results, oldest first: ${strip.map((x) => RES[{ w: 'win', l: 'loss', d: 'draw' }[x]][2]).join(', ')}">${strip.map((x) => `<i class="${x}" title="${{ w: 'You won', l: 'You lost', d: 'Draw' }[x]}">${x.toUpperCase()}</i>`).join('')}</span>`;
+function rvLeadText(s) {
+  const chg = s.leadChange === 'them' ? `<span class="chg">${esc(s.name)} just took the lead</span>` : s.leadChange === 'me' ? '<span class="chg">You just took the lead</span>' : '';
+  const t = s.lead > 0 ? `You lead by <b>${s.lead}</b>` : s.lead < 0 ? `<b>${esc(s.name)}</b> leads by <b>${-s.lead}</b>` : s.games === 1 && s.d ? 'One game, drawn' : 'Level';
+  return chg || t;
+}
+function rvMatchup(s, me, big) {
+  const cat = CAT_NAME[s.cat] || '';
+  const theirs = s.available ? `${rvRating(s.rating)}${s.rating && cat ? ' · ' + cat : ''}` : 'account unavailable';
+  return `<div class="rvm">
+    <div class="rvp me">${rvAvatar(me.name, 'me')}<span class="rpn"><b>You</b><span>${rvRating(s.myRating)}${s.myRating && cat ? ' · ' + cat : ''}</span></span></div>
+    <div class="rvscore" aria-label="Head to head: you ${s.w}, ${esc(s.name)} ${s.l}, ${s.d} drawn"><span class="n"><span class="${s.w > s.l ? 'lead' : s.w === s.l ? 'lead' : ''}">${s.w}</span><i>–</i><span class="${s.l > s.w ? 'lead' : s.w === s.l ? 'lead' : ''}">${s.l}</span></span><small>${s.d ? `${s.d} draw${s.d > 1 ? 's' : ''}` : big ? 'no draws' : '&nbsp;'}</small></div>
+    <div class="rvp them"><span class="rpn"><b>${esc(s.name)}</b><span>${theirs}</span></span>${rvAvatar(s.name, s.available ? '' : 'gone', s.available ? s.online : null)}</div>
+  </div>`;
+}
+function rvCardHTML(s, me) {
+  const st = s.streak && s.streak.n >= 2 ? `<span class="rstreak" title="${s.streak.who === 'me' ? 'Your' : `${esc(s.name)}'s`} current streak">${s.streak.who === 'me' ? 'W' : 'L'}${s.streak.n}</span>` : '';
+  return `<article class="rvc" tabindex="0" data-rv="${esc(s.name)}" aria-label="Rivalry with ${esc(s.name)}">
+    ${rvMatchup(s, me)}
+    <div class="rvrow"><span class="rvlead"><span class="rtier ${s.tier.key}">${esc(s.tier.label)}</span>${rvLeadText(s)}</span><span>${rvStrip(s.strip)}${st}</span></div>
+    <div class="rvfoot"><span class="rvwhen">Last played ${rvAgo(s.last.at)}${s.last.tc !== undefined ? ' · ' + tcLabel(s.last.tc) : ''}</span><div data-actfor="${esc(rvKey(s.name))}">${rvActions(s)}</div></div>
+  </article>`;
+}
+function paintRvFilter() {
+  const d = RV.data, n = d ? { active: d.list.filter((s) => s.active && !s.archived).length, all: d.list.length, arch: d.list.filter((s) => s.archived || !s.active).length } : {};
+  document.querySelectorAll('#rvFilter button').forEach((b) => { b.classList.toggle('on', b.dataset.f === RV.filter); b.setAttribute('aria-selected', b.dataset.f === RV.filter); setText(b, b.dataset.l + (d ? ` ${n[b.dataset.f]}` : '')); });
+}
+function paintRivals() {
+  const d = RV.data, me = d.me, f = RV.filter;
+  paintRvFilter();
+  setHTML($('#rvInsights'), d.insights.map((x) => `<button class="rvi" data-rvopen="${esc(x.name)}"><small>${esc(x.label)}</small><b>${esc(x.name)}</b><span>${esc(x.text)}</span></button>`).join(''));
+  const list = d.list.filter((s) => (f === 'all' ? true : f === 'arch' ? s.archived || !s.active : s.active && !s.archived));
+  // a challenge waiting for an answer goes first; then the most recent games
+  const waiting = (s) => (RV.inbox.some((c) => rvKey(c.from) === rvKey(s.name)) ? 0 : 1);
+  list.sort((a, b) => waiting(a) - waiting(b) || b.last.at - a.last.at);
+  let html;
+  if (!d.list.length) html = `<div class="rvempty"><h2>No rivalries yet</h2><p>Every game you finish against someone starts a head-to-head record. Play the same people again and the rivalry grows: records, streaks, seasons and a shared history.</p><div class="row"><button class="primary" data-rvlobby>Find an opponent</button></div></div>`;
+  else if (!list.length) html = f === 'arch'
+    ? '<div class="rvempty"><h2>Nothing archived</h2><p>Rivalries you haven\'t played for 45 days move here, and so do ones you archive yourself. A new game brings them back.</p></div>'
+    : `<div class="rvempty"><h2>No active rivalries</h2><p>None of your rivals have played you in the last 45 days. Pick one and run it back.</p><div class="row"><button class="primary" data-rvfilter="all">Show all ${d.list.length}</button></div></div>`;
+  else html = list.map((s) => rvCardHTML(s, me)).join('');
+  const el = $('#rvList');
+  if (el._h === html) return;
+  const token = (RV.paintTok = (RV.paintTok || 0) + 1);
+  if (el._h && el.dataset.filter !== f) {                                 // a quick cross-fade when the filter changes
+    el.classList.add('fade');
+    setTimeout(() => { if (token !== RV.paintTok) return; setHTML(el, html); el.dataset.filter = f; el.classList.remove('fade'); }, 140);
+  } else { setHTML(el, html); el.dataset.filter = f; el.classList.remove('fade'); }
+}
+$('#rvFilter').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  RV.filter = b.dataset.f;
+  try { localStorage.setItem('chess:rvFilter', RV.filter); } catch {}
+  if (RV.data) paintRivals(); else paintRvFilter();
+});
+function rvDetailSkeleton() {
+  return `<button class="small rvback" data-rvhome>← Rivalries</button><div class="rvhero"><div class="rvsk" style="height:120px;background:none"></div></div><div class="rvsk" style="height:150px"></div><div class="rvsk" style="height:260px"></div>`;
+}
+function paintRivalDetail() {
+  const d = RV.detail, s = d.rival, me = d.me, st = d.stats, k = rvKey(s.name), N = st.games || 1;
+  const pc = (x) => Math.round((x / N) * 1000) / 10;
+  const tier = s.tier, next = tier.next;
+  const hero = `<section class="rvhero" data-rv="${esc(s.name)}">
+    ${rvMatchup(s, me, true)}
+    <div><div class="rvbar" role="img" aria-label="${st.w} wins, ${st.d} draws, ${st.l} losses">${st.w ? `<i class="w" style="width:${pc(st.w)}%"></i>` : ''}${st.d ? `<i class="d" style="width:${pc(st.d)}%"></i>` : ''}${st.l ? `<i class="l" style="width:${pc(st.l)}%"></i>` : ''}</div>
+      <div class="rvbarl"><span>${st.w} win${st.w === 1 ? '' : 's'}</span><span>${st.d} draw${st.d === 1 ? '' : 's'}</span><span>${st.l} loss${st.l === 1 ? '' : 'es'}</span></div></div>
+    <div class="rvtierrow"><span class="rtier ${tier.key}">${esc(tier.label)}</span><span>${rvLeadText(s)}</span>${next ? `<span class="rvprog" title="${tier.meaningful} of ${Math.round(tier.meaningful / Math.max(next.progress, 0.01))} full games"><i style="width:${Math.round(next.progress * 100)}%"></i></span><span>${esc(next.label)}: ${esc(next.text)}</span>` : '<span>The highest tier there is.</span>'}</div>
+    <div class="rvheroact"><div data-actfor="${esc(k)}" data-big="1">${rvActions(s, true)}</div><button class="ghost" data-rva="archive">${s.archived ? 'Unarchive' : 'Archive'}</button></div>
+  </section>`;
+  const streak = st.streak ? `${st.streak.n} ${st.streak.who === 'me' ? 'win' : 'loss'}${st.streak.n > 1 ? (st.streak.who === 'me' ? 's' : 'es') : ''}` : '—';
+  const colN = st.colors.w + st.colors.b, wp = colN ? Math.round((st.colors.w / colN) * 100) : 0;
+  const cell = (label, big, sub) => `<div class="rvst"><small>${label}</small><b>${big}</b><span>${sub || '&nbsp;'}</span></div>`;
+  const stats = `<section class="rvstats" aria-label="Head-to-head statistics">
+    ${cell('Games', st.games, `since ${rvDate(s.first)}`)}
+    ${cell('Your score', `${st.pct}%`, 'a draw counts half')}
+    ${cell('Current streak', streak, st.streak ? (st.streak.who === 'me' ? 'yours' : esc(s.name) + "'s") : 'the last game was drawn')}
+    ${cell('Longest winning run', `${st.longest.me} · ${st.longest.them}`, `you · ${esc(s.name)}`)}
+    ${cell('Average game', st.avgDur ? fmtDur(st.avgDur) : '—', st.avgDur ? 'from start to finish' : 'not recorded for these games')}
+    ${cell('Your colour', colN ? (wp === 50 ? 'Even' : wp > 50 ? 'White' : 'Black') : '—', colN ? `White in ${st.colors.w} of ${colN} games` : '')}
+    ${cell('Biggest upset', st.upset ? `${st.upset.gap} pts` : '—', st.upset ? `${st.upset.who === 'me' ? 'by you' : 'by ' + esc(s.name)} · ${rvDate(st.upset.at)}${st.upset.id ? ` · <button data-rvgame="${esc(st.upset.id)}">view</button>` : ''}` : 'no win against the odds yet')}
+    ${cell('Most played opening', st.opening ? esc(st.opening.name) : '—', st.opening ? `${st.opening.n} of ${st.openingsKnown} games with a known opening` : 'not enough data')}
+  </section>`;
+  const enc = d.encounters.slice(0, RV.encShown).map((g) => {
+    const [c, L, word] = RES[g.result] || RES.draw;
+    const delta = g.delta != null ? `<span class="rdelta ${g.delta > 0 ? 'pos' : g.delta < 0 ? 'neg' : ''}" title="Your rating change">${g.delta > 0 ? '+' : g.delta < 0 ? '−' : '±'}${Math.abs(g.delta)}</span>` : '<span class="rdelta" title="Not rated">—</span>';
+    return `<div class="rve"><span class="rpill ${c}" title="${word}">${L}</span>
+      <span class="rinfo"><b>${word}${g.reason ? ` · ${esc(g.reason)}` : ''}</b><span>${new Date(g.at).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })} · ${g.tc !== undefined ? tcLabel(g.tc) : '—'} · ${g.color === 'w' ? 'White' : g.color === 'b' ? 'Black' : ''}${g.op ? ` · ${esc(g.op)}` : ''}</span></span>
+      ${delta}${g.id ? `<button class="small" data-rvgame="${esc(g.id)}">Replay</button>` : '<span class="rvwhen" title="Played before games were saved">no replay</span>'}</div>`;
+  }).join('');
+  const encMore = d.encounters.length > RV.encShown ? `<button class="small rvmore" data-rvmore>Show ${Math.min(30, d.encounters.length - RV.encShown)} more of ${d.encounters.length - RV.encShown}</button>` : '';
+  const ss = d.season, now = Date.now();
+  const days = (ms) => { const n = Math.max(0, Math.ceil(ms / 86400e3)); return n === 1 ? '1 day' : `${n} days`; };
+  const season = `<section class="rvsec rvseason"><h2>Season${ss ? ` ${ss.no}` : 's'}<small>${ss ? `${days(ss.end - now)} left` : ''}</small></h2>
+    ${ss ? `<div class="sc"><div><div class="big">${ss.w} – ${ss.l}</div><div class="sub">You · ${esc(s.name)} · ${ss.games} game${ss.games === 1 ? '' : 's'}${ss.d ? `, ${ss.d} drawn` : ''} since ${rvDate(ss.start)}</div></div>${ss.strip.length ? rvStrip(ss.strip) : '<span class="sub">No games yet this season</span>'}</div>
+      <div class="start"><button class="small" data-rva="season-end">End season now</button></div>`
+    : `<div class="sub">A season is a fresh score over a set time; it ends by itself and your lifetime record stays as it is.</div>
+      <div class="start"><select id="rvSeasonLen" aria-label="Season length">${d.seasonDays.map((n) => `<option value="${n}"${n === 14 ? ' selected' : ''}>${n === 7 ? '1 week' : n === 14 ? '2 weeks' : '1 month'}</option>`).join('')}</select><button class="small primary" data-rva="season-start" ${s.available ? '' : 'disabled'}>Start a season</button></div>`}
+    ${d.seasons.filter((x) => x.done).length ? `<div class="rvpast">${d.seasons.filter((x) => x.done).map((x) => `<div><span>Season ${x.no} · ${rvDate(x.start)}–${rvDate(x.end)}</span><span>${!x.games ? 'no games' : x.winner === 'me' ? `You won ${x.w}–${x.l}` : x.winner === 'them' ? `${esc(s.name)} won ${x.l}–${x.w}` : `Level ${x.w}–${x.l}`}${x.d ? `, ${x.d} drawn` : ''}</span></div>`).join('')}</div>` : ''}
+  </section>`;
+  const ms = d.moments, shown = RV.tlAll ? ms : ms.slice(-8);
+  const timeline = `<section class="rvsec"><h2>Your history<small>${ms.length} moment${ms.length === 1 ? '' : 's'}</small></h2>
+    ${ms.length > shown.length ? `<button class="small rvmore" style="margin:0 0 10px" data-rvtl>Show ${ms.length - shown.length} earlier</button>` : ''}
+    <ol class="rtl">${shown.map((m) => `<li class="${m.accent ? 'acc' : m.who || ''}"><div class="t">${esc(m.text)}</div><div class="m"><span>${new Date(m.at).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</span>${m.id ? `<button data-rvgame="${esc(m.id)}">View game</button>` : ''}</div></li>`).join('')}</ol></section>`;
+  setHTML($('#rvDetail'), `<button class="small rvback" data-rvhome>← Rivalries</button>${hero}${stats}
+    <div class="rvcols"><div><section class="rvsec"><h2>Encounters<small>${d.encounters.length} game${d.encounters.length === 1 ? '' : 's'}, newest first</small></h2>${enc}${encMore}</section></div><div>${season}${timeline}</div></div>`);
+}
+// every control on the page
+$('#rivals').addEventListener('click', async (e) => {
+  const t = e.target;
+  if (t.closest('[data-rvhome]')) return enterRivals();
+  if (t.closest('[data-rvretry]')) return rvLoad();
+  if (t.closest('[data-rvlobby]')) return enterLobby();
+  const fb = t.closest('[data-rvfilter]'); if (fb) { RV.filter = fb.dataset.rvfilter; return paintRivals(); }
+  const op = t.closest('[data-rvopen]'); if (op) return enterRivals(op.dataset.rvopen);
+  const gm = t.closest('[data-rvgame]'); if (gm) return enterArchive(gm.dataset.rvgame, { back: 'rival:' + (RV.detail ? RV.detail.rival.name : '') });
+  if (t.closest('[data-rvmore]')) { RV.encShown += 30; return paintRivalDetail(); }
+  if (t.closest('[data-rvtl]')) { RV.tlAll = true; return paintRivalDetail(); }
+  const b = t.closest('button[data-rva]');
+  const holder = t.closest('[data-rv]');
+  if (!b) { if (holder && holder.classList.contains('rvc')) enterRivals(holder.dataset.rv); return; }
+  if (b.disabled) return;
+  const name = holder ? holder.dataset.rv : RV.detail && RV.detail.rival.name, s = rvFind(rvKey(name)), a = b.dataset.rva;
+  if (a === 'run' || a === 'bo3') return rvChallenge(s, a === 'bo3');
+  if (a === 'cancel') { RV.cancelling = true; RV.outbox = null; rvRepaintActions(); await api('cancel'); return rvPing(); }
+  if (a === 'accept' || a === 'decline') {
+    b.disabled = true;
+    if (a === 'decline') { await api('decline', { id: b.dataset.id }); return rvPing(); }
+    const r = await api('accept', { id: b.dataset.id });
+    if (r.ok) return enterGame(r.code, r.snap);
+    RV.notice[rvKey(name)] = { kind: 'error', text: r.error || 'That challenge expired.', at: Date.now() }; return rvPing();
+  }
+  if (a === 'archive') { b.disabled = true; await api('rivalry_archive', { name, on: !s.archived }); RV.data = null; return rvLoad(); }
+  if (a === 'season-start' || a === 'season-end') {
+    if (a === 'season-end' && !confirm('End this season now? Its result is kept.')) return;
+    b.disabled = true;
+    const r = await api('rivalry_season', { name, action: a === 'season-start' ? 'start' : 'end', days: +($('#rvSeasonLen') || {}).value || 14 });
+    if (!r.ok) alert(r.error || 'Could not change the season.');
+    return rvLoad();
+  }
+});
+$('#rivals').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('rvc')) enterRivals(e.target.dataset.rv); });
+async function rvChallenge(s, series) {
+  if (!s) return;
+  const k = rvKey(s.name);
+  RV.sending = k; delete RV.notice[k]; rvRepaintActions();
+  const r = await api('challenge', { to: s.name, tc: s.last.tc === undefined ? { base: 300, inc: 0 } : s.last.tc, match: series ? { fmt: 'bo', n: 3 } : null });   // an old game with no time control recorded: 5 + 0
+  RV.sending = null;
+  if (!r.ok) { RV.notice[k] = { kind: 'error', text: r.error || 'Could not send the challenge.', at: Date.now() }; rvRepaintActions(); return; }
+  await rvPing();                                                          // shown as sent only once the server has it
+}
+
+// the result card: the head-to-head with this opponent, and the rematch framed by it
+const RVB = { name: null, data: null, gid: null, tries: 0 };
+const rvEligible = (r) => !!(r && (r.you === 'w' || r.you === 'b') && !isBot() && !isArchive() && !r.local && !r.tour && r.players.w && r.players.b);
+function rvBriefFor(r) {
+  if (!rvEligible(r)) { RVB.name = null; return; }
+  const opp = r.players[r.you === 'w' ? 'b' : 'w'].name, gid = r.startedAt ? `${r.code}-${r.startedAt.toString(36)}` : null;
+  if (RVB.name === opp && RVB.gid === gid) return;
+  Object.assign(RVB, { name: opp, data: null, gid, tries: 0 });
+  const load = async () => {
+    const res = await api('rivalry_brief', { name: opp });
+    if (RVB.name !== opp || RVB.gid !== gid) return;
+    RVB.data = res.ok ? res.rival : null;
+    if (gid && (!RVB.data || RVB.data.last.id !== gid) && RVB.tries++ < 4) setTimeout(load, 1500);   // the game is saved a moment after it ends
+    updateOver();
+    if (snap && snap.status.over && !$('#rematch').disabled) setText($('#rematch'), nextLabel(snap));
+  };
+  load();
+}
+function rvContextLabel(r) {
+  if (!rvEligible(r) || !RVB.data || RVB.name !== r.players[r.you === 'w' ? 'b' : 'w'].name) return null;
+  const lost = r.status && r.status.result && r.status.result !== 'draw' && r.status.result !== r.you;
+  return lost ? 'Settle the score' : RVB.data.lead > 0 ? 'Defend your lead' : 'Run it back';
+}
+function paintORival(r) {
+  const el = $('#orival'), d = RVB.data, show = rvEligible(r) && r.status.over && !r.match && d && RVB.name === r.players[r.you === 'w' ? 'b' : 'w'].name;
+  el.classList.toggle('hidden', !show);
+  $('#oBo3').classList.toggle('hidden', !(rvEligible(r) && r.status.over && !r.match && !r.rematchSeries && !r.rematch.length));
+  if (!show) return;
+  setHTML(el, `<div class="rvrow"><span class="rvlead">Rivalry with <b>${esc(d.name)}</b><span class="rtier ${d.tier.key}">${esc(d.tier.label)}</span></span><span class="os">You ${d.w} – ${d.l} ${esc(d.name)}</span></div>
+    <div class="rvrow">${rvStrip(d.strip)}<span class="rvlead">${rvLeadText(d)}${d.d ? ` · ${d.d} drawn` : ''}</span></div>`);
+}
+$('#oBo3').onclick = async () => { if (!snap) return; $('#oBo3').disabled = true; await api('rematch', { code: gameCode, series: 'bo3' }); $('#oBo3').disabled = false; kick(); };
+
 // ---------- quiet online / offline notes ----------
 // The lobby's player list (or, on other pages, a light check every 20 s) says who is online. Changes become one small
 // note in the corner: grouped, no sound, gone after a few seconds, never shown during a game you're in. A short
@@ -2400,7 +2818,7 @@ async function checkAway(code) {
   if (!awayGame || awayGame.code !== code || view === 'game') return;
   if (r.status === 404 || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();   // a network blip keeps watching
 }
-$('#leave').onclick = () => (isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
+$('#leave').onclick = () => (isArchive() && archive.back && archive.back.startsWith('rival:') ? enterRivals(archive.back.slice(6) || null) : isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
@@ -3929,6 +4347,7 @@ function afterSnapshot(r) {
 }
 function showOver(r) {
   $('#over').classList.remove('hidden');
+  rvBriefFor(r);
   overAnimated = false;
   paintOver(r);
   updateOver();
@@ -3993,6 +4412,7 @@ function updateOver() {
   b.textContent = nextLabel(snap);
   b.disabled = asked;
   paintOverMatch(snap);
+  paintORival(snap);
 }
 $('#oRematch').onclick = async () => {
   if (snap && snap.tour && snap.match && snap.match.done) { $('#over').classList.add('hidden'); return enterTours(snap.tour.id); }
@@ -4014,7 +4434,8 @@ function nextLabel(r) {
     if (m.done) return r.tour ? 'Back to the tournament' : r.rematch.length ? 'Accept new match' : 'New match';
     return r.rematch.length ? 'Next game · they\'re ready' : 'Next game';
   }
-  return asked ? 'Waiting for opponent…' : r.rematch.length ? 'Accept rematch' : 'Rematch';
+  if (r.rematchSeries) return r.rematch.includes(r.you) ? 'Best of 3 offered · waiting…' : 'Accept best of 3';
+  return asked ? 'Waiting for opponent…' : r.rematch.length ? 'Accept rematch' : rvContextLabel(r) || 'Rematch';
 }
 // names in display order (you first) and each one's colour in the current game
 function matchSides(r) {
