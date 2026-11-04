@@ -124,14 +124,15 @@ process.on('exit', () => { if (srv) srv.kill(); });
     if (tt.phase === 'done') break;
     const f = (tt.groups || []).flatMap((g) => g.fixtures).concat(tt.ko ? tt.ko.rounds.flat() : []).find(Tour_ready);
     if (!f) break;
-    if (tt.phase === 'ko' && !A.__shot) { A.__shot = 1; await A.waitForSelector('.bracket', { timeout: 8000 }); await shot(A, 't3-bracket'); }
+    if (tt.phase === 'ko' && !A.__shot) { A.__shot = 1; await A.waitForSelector('.kb', { timeout: 8000 }); await shot(A, 't3-bracket'); }
     await api('tour_award', { id, fx: f.id, res: 'a' }, P.ann);
   }
   await A.waitForSelector('.tchamp', { timeout: 8000 });
   ok('a champion is crowned', /Champion/.test(await A.textContent('.tchamp')));
   ok('with confetti', (await A.$$('.confetti')).length > 0);
   ok('and the news in the chat', /🏆 .* wins Autumn Cup/.test(await A.textContent('#tcLog')));
-  ok('the bracket shows the final', /Final/.test(await A.textContent('.bracket')) && /Semi-finals/.test(await A.textContent('.bracket')));
+  ok('the bracket shows the final', /Final/.test(await A.textContent('.kb')) && /Semi-finals/.test(await A.textContent('.kb')));
+  ok('and the champion slot', /Champion/.test(await A.textContent('.kchamp.on')) || /🏆/.test(await A.textContent('.kchamp.on')));
   ok('the group stage stays visible', (await A.$$('.tgroups > .panel')).length === 2);
   await shot(A, 't4-done');
   await A.click('#tvBack');
@@ -236,6 +237,44 @@ process.on('exit', () => { if (srv) srv.kill(); });
     await O.waitForFunction(() => snap && snap.tour);
     await A.waitForFunction(() => !/Waiting for/.test(document.querySelector('#status').textContent), null, { timeout: 15000 });
     ok('once they arrive the waiting message goes away', !(await A.isVisible('#mpRemind')));
+  }
+
+  console.log('match length and the knockout bracket');
+  {
+    await A.goto(`http://localhost:${PORT}/?tours`);
+    await A.waitForSelector('#tnLen');
+    await A.selectOption('#tnKind', 'ko');
+    await A.selectOption('#tnLen', '3');
+    await A.fill('#tnName', 'Bracket Cup');
+    await A.click('#tourNew button[type=submit]');
+    await A.waitForSelector('#tourView:not(.hidden) .tvtop');
+    const bid = await A.evaluate(() => tourId);
+    ok('created as best of 3', (await api('tour_get', { id: bid }, P.ann)).tour.cfg.kn === 3);
+    ok('the organizer sees the match length control', (await A.$eval('[data-tlen]', (x) => x.value)) === '3');
+    const P3 = {}; for (const n of ['lia', 'max', 'ned', 'oli', 'pia', 'quin']) P3[n] = await su(n);
+    for (const n of ['bob', ...Object.keys(P3)]) await api('tour_join', { id: bid }, P[n] || P3[n]);
+    await api('tour_start', { id: bid }, P.ann);
+    let tt = (await api('tour_get', { id: bid }, P.ann)).tour;
+    for (const f of tt.ko.rounds[0].slice(0, 3)) await api('tour_award', { id: bid, fx: f.id, res: 'a' }, P.ann);
+    tt = (await api('tour_get', { id: bid }, P.ann)).tour;
+    const lv = tt.ko.rounds[0][3];
+    const lvp = P[lv.a] || P3[lv.a];
+    await api('tour_play', { id: bid, fx: lv.id }, lvp);
+    await A.goto(`http://localhost:${PORT}/?tour=${bid}`);
+    await A.waitForSelector('.kb .km');
+    ok('quarter-finals, semis, final and a champion slot', /Quarter-finals/.test(await A.textContent('.kb')) && /Semi-finals/.test(await A.textContent('.kb')) && /Final/.test(await A.textContent('.kb')) && !!(await A.$('.kchamp')));
+    ok('round headers show the match length', /Best of 3/i.test(await A.textContent('.kround h3')));
+    ok('winners are marked and their path is lit', (await A.$$('.kslot.won')).length === 3 && (await A.$$('.kp.w')).length === 3);
+    ok('a game in progress shows Live', /Live/.test(await A.textContent('.kb')));
+    await shot(A, 't12-bracket-desktop');
+    await A.selectOption('[data-tlen]', '1');
+    await A.waitForFunction(() => /1 game/.test(document.querySelector('.kround:nth-child(2) h3').textContent), null, { timeout: 8000 });
+    ok('changing the match length updates the rounds still to play', /Best of 3/i.test(await A.textContent('.kround:first-child h3')));
+    const Q = await open(P.bob, { width: 390, height: 820 });
+    await Q.goto(`http://localhost:${PORT}/?tour=${bid}`);
+    await Q.waitForSelector('.kb .km');
+    await shot(Q, 't13-bracket-phone');
+    ok('on a phone the bracket scrolls sideways, not the page', await Q.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1 && document.querySelector('.kb').scrollWidth > document.querySelector('.kb').clientWidth));
   }
 
   await br.close(); srv.kill();

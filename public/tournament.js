@@ -18,7 +18,7 @@
       kind,
       size: pick(c.size, [3, 4, 5, 6], 4),                     // players per group
       adv: pick(c.adv, [1, 2], 2),                             // who goes through from each group
-      gn: pick(c.gn, [1, 3], 1),                               // group fixture: best of n, draws allowed
+      gn: pick(c.gn, [1, 3, 5], 1),                            // group fixture: best of n, draws allowed
       kn: pick(c.kn, [1, 3, 5], 1),                            // knockout fixture: best of n, always a winner
       max: Math.min(kind === 'rr' ? MAX_RR : MAX_PLAYERS, pick(c.max, [4, 8, 12, 16, 32, 64], 16)),
     };
@@ -153,6 +153,19 @@
     if (winnerOf(fin)) { t.champion = winnerOf(fin); t.phase = 'done'; }
   }
 
+  // the organizer changes the match length: it applies to every game that hasn't started (no room yet)
+  function setLength(t, gn, kn) {
+    if (t.phase === 'done') throw new Error('The tournament is over.');
+    const c = clean({ ...t.cfg, gn, kn });
+    t.cfg.gn = c.gn; t.cfg.kn = c.kn;
+    let n = 0;
+    for (const f of allFixtures(t)) {
+      if (f.room || f.res) continue;
+      f.fmt = f.id[0] === 'g' ? groupFmt(t) : koFmt(t); n++;
+    }
+    return n;
+  }
+  const lengthText = (n, ko) => (n === 1 ? (ko ? '1 game (Armageddon if drawn)' : '1 game') : `best of ${n}`);
   const allFixtures = (t) => [...(t.groups || []).flatMap((g) => g.fixtures), ...(t.ko ? t.ko.rounds.flat() : [])];
   const find = (t, id) => allFixtures(t).find((f) => f.id === id) || null;
   const ready = (f) => !!(f && f.a && f.b && !f.res);
@@ -197,6 +210,6 @@
   // fixtures a player can play now, the one they should play next first
   const myFixtures = (t, name) => allFixtures(t).filter((f) => ready(f) && (f.a === name || f.b === name)).sort((x, y) => (x.room ? 0 : 1) - (y.room ? 0 : 1) || roundOf(t, x) - roundOf(t, y));
 
-  const api = { roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
+  const api = { setLength, lengthText, roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tour = api;
 })(typeof self !== 'undefined' ? self : this);
