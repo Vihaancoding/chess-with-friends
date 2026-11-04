@@ -1083,6 +1083,12 @@
   .dmgempty b { display: block; color: #fff; font-size: 1.05rem; margin-bottom: 4px; }
   .dmgskel { height: 150px; border-radius: 12px; background: linear-gradient(90deg, #2d2b28 0%, #3a3835 50%, #2d2b28 100%); background-size: 200% 100%; animation: sk 1.2s linear infinite; }
   #dmgNote { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #111e; color: #fff; padding: 8px 14px; border-radius: 99px; font-weight: 700; font-size: .88rem; z-index: 40; border: 1px solid var(--line); }
+  #dmgRep { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 31; padding: 16px; }
+  #dmgRep .box { background: var(--panel); border-radius: 14px; width: min(100%, 480px); max-height: 92vh; overflow-y: auto; padding: 18px 20px; box-shadow: 0 30px 70px -20px #000; }
+  #dmgRep .dmgcd { margin-bottom: 12px; }
+  .dmghl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .dmghl li { display: flex; gap: 10px; align-items: baseline; font-weight: 700; }
+  .dmghl li b { flex: none; min-width: 3.4em; text-align: center; border-radius: 6px; padding: 1px 6px; background: #ffffff14; color: var(--muted); font-size: .78rem; }
   #dmgModal { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 31; padding: 16px; }
   #dmgModal .box { background: var(--panel); border-radius: 14px; width: min(100%, 520px); max-height: 94vh; overflow-y: auto; padding: 18px 20px; box-shadow: 0 30px 70px -20px #000; }
   #dmgModal .pv { display: block; width: auto; max-width: 100%; max-height: 52vh; margin: 12px auto; border-radius: 10px; background: #1b1a18; min-height: 120px; }
@@ -1539,6 +1545,11 @@
   <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button class="hidden" id="oBo3" title="Offer a three-game series">Best of 3</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
 
+<div id="dmgRep" class="hidden" role="dialog" aria-modal="true" aria-label="Domination report"><div class="box">
+  <div class="skhead"><h2 class="ptitle">Domination report</h2><button id="dmgRepClose">Close</button></div>
+  <div id="dmgRepBody"></div>
+  <div class="acts" style="margin-top:14px"><button class="primary" id="dmgRepWatch" type="button">Watch the replay</button><button id="dmgRepShare" type="button">Share</button></div>
+</div></div>
 <div id="dmgModal" class="hidden" role="dialog" aria-modal="true" aria-label="Share the damage"><div class="box">
   <div class="skhead"><h2 class="ptitle">Share the damage</h2><button class="primary" id="dmgModalDone">Done</button></div>
   <div class="fmts"><button class="small on" data-dfmt="portrait">Portrait</button><button class="small" data-dfmt="wide">Wide</button></div>
@@ -6653,7 +6664,7 @@ document.addEventListener('keydown', (e) => {
 });
 $('#dmgbody').addEventListener('click', (e) => {
   const v = e.target.closest('[data-dmgview]'), s = e.target.closest('[data-dmgshare]'), d = e.target.closest('[data-dmgdot]'), p = e.target.closest('#dmgPause');
-  if (v) enterArchive(v.dataset.dmgview);
+  if (v) openDmgReport(v.dataset.dmgview);
   else if (s) openDmgShare(s.dataset.dmgshare);
   else if (d) { dmgTouched(); dmgGo(+d.dataset.dmgdot); }
   else if (p) { DMG.paused = !DMG.paused; p.textContent = DMG.paused ? 'Play' : 'Pause'; p.setAttribute('aria-pressed', DMG.paused); }
@@ -6685,6 +6696,21 @@ $('#dmgOutToggle').addEventListener('change', async (e) => {
   DMG.out = !e.target.checked; DMG.at = 0;
   dmgNote(DMG.out ? 'Your games will not be featured.' : 'Your games can be featured again.');
 });
+// the report: the card again, then 3 to 5 key moments, then the replay
+function openDmgReport(id) {
+  const r = DMG.rows.find((x) => x.id === id); if (!r) return enterArchive(id);
+  DMG.rep = r;
+  const hl = (r.hl || []).slice(0, 5);
+  setHTML($('#dmgRepBody'), `${dmgCardHTML(r, false).replace(/<div class="dmgact">[\s\S]*?<\/div>\s*<\/article>/, '</article>')}
+    ${hl.length ? `<div class="label" style="margin-top:0">Key moments</div><ul class="dmghl">${hl.map((h) => `<li><b>Move ${h.move}</b><span>${esc(h.text)}</span></li>`).join('')}</ul>` : ''}`);
+  $('#dmgRep').classList.remove('hidden'); $('#dmgRepWatch').focus();
+}
+const closeDmgReport = () => $('#dmgRep').classList.add('hidden');
+$('#dmgRepClose').onclick = closeDmgReport;
+$('#dmgRep').addEventListener('click', (e) => { if (e.target.id === 'dmgRep') closeDmgReport(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#dmgRep').classList.contains('hidden')) closeDmgReport(); });
+$('#dmgRepWatch').onclick = () => { closeDmgReport(); enterArchive(DMG.rep.id); };
+$('#dmgRepShare').onclick = () => { closeDmgReport(); openDmgShare(DMG.rep.id); };
 // share
 const dmgImg = (id, fmt, dl) => `/api?r=damage_img&fmt=${fmt}&s=${encodeURIComponent(DMG.share)}&id=${encodeURIComponent(id)}${dl ? '&dl=1' : ''}`;
 const dmgLink = (id) => `${location.origin}/d/${DMG.share && DMG.share !== '1' ? DMG.share + '.' : ''}${encodeURIComponent(id)}`;
