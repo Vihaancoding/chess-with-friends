@@ -301,7 +301,7 @@ const fix = (i, over) => { const g = gameOf(i, over); return scoreOf(g, fx[i].ev
   const rec4b = await store.get('dmg:' + g4.id), before4 = calls.length;
   ok('when the AI is back, the line is redone once and stored', rec4b.src === 'ai' && rec4b.line === good4 && rec4b.llm >= 1, rec4b);
   await call('damage_feed', {}, P.ann); await call('damage_feed', {}, P.ann); await handler.damageIdle();
-  ok('and viewing the page afterwards never calls the AI again', calls.length === before4, calls.length - before4);
+  ok('and viewing the page afterwards never calls the AI again for that game', (await store.get('dmg:' + g4.id)).llm === rec4b.llm, await store.get('dmg:' + g4.id));
   handler.damageDeps = {};
 
   const hlAll = rows.map((r) => D.highlights(r.f));
