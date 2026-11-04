@@ -983,6 +983,10 @@
   .cmc .cmwhy { margin: 0; font-size: .8rem; color: var(--muted); max-width: none; }
   .cmhero { text-align: center; }
   #rvwatch.hidden { display: none; }
+  .cmk { display: inline-block; padding: 2px 9px; border-radius: 99px; background: #ffffff12; }
+  .cmk.k-competitive { background: #f7c63126; color: #f7c631; }
+  .cmk.k-favourite { background: #81b64c2a; color: #9fd163; }
+  .cmk.k-rising { background: #4a9eff26; color: #7db8ff; }
   .rvw { padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; outline: none; display: flex; flex-direction: column; gap: 6px; border-radius: 6px; transition: background-color .12s; }
   .rvw:first-child { border-top: 0; padding-top: 2px; } .rvw:hover, .rvw:focus-visible { background: #2a2926; }
   .rvwm { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; }
@@ -2601,7 +2605,7 @@ const RV_KIND = { competitive: 'Most competitive', favourite: 'Community favouri
 function rvCommFeature(p) {
   const since = new Date(p.first).toLocaleDateString([], { month: 'short', year: 'numeric' });
   return `<article class="cmf" tabindex="0" data-rvpub="${esc(p.a)}~${esc(p.b)}" aria-label="${esc(p.a)} against ${esc(p.b)}: ${p.aw} to ${p.bw}">
-    <div class="cmk">${RV_KIND[p.kind] || 'Featured'}</div>
+    <div><span class="cmk k-${esc(p.kind)}">${RV_KIND[p.kind] || 'Featured'}</span></div>
     <div class="cmm">
       <div class="cmp">${rvCircle(p.a, 'a', true)}<button class="cmname" data-rvprof="${esc(p.a)}">${esc(p.a)}</button><span>${rvRating(p.ra)}</span></div>
       <div class="cms"><div class="n">${rvScoreSpans(p.aw, p.bw)}</div></div>
@@ -2614,7 +2618,7 @@ function rvCommFeature(p) {
 }
 function rvCommCard(p) {
   return `<article class="cmc" tabindex="0" data-rvpub="${esc(p.a)}~${esc(p.b)}" aria-label="${esc(p.a)} against ${esc(p.b)}: ${p.aw} to ${p.bw}">
-    <div class="cmk">${RV_KIND[p.kind] || ''}</div>
+    <div><span class="cmk k-${esc(p.kind)}">${RV_KIND[p.kind] || ''}</span></div>
     <div class="cmcm"><div class="cmcp">${rvCircle(p.a, 'a')}<b>${esc(p.a)}</b></div><div class="n">${rvScoreSpans(p.aw, p.bw)}</div><div class="cmcp r"><b>${esc(p.b)}</b>${rvCircle(p.b, 'b')}</div></div>
     <p class="cmwhy">${esc(p.why)}</p>
     ${rvPairStrip(p.strip.slice(-8), p.a, p.b)}
@@ -6539,7 +6543,7 @@ function loadRvWatch() {
     $('#rvwatch').classList.toggle('hidden', !list.length);
     setHTML($('#rvwlist'), list.map((p) => `<div class="rvw" role="link" tabindex="0" data-rvwpub="${esc(p.a)}~${esc(p.b)}">
       <div class="rvwm"><span class="rvwp">${rvCircle(p.a, 'a')}<b>${esc(p.a)}</b></span><span class="n">${rvScoreSpans(p.aw, p.bw)}</span><span class="rvwp r"><b>${esc(p.b)}</b>${rvCircle(p.b, 'b')}</span></div>
-      <div class="rvwy"><span class="cmk">${RV_KIND[p.kind] || ''}</span> · ${esc(p.why)}</div></div>`).join(''));
+      <div class="rvwy"><span class="cmk k-${esc(p.kind)}">${RV_KIND[p.kind] || ''}</span> ${esc(p.why)}${p.d ? ` · ${p.d} draw${p.d === 1 ? '' : 's'}` : ''}</div></div>`).join(''));
   });
 }
 $('#rvwAll').onclick = () => enterRivals();
