@@ -143,6 +143,14 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   ok('accepting starts a best-of-3 series, colours swapped', room.match && room.match.fmt === 'bo' && room.match.n === 3 && !room.status.over && room.players.w.name === 'bob', room.match);
   ok('…and the offer is cleared', room.rematchSeries === null);
 
+  const code2 = await game('ann', 'bob', 'mate');
+  await call('rematch', { code: code2 }, ann);                                 // ann asks for a plain rematch first
+  await call('rematch', { code: code2, series: 'bo3' }, bob);                  // bob's best-of-3 can't override that
+  room = await call('room', { code: code2 }, ann);
+  ok('a best of 3 can\'t be forced on someone who asked for one game', !room.status.over && !room.match, room.match);
+  r = await call('rivalry_archive', { name: 'cat', on: true }, ann);
+  ok('only rivalries you have can be archived', r.status === 404, r);
+
   console.log('accounts that are gone');
   const lb = await store.get('lb'); delete lb.bob; await store.set('lb', lb);
   a = await list('ann');

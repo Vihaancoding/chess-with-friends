@@ -2260,7 +2260,7 @@ async function rvPing() {
   if (!r.ok || view !== 'rivals') return;
   const prev = RV.outbox, out = r.outbox;
   if (out && out.status === 'accepted' && out.code) { RV.outbox = null; api('cancel'); return enterGame(out.code); }
-  if (prev && prev.status === 'pending' && !RV.cancelling && (!out || out.id !== prev.id)) RV.notice[rvKey(prev.to)] = { kind: 'expired', at: Date.now() };
+  if (prev && prev.status === 'pending' && !RV.cancelling && !out && Date.now() - (prev.ts || 0) > 9.5 * 60e3) RV.notice[rvKey(prev.to)] = { kind: 'expired', at: Date.now() };   // gone after 10 minutes: no answer (otherwise it was withdrawn)
   if (out && out.status === 'declined' && !(prev && prev.status === 'declined' && prev.id === out.id)) RV.notice[rvKey(out.to)] = { kind: 'declined', at: Date.now() };
   RV.cancelling = false;
   RV.outbox = out && out.status !== 'accepted' ? out : null;
@@ -2334,10 +2334,11 @@ function paintRivals() {
   else html = list.map((s) => rvCardHTML(s, me)).join('');
   const el = $('#rvList');
   if (el._h === html) return;
+  const token = (RV.paintTok = (RV.paintTok || 0) + 1);
   if (el._h && el.dataset.filter !== f) {                                 // a quick cross-fade when the filter changes
     el.classList.add('fade');
-    setTimeout(() => { setHTML(el, html); el.dataset.filter = f; el.classList.remove('fade'); }, 140);
-  } else { setHTML(el, html); el.dataset.filter = f; }
+    setTimeout(() => { if (token !== RV.paintTok) return; setHTML(el, html); el.dataset.filter = f; el.classList.remove('fade'); }, 140);
+  } else { setHTML(el, html); el.dataset.filter = f; el.classList.remove('fade'); }
 }
 $('#rvFilter').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-f]'); if (!b) return;
@@ -2435,7 +2436,7 @@ async function rvChallenge(s, series) {
   if (!s) return;
   const k = rvKey(s.name);
   RV.sending = k; delete RV.notice[k]; rvRepaintActions();
-  const r = await api('challenge', { to: s.name, tc: s.last.tc || null, match: series ? { fmt: 'bo', n: 3 } : null });
+  const r = await api('challenge', { to: s.name, tc: s.last.tc === undefined ? { base: 300, inc: 0 } : s.last.tc, match: series ? { fmt: 'bo', n: 3 } : null });   // an old game with no time control recorded: 5 + 0
   RV.sending = null;
   if (!r.ok) { RV.notice[k] = { kind: 'error', text: r.error || 'Could not send the challenge.', at: Date.now() }; rvRepaintActions(); return; }
   await rvPing();                                                          // shown as sent only once the server has it
@@ -2467,7 +2468,7 @@ function rvContextLabel(r) {
 function paintORival(r) {
   const el = $('#orival'), d = RVB.data, show = rvEligible(r) && r.status.over && !r.match && d && RVB.name === r.players[r.you === 'w' ? 'b' : 'w'].name;
   el.classList.toggle('hidden', !show);
-  $('#oBo3').classList.toggle('hidden', !(rvEligible(r) && r.status.over && !r.match && !r.rematchSeries && !r.rematch.includes(r.you)));
+  $('#oBo3').classList.toggle('hidden', !(rvEligible(r) && r.status.over && !r.match && !r.rematchSeries && !r.rematch.length));
   if (!show) return;
   setHTML(el, `<div class="rvrow"><span class="rvlead">Rivalry with <b>${esc(d.name)}</b><span class="rtier ${d.tier.key}">${esc(d.tier.label)}</span></span><span class="os">You ${d.w} – ${d.l} ${esc(d.name)}</span></div>
     <div class="rvrow">${rvStrip(d.strip)}<span class="rvlead">${rvLeadText(d)}${d.d ? ` · ${d.d} drawn` : ''}</span></div>`);
