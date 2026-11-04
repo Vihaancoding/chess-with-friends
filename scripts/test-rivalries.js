@@ -151,10 +151,44 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   r = await call('rivalry_archive', { name: 'cat', on: true }, ann);
   ok('only rivalries you have can be archived', r.status === 404, r);
 
+  console.log('curation');
+  r = await call('rivalries', {}, ann);
+  ok('bob is featured, with a reason taken from the record', r.featured.length >= 1 && r.featured[0].name === 'bob' && typeof r.featured[0].why === 'string' && r.featured[0].why.length > 3, r.featured);
+  ok('every rival carries its best reason (or none)', r.list.every((x) => 'why' in x), r.list.map((x) => x.why));
+  const reasons = Riv.reasonsFor({ name: 'zed', games: 12, w: 6, l: 6, d: 0, leadChange: 'them', streak: { who: 'them', n: 4 }, first: Date.now() - 90 * 864e5, last: { at: Date.now() - 864e5 }, recent: { n14: 5, n30: 8, swing: -40 } }, { tough: 'zed', most: null });
+  ok('reasons come from the numbers: lead change first, then the losing streak…', reasons[0].text === 'zed just took the lead' && reasons.some((x) => x.text === "You've lost 4 straight") && reasons.some((x) => x.text === 'Level at 6–6'), reasons.map((x) => x.text));
+  ok('…and a one-game rivalry is never featured over real ones', Riv.curate([{ name: 'one', games: 1, w: 1, l: 0, d: 0, available: true, last: { at: Date.now() }, first: Date.now(), tier: { level: 0 } }], {}).length === 0);
+
+  console.log('around the community');
+  r = await call('rivalry_community', {}, cat);
+  const all = [r.featured, ...r.picks].filter(Boolean);
+  const mineToo = await call('rivalry_community', {}, ann);
+  ok("you don't see your own matchups there", ![mineToo.featured, ...mineToo.picks].filter(Boolean).some((p) => [p.a, p.b].includes('ann')), mineToo);
+  ok('ann vs bob shows up for someone else, with why', all.some((p) => [p.a, p.b].sort().join() === 'ann,bob' && p.why && p.n >= 10), all);
+  ok('the strip says who won each game (a, b or draw)', all.every((p) => p.strip.every((x) => ['a', 'b', 'd'].includes(x))));
+  const rec0 = await store.get('rpairs'), n0 = rec0.map['ann|bob'].n;
+  const codeN = await game('ann', 'bob', 'mate');
+  const rec1 = await store.get('rpairs');
+  ok('a new game updates the index at once', rec1.map['ann|bob'].n === n0 + 1, [n0, rec1.map['ann|bob'].n]);
+  const m = { }; const g1 = { id: 'X1', t: 1, w: 'p', b: 'q', result: 'w', plies: 20 };
+  Riv.pairAdd(m, g1); Riv.pairAdd(m, g1);
+  ok('the same game saved twice counts once', m['p|q'].n === 1);
+  Riv.pairAdd(m, { id: 'X2', t: 2, w: 'q', b: 'p', result: 'w', plies: 20 }); Riv.pairAdd(m, { id: 'X3', t: 3, w: 'q', b: 'p', result: 'w', plies: 20 });
+  ok('lead changes are counted', m['p|q'].lc === 1 && m['p|q'].aw === 1 && m['p|q'].bw === 2, m['p|q']);
+  Riv.pairAdd(m, { id: 'X4', t: 4, w: 'p', b: 'q', result: 'w', plies: 1 }); Riv.pairAdd(m, { id: 'X5', t: 5, w: 'p', b: 'q', result: 'w', plies: 30, reason: 'ended by an admin' });
+  ok('unplayed and admin-ended games are left out', m['p|q'].n === 3);
+  r = await call('rivalry_public', { a: 'ann', b: 'bob' }, cat);
+  ok("someone else's rivalry opens from the public archive", r.a.name === 'ann' && r.b.name === 'bob' && r.stats.games > 10 && r.encounters.length === r.stats.games, r.stats);
+  ok('its story is told with both names, never "You"', r.moments.length > 3 && r.moments.every((x) => !/\b(You|you|your|Your)\b/.test(x.text)), r.moments.map((x) => x.text));
+  r = await call('rivalry_public', { a: 'ann', b: 'nobody' }, cat);
+  ok('unknown players: nothing', r.status === 404);
+
   console.log('accounts that are gone');
   const lb = await store.get('lb'); delete lb.bob; await store.set('lb', lb);
   a = await list('ann');
   ok('history stays, rematch is not offered', a[0].name === 'bob' && a[0].available === false && a[0].games > 0, a[0]);
+  r = await call('rivalry_public', { a: 'ann', b: 'bob' }, cat);
+  ok('…and removed accounts are not shown to others', r.status === 404, r);
 
   console.log('insights only from enough games');
   const sums = [{ name: 'x', games: 3, w: 0, l: 3, d: 0 }, { name: 'y', games: 12, w: 2, l: 9, d: 1, firstHalf: 10, lastHalf: 40 }, { name: 'z', games: 8, w: 6, l: 1, d: 1 }];
