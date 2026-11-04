@@ -172,6 +172,7 @@
   const stageOf = (t, f) => {
     if (f.id[0] === 'g') return t.cfg.kind === 'rr' ? 'Round robin' : `Group ${f.id[1]}`;
     const r = +f.id.slice(1).split('-')[0], n = t.ko.rounds[r - 1].length;
+    if (r === 1 && t.ko.rounds[0].some((x) => x.by === 'bye')) return 'Play-in';   // only some players play it; the rest have a bye
     return ROUND_NAMES[n] || `Round ${r}`;
   };
 
