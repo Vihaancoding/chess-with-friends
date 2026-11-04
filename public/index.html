@@ -983,6 +983,10 @@
   .cmc .cmwhy { margin: 0; font-size: .8rem; color: var(--muted); max-width: none; }
   .cmhero { text-align: center; }
   #rvwatch.hidden { display: none; }
+  .cmk { display: inline-block; padding: 2px 9px; border-radius: 99px; background: #ffffff12; }
+  .cmk.k-competitive { background: #f7c63126; color: #f7c631; }
+  .cmk.k-favourite { background: #81b64c2a; color: #9fd163; }
+  .cmk.k-rising { background: #4a9eff26; color: #7db8ff; }
   .rvw { padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; outline: none; display: flex; flex-direction: column; gap: 6px; border-radius: 6px; transition: background-color .12s; }
   .rvw:first-child { border-top: 0; padding-top: 2px; } .rvw:hover, .rvw:focus-visible { background: #2a2926; }
   .rvwm { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; }
@@ -1424,6 +1428,13 @@
   <div class="panel">
     <h2 class="ph">Announcement</h2>
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
+  </div>
+  <div class="panel">
+    <h2 class="ph">Damage Report target</h2>
+    <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">When a marked player loses, the Damage Report line about them gets extra mean (chess only). They can still opt out of being featured.</div>
+    <form id="dtForm" class="row"><input id="dtIn" maxlength="16" placeholder="Username" autocomplete="off" style="text-align:left"><button class="primary" type="submit">Mark</button></form>
+    <div id="dtList" style="margin-top:8px"></div>
+    <div id="dtErr" role="alert" class="muted"></div>
   </div>
   <div class="panel">
     <h2 class="ph">Live games</h2>
@@ -2601,7 +2612,7 @@ const RV_KIND = { competitive: 'Most competitive', favourite: 'Community favouri
 function rvCommFeature(p) {
   const since = new Date(p.first).toLocaleDateString([], { month: 'short', year: 'numeric' });
   return `<article class="cmf" tabindex="0" data-rvpub="${esc(p.a)}~${esc(p.b)}" aria-label="${esc(p.a)} against ${esc(p.b)}: ${p.aw} to ${p.bw}">
-    <div class="cmk">${RV_KIND[p.kind] || 'Featured'}</div>
+    <div><span class="cmk k-${esc(p.kind)}">${RV_KIND[p.kind] || 'Featured'}</span></div>
     <div class="cmm">
       <div class="cmp">${rvCircle(p.a, 'a', true)}<button class="cmname" data-rvprof="${esc(p.a)}">${esc(p.a)}</button><span>${rvRating(p.ra)}</span></div>
       <div class="cms"><div class="n">${rvScoreSpans(p.aw, p.bw)}</div></div>
@@ -2614,7 +2625,7 @@ function rvCommFeature(p) {
 }
 function rvCommCard(p) {
   return `<article class="cmc" tabindex="0" data-rvpub="${esc(p.a)}~${esc(p.b)}" aria-label="${esc(p.a)} against ${esc(p.b)}: ${p.aw} to ${p.bw}">
-    <div class="cmk">${RV_KIND[p.kind] || ''}</div>
+    <div><span class="cmk k-${esc(p.kind)}">${RV_KIND[p.kind] || ''}</span></div>
     <div class="cmcm"><div class="cmcp">${rvCircle(p.a, 'a')}<b>${esc(p.a)}</b></div><div class="n">${rvScoreSpans(p.aw, p.bw)}</div><div class="cmcp r"><b>${esc(p.b)}</b>${rvCircle(p.b, 'b')}</div></div>
     <p class="cmwhy">${esc(p.why)}</p>
     ${rvPairStrip(p.strip.slice(-8), p.a, p.b)}
@@ -3014,6 +3025,7 @@ function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
 $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
+  loadDmgTargets();
   if (view !== 'admin') return;
   const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
@@ -3132,6 +3144,9 @@ $('#admin').addEventListener('click', async (e) => {
   loadAdmin();
 });
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
+async function loadDmgTargets() { const r = await api('admin_dmg_targets'); if (r.ok) setHTML($('#dtList'), r.targets.length ? r.targets.map((n) => `<span class="cmk" style="margin-right:6px">${esc(n)} <button class="small" data-dtoff="${esc(n)}" aria-label="Unmark ${esc(n)}">×</button></span>`).join('') : '<span class="muted">Nobody marked.</span>'); }
+$('#dtForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_dmg_target', { name: $('#dtIn').value, on: true }); $('#dtErr').textContent = r.ok ? '' : r.error || 'Failed.'; if (r.ok) $('#dtIn').value = ''; loadDmgTargets(); });
+$('#dtList').addEventListener('click', async (e) => { const b = e.target.closest('[data-dtoff]'); if (!b) return; await api('admin_dmg_target', { name: b.dataset.dtoff, on: false }); loadDmgTargets(); });
 $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); await api('admin_announce', { text: $('#annIn').value }); loadAdmin(); });
 
 // ---------- game ----------
@@ -6539,7 +6554,7 @@ function loadRvWatch() {
     $('#rvwatch').classList.toggle('hidden', !list.length);
     setHTML($('#rvwlist'), list.map((p) => `<div class="rvw" role="link" tabindex="0" data-rvwpub="${esc(p.a)}~${esc(p.b)}">
       <div class="rvwm"><span class="rvwp">${rvCircle(p.a, 'a')}<b>${esc(p.a)}</b></span><span class="n">${rvScoreSpans(p.aw, p.bw)}</span><span class="rvwp r"><b>${esc(p.b)}</b>${rvCircle(p.b, 'b')}</span></div>
-      <div class="rvwy"><span class="cmk">${RV_KIND[p.kind] || ''}</span> · ${esc(p.why)}</div></div>`).join(''));
+      <div class="rvwy"><span class="cmk k-${esc(p.kind)}">${RV_KIND[p.kind] || ''}</span> ${esc(p.why)}${p.d ? ` · ${p.d} draw${p.d === 1 ? '' : 's'}` : ''}</div></div>`).join(''));
   });
 }
 $('#rvwAll').onclick = () => enterRivals();
