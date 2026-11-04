@@ -3,11 +3,15 @@
   "outputDirectory": "public",
   "functions": {
     "api/index.js": {
-      "maxDuration": 10
+      "maxDuration": 10,
+      "includeFiles": "public/stockfish/**"
     }
   },
   "rewrites": [
-    { "source": "/d/:id", "destination": "/api?r=damage_page&p=:id" }
+    {
+      "source": "/d/:id",
+      "destination": "/api?r=damage_page&p=:id"
+    }
   ],
   "regions": [
     "bom1"
