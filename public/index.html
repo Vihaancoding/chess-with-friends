@@ -682,18 +682,42 @@
   .fxr .fx-act { display: flex; gap: 4px; justify-content: flex-end; } .fxr.me { outline: 2px solid var(--green); outline-offset: -2px; }
   .fxr details summary { cursor: pointer; font-size: .75rem; color: var(--muted); font-weight: 700; list-style: none; }
   .fxr details[open] { grid-column: 1 / -1; } .fxr details div { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
-  .bracket { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 6px; }
-  .bcol { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; min-width: 190px; flex: 1; }
-  .bcol h3 { margin: 0 0 4px; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); text-align: center; }
-  .bm { background: var(--panel2); border-radius: 8px; overflow: hidden; border: 2px solid transparent; }
-  .bm.me { border-color: var(--green); } .bm.live { border-color: #5c8bb0; }
-  .bm .bl { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; font-weight: 600; font-size: .9rem; }
-  .bm .bl + .bl { border-top: 1px solid var(--line); } .bm .bl.w { font-weight: 800; color: var(--green); } .bm .bl.tbd { color: var(--muted); font-style: italic; }
-  .bm .bl span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bm .bact { display: flex; gap: 4px; padding: 4px 6px 6px; flex-wrap: wrap; }
-  .bm .fxedit { display: flex; gap: 4px; flex-wrap: wrap; width: 100%; border-top: 1px dashed var(--line); padding-top: 4px; }
-  .bm .bact:empty { display: none; }
-  .bm.final { border-color: var(--gold); }
+  /* knockout bracket */
+  .kb { --kline: #4a4845; --kgap: 18px; display: flex; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; }
+  .kround { display: flex; flex-direction: column; flex: 1 0 190px; min-width: 190px; scroll-snap-align: start; }
+  .kround h3 { margin: 0 0 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text); text-align: center; }
+  .kround h3 small { display: block; font-size: .68rem; color: var(--muted); letter-spacing: .04em; text-transform: none; font-weight: 700; margin-top: 2px; }
+  .kmatches { flex: 1; display: flex; flex-direction: column; }
+  .kslot { flex: 1; display: flex; align-items: center; position: relative; padding: 8px var(--kgap); }
+  .kround:first-child .kslot { padding-left: 0; }
+  .kround:not(:last-child) .kslot::after { content: ''; position: absolute; right: 0; top: 50%; width: var(--kgap); border-top: 2px solid var(--kline); }
+  .kround:not(:last-child) .kslot:nth-child(odd)::before { content: ''; position: absolute; right: 0; top: 50%; height: 50%; border-right: 2px solid var(--kline); }
+  .kround:not(:last-child) .kslot:nth-child(even)::before { content: ''; position: absolute; right: 0; top: 0; height: 50%; border-right: 2px solid var(--kline); }
+  .kround:not(:last-child) .kslot:only-child::before { display: none; }
+  .kslot.won::after, .kslot.won::before { border-color: var(--green) !important; }
+  .kround:not(:first-child) .kslot > div::before { content: ''; position: absolute; left: calc(-1 * var(--kgap) - 2px); top: 50%; width: var(--kgap); border-top: 2px solid var(--kline); }
+  .km { position: relative; width: 100%; background: var(--panel2); border-radius: 10px; border: 2px solid #3a3936; }
+  .km.me { border-color: var(--green); box-shadow: 0 0 0 3px #81b64c22; } .km.live { border-color: #5c8bb0; box-shadow: 0 0 0 3px #5c8bb033; }
+  .km.final { border-color: var(--gold); }
+  .kp { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 10px; font-weight: 700; font-size: .92rem; }
+  .kp + .kp { border-top: 1px solid var(--line); }
+  .kp .sd { font-size: .68rem; color: var(--muted); text-align: center; background: #3a3936; border-radius: 5px; line-height: 18px; min-height: 18px; }
+  .kp .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kp .sc { font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: center; border-radius: 6px; padding: 1px 6px; font-weight: 800; }
+  .kp.w .nm { color: var(--green); } .kp.w .sc { background: var(--green-dark); color: #fff; }
+  .kp.l { opacity: .5; } .kp.tbd { color: var(--muted); font-style: italic; font-weight: 600; }
+  .kfoot { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px solid var(--line); padding: 5px 8px 5px 10px; font-size: .72rem; font-weight: 700; color: var(--muted); min-height: 32px; }
+  .kfoot .later { font-size: .72rem; }
+  .klive { color: #e8eef5; display: flex; align-items: center; gap: 5px; } .klive i { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); animation: tpulse 1.4s infinite; }
+  .kedit { display: flex; gap: 4px; flex-wrap: wrap; border-top: 1px dashed var(--line); padding: 6px 8px; }
+  .kchampcol { flex: 0 0 140px; min-width: 140px; }
+  .kchamp { position: relative; width: 100%; text-align: center; border-radius: 12px; padding: 16px 10px; background: var(--panel2); border: 2px dashed #4a4845; display: flex; flex-direction: column; gap: 4px; align-items: center; color: var(--muted); }
+  .kchamp b { font-size: 1.1rem; color: var(--text); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kchamp .ktrophy { font-size: 1.8rem; filter: grayscale(1); opacity: .5; } .kchamp span:last-child { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+  .kchamp.on { background: linear-gradient(160deg, #4a3f1c, var(--panel2)); border: 2px solid var(--gold); color: var(--gold); }
+  .kchamp.on b { color: var(--gold); } .kchamp.on .ktrophy { filter: none; opacity: 1; }
+  .tlen { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 700; color: var(--muted); } .tlen select { width: auto; min-height: 36px; }
+  @media (prefers-reduced-motion: reduce) { .klive i { animation: none; } }
   .tvgrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
   .tvgrid > #tvBody { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   #tvChat { position: sticky; top: 14px; display: flex; flex-direction: column; gap: 8px; }
@@ -937,7 +961,8 @@
         <label class="tf">Name<input id="tnName" maxlength="40" placeholder="e.g. Friday Night Cup"></label>
         <label class="tf">Format<select id="tnKind"><option value="gko">Groups, then knockout</option><option value="ko">Knockout</option><option value="rr">Round robin</option></select></label>
         <div class="trow" id="tnGroupOpts"><label class="tf">Group size<select id="tnSize"><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label><label class="tf">Go through<select id="tnAdv"><option value="1">Top 1 per group</option><option value="2" selected>Top 2 per group</option></select></label></div>
-        <div class="trow"><label class="tf" id="tnGnL">Group matches<select id="tnGn"><option value="1">1 game, draws count</option><option value="3">Best of 3</option></select></label><label class="tf" id="tnKnL">Knockout matches<select id="tnKn"><option value="1">1 game, Armageddon if drawn</option><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label></div>
+        <label class="tf">Match length (every pairing)<select id="tnLen"><option value="1">1 game</option><option value="3">Best of 3</option><option value="5">Best of 5</option><option value="custom">Different for groups and knockout…</option></select></label>
+        <div class="trow hidden" id="tnSplit"><label class="tf" id="tnGnL">Group matches<select id="tnGn"><option value="1">1 game, draws count</option><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label><label class="tf" id="tnKnL">Knockout matches<select id="tnKn"><option value="1">1 game, Armageddon if drawn</option><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label></div>
         <div class="trow"><label class="tf">Time control<select id="tnTc"></select></label><label class="tf">Max players<select id="tnMax"><option>4</option><option>8</option><option>12</option><option selected>16</option><option>32</option><option>64</option></select></label></div>
         <label class="tf">Start time (optional)<input type="datetime-local" id="tnStart"><span class="muted" style="text-transform:none;letter-spacing:0;font-weight:600">Leave empty to start it yourself. With a time set, it starts by itself.</span></label>
         <div id="tnPoll" class="hidden"><div class="tf">Players vote between<span class="muted" style="text-transform:none;letter-spacing:0;font-weight:600">Pick 2–5. Signed-up players vote; the winner is used when you start.</span></div><div class="tpollpick" id="tnPollOpts"></div></div>
@@ -5347,13 +5372,15 @@ function paintTourForm() {
   $('#tnPoll').classList.toggle('hidden', $('#tnTc').value !== 'poll');
   const k = $('#tnKind').value;
   $('#tnGroupOpts').classList.toggle('hidden', k !== 'gko');
-  $('#tnGnL').classList.toggle('hidden', k === 'ko'); $('#tnKnL').classList.toggle('hidden', k === 'rr');
+  $('#tnSplit').classList.toggle('hidden', $('#tnLen').value !== 'custom' || k !== 'gko');
+  $('#tnLen').querySelector('[value="custom"]').disabled = k !== 'gko';
+  if (k !== 'gko' && $('#tnLen').value === 'custom') $('#tnLen').value = '1';
   $('#tnMax').querySelectorAll('option').forEach((o) => { o.disabled = k === 'rr' && +o.value > 12; });
   if (k === 'rr' && +$('#tnMax').value > 12) $('#tnMax').value = '12';
   setText($('#tnDesc'), k === 'gko' ? `Players are split into groups of about ${$('#tnSize').value} (seeded by rating), play everyone in their group, and the top ${$('#tnAdv').value === '1' ? 'player' : 'two'} of each group go into a knockout bracket.`
     : k === 'ko' ? 'A seeded bracket: lose and you are out. Top seeds get byes when the numbers are uneven.' : 'Everyone plays everyone once. The table decides the winner (up to 12 players).');
 }
-['#tnKind', '#tnSize', '#tnAdv', '#tnMax', '#tnTc'].forEach((id) => $(id).addEventListener('change', paintTourForm));
+['#tnKind', '#tnSize', '#tnAdv', '#tnMax', '#tnTc', '#tnLen'].forEach((id) => $(id).addEventListener('change', paintTourForm));
 $('#tourNew').addEventListener('submit', async (e) => {
   e.preventDefault();
   const toTc = (v) => { const [base, inc] = v.split(',').map(Number); return base ? { base, inc } : null; };
@@ -5364,7 +5391,7 @@ $('#tourNew').addEventListener('submit', async (e) => {
   }
   const r = await api('tour_create', { name: $('#tnName').value, tc: poll ? null : toTc($('#tnTc').value), poll,
     startAt: $('#tnStart').value ? new Date($('#tnStart').value).getTime() : null,
-    cfg: { kind: $('#tnKind').value, size: $('#tnSize').value, adv: $('#tnAdv').value, gn: $('#tnGn').value, kn: $('#tnKn').value, max: $('#tnMax').value } });
+    cfg: { kind: $('#tnKind').value, size: $('#tnSize').value, adv: $('#tnAdv').value, gn: $('#tnLen').value === 'custom' ? $('#tnGn').value : $('#tnLen').value, kn: $('#tnLen').value === 'custom' ? $('#tnKn').value : $('#tnLen').value, max: $('#tnMax').value } });
   if (!r.ok) return setText($('#tnErr'), r.error || 'Could not create it.');
   setText($('#tnErr'), ''); $('#tnName').value = '';
   enterTours(r.tour.id);
@@ -5406,15 +5433,34 @@ function fixturesByRound(t, g, run) {
     return `<div class="fxround"><span>Round ${r}</span><span class="${left ? '' : 'rdone'}">${left ? `${left} to play` : '✓ done'}</span></div>${list.map((f) => fxRow(t, f, run, next)).join('')}`;
   }).join('');
 }
+// knockout bracket: rounds as columns joined by connector lines, the winner's path in green, a champion slot at the end
 function bracketHTML(t, run) {
-  const R = t.ko.rounds;
-  const line = (f, side) => {
-    const n = f[side], w = Tour.winnerOf(f), sc = f.score ? half(f.score[side === 'a' ? 0 : 1]) : f.by === 'awarded' && w ? (w === n ? '✓' : '') : '';
-    if (!n) return `<div class="bl tbd"><span>${f.by === 'bye' ? 'bye' : 'to be decided'}</span><span></span></div>`;
-    return `<div class="bl${w === n ? ' w' : ''}"><span>${esc(n)}${n === user.name ? ' <span class="youtag">you</span>' : ''}</span><span>${sc}</span></div>`;
+  const R = t.ko.rounds, seeds = t.ko.seeds || [], next = (Tour.myFixtures(t, user.name)[0] || {}).id;
+  const seed = (n) => { const i = seeds.indexOf(n); return i < 0 ? '' : i + 1; };
+  const row = (f, side) => {
+    const n = f[side], w = Tour.winnerOf(f);
+    if (!n) return `<div class="kp tbd"><span class="sd"></span><span class="nm">${f.by === 'bye' ? 'bye' : 'TBD'}</span><span class="sc"></span></div>`;
+    const sc = f.score && f.by !== 'awarded' ? half(f.score[side === 'a' ? 0 : 1]) : w ? (w === n ? '✓' : '') : '';
+    return `<div class="kp${w ? (w === n ? ' w' : ' l') : ''}"><span class="sd">${seed(n)}</span><span class="nm">${esc(n)}${n === user.name ? ' <span class="youtag">you</span>' : ''}</span><span class="sc">${sc}</span></div>`;
   };
-  return `<div class="panel"><h2 class="ph">Knockout</h2><div class="bracket">${R.map((round, r) => `<div class="bcol"><h3>${Tour.ROUND_NAMES[round.length] || 'Round ' + (r + 1)}</h3>
-    ${round.map((f) => `<div class="bm${Tour.ready(f) && (f.a === user.name || f.b === user.name) ? ' me' : f.room && !f.res ? ' live' : ''}${r === R.length - 1 ? ' final' : ''}">${line(f, 'a')}${line(f, 'b')}<div class="bact">${fxActions(t, f, (Tour.myFixtures(t, user.name)[0] || {}).id)}${fxEdit(t, f, run).replace('fxedit', 'fxedit b')}</div></div>`).join('')}</div>`).join('')}</div></div>`;
+  const foot = (f) => {
+    const mine = f.a === user.name || f.b === user.name;
+    if (f.by === 'bye') return '<span>Bye: through to the next round</span>';
+    if (f.res) return `<span>${f.by === 'awarded' ? 'Set by the organizer' : 'Final score'}</span>${f.room ? `<button class="small" data-twatch="${f.room}">Replay</button>` : ''}`;
+    if (!f.a || !f.b) return '<span>Waiting for the winners</span>';
+    if (mine) return `<span>${f.id === next ? 'Your next game' : 'Your game'}</span>${fxActions(t, f, next)}`;
+    if (f.room) return '<span class="klive"><i></i>Live</span>' + `<button class="small" data-twatch="${f.room}">Watch</button>`;
+    return '<span>Ready to play</span>';
+  };
+  const cols = R.map((round, r) => {
+    const name = Tour.ROUND_NAMES[round.length] || 'Round ' + (r + 1), len = round[0] && round[0].fmt ? Tour.lengthText(round[0].fmt.n, true) : '';
+    return `<div class="kround"><h3>${name}<small>${esc(len)}</small></h3><div class="kmatches">${round.map((f) => {
+      const live = f.room && !f.res, me = Tour.ready(f) && (f.a === user.name || f.b === user.name);
+      return `<div class="kslot${f.res ? ' won' : ''}"><div class="km${me ? ' me' : ''}${live ? ' live' : ''}${r === R.length - 1 ? ' final' : ''}">${row(f, 'a')}${row(f, 'b')}<div class="kfoot">${foot(f)}</div>${fxEdit(t, f, run).replace('fxedit', 'fxedit kedit')}</div></div>`;
+    }).join('')}</div></div>`;
+  }).join('');
+  const champ = `<div class="kround kchampcol"><h3>Champion<small>&nbsp;</small></h3><div class="kmatches"><div class="kslot"><div class="kchamp${t.champion ? ' on' : ''}"><span class="ktrophy">🏆</span><b>${t.champion ? esc(t.champion) : '?'}</b><span>${t.champion ? (t.champion === user.name ? 'That\'s you!' : 'Winner') : 'To be decided'}</span></div></div></div></div>`;
+  return `<div class="panel"><h2 class="ph"><span>Knockout</span><span class="muted" style="font-size:.8rem">${R.flat().filter((f) => f.res && f.by !== 'bye').length} / ${R.flat().filter((f) => f.by !== 'bye').length} played</span></h2><div class="kb">${cols}${champ}</div></div>`;
 }
 function paintTour(t) {
   const mine = t.players.some((p) => p.name === user.name), run = t.by === user.name || tourAdmin;
@@ -5425,6 +5471,10 @@ function paintTour(t) {
     if (run) acts.push(`<button class="primary" data-tact="start" ${t.players.length < Tour.MIN[cfg.kind] ? `disabled title="Needs ${Tour.MIN[cfg.kind]} players"` : ''}>Start now</button>`);
   }
   if (run && (t.phase === 'signup' || t.phase === 'done' || tourAdmin)) acts.push('<button data-tact="delete">Delete</button>');
+  if (run && t.phase !== 'done') {
+    const same = cfg.kind === 'ko' ? cfg.kn : cfg.kind === 'rr' ? cfg.gn : cfg.gn === cfg.kn ? cfg.gn : 0;
+    acts.push(`<label class="tlen">Match length <select data-tlen>${same ? '' : '<option value="" selected disabled>Mixed</option>'}${[1, 3, 5].map((n) => `<option value="${n}"${n === same ? ' selected' : ''}>${n === 1 ? '1 game' : 'Best of ' + n}</option>`).join('')}</select></label>`);
+  }
   if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
   acts.push('<button data-tact="link">Copy link</button>');
   setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${PHASE[t.phase]}</span></div>
@@ -5459,6 +5509,14 @@ async function tourPlay(id, fx) {
   if (!r.ok) { const el = view === 'tours' ? $('#tvErr') : $('#err'); if (el) el.textContent = r.error || 'Could not open the match.'; if (view === 'lobby') pollLobby(true); return; }
   enterGame(r.code);
 }
+$('#tours').addEventListener('change', async (e) => {
+  const sel = e.target.closest('[data-tlen]'); if (!sel || !tourId) return;
+  const n = +sel.value, started = !/Sign-ups/.test($('#tvHead').textContent);
+  if (started && !confirm(`Switch to ${n === 1 ? '1 game' : 'best of ' + n} per pairing? It applies to every game that hasn't started yet; games already being played keep their length.`)) return loadTours();
+  const r = await api('tour_length', { id: tourId, gn: n, kn: n });
+  if (!r.ok) setText($('#tvErr'), r.error || 'Could not change it.');
+  loadTours();
+});
 $('#tours').addEventListener('click', async (e) => {
   const v = e.target.closest('[data-tvote]');
   if (v && !v.disabled && tourId) { const r = await api('tour_vote', { id: tourId, i: +v.dataset.tvote }); if (r.ok) { paintTour(r.tour); loadTours(); } else setText($('#tvErr'), r.error || 'Could not vote.'); return; }

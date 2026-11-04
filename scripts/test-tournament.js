@@ -231,6 +231,30 @@ const tc = { base: 300, inc: 0 };
     await call('tour_delete', { id: wid }, P.ann);
   }
 
+  console.log('match length: best of 3 for every pairing, changeable later');
+  {
+    r = await call('tour_create', { name: 'Len Cup', tc, cfg: { kind: 'gko', size: 3, gn: 3, kn: 3 } }, P.ann);
+    const lid = r.tour.id;
+    ok('best of 3 for groups and knockout', r.tour.cfg.gn === 3 && r.tour.cfg.kn === 3, r.tour.cfg);
+    for (const n of ['bob', 'cat', 'dan']) await call('tour_join', { id: lid }, P[n]);
+    r = await call('tour_start', { id: lid }, P.ann);
+    ok('group games are best of 3 (draws allowed)', r.tour.groups.every((g) => g.fixtures.every((f) => f.fmt.n === 3 && f.fmt.tie)), r.tour.groups[0].fixtures[0].fmt);
+    const lf = r.tour.groups[0].fixtures[0];
+    const lr = await call('tour_play', { id: lid, fx: lf.id }, P[lf.a]);
+    ok('their room plays best of 3', (await call('room', { code: lr.code }, P[lf.a])).match.n === 3);
+    r = await call('tour_length', { id: lid, gn: 5, kn: 5 }, P.bob);
+    ok('only the organizer changes the match length', r.status === 403);
+    r = await call('tour_length', { id: lid, gn: 1, kn: 1 }, P.ann);
+    const after = r.tour.groups.flatMap((g) => g.fixtures);
+    ok('a change applies to the games that have not started', after.filter((f) => f.id !== lf.id).every((f) => f.fmt.n === 1) && Tour.find(r.tour, lf.id).fmt.n === 3, after.map((f) => f.fmt.n));
+    r = await call('tour_get', { id: lid }, P.ann);
+    ok('…and the chat says so', /Match length is now 1 game for games that haven't started/.test(r.chat[r.chat.length - 1].t), r.chat.slice(-1));
+    for (const f of r.tour.groups.flatMap((g) => g.fixtures)) await call('tour_award', { id: lid, fx: f.id, res: 'a' }, P.ann);
+    r = await call('tour_get', { id: lid }, P.ann);
+    ok('the knockout uses the new length', r.tour.ko.rounds.flat().every((f) => f.fmt.n === 1), r.tour.ko.rounds.flat().map((f) => f.fmt));
+    await call('tour_delete', { id: lid }, P.ann);
+  }
+
   console.log('time control by vote');
   r = await call('tour_create', { name: 'Vote Cup', poll: [{ base: 60, inc: 0 }], cfg: { kind: 'ko' } }, P.ann);
   ok('a vote needs two options', r.status === 400, r);
