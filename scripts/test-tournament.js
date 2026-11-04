@@ -32,15 +32,25 @@ const tc = { base: 300, inc: 0 };
       const g = {}; t.groups.forEach((x) => x.players.forEach((n) => { g[n] = x.name; }));
       for (const x of t.groups) for (const f of x.fixtures) Tour.record(t, f.id, +f.a.slice(1) < +f.b.slice(1) ? 'a' : 'b', [1, 0]);
       const r0 = t.ko.rounds[0];
-      ok(`${N} players: ${t.groups.length} groups, bracket of ${r0.length * 2}, no group rematch in round 1`, !r0.some((f) => f.a && f.b && g[f.a] === g[f.b]) && t.ko.seeds.length === t.groups.length * 2, r0);
+      ok(`${N} players: ${t.groups.length} groups, a full bracket of ${r0.length * 2} (no byes), no group rematch in round 1`, !r0.some((f) => f.a && f.b && g[f.a] === g[f.b]) && t.ko.seeds.length === Tour.qualifySpots(t).P && Tour.pow2(r0.length * 2) === r0.length * 2 && !r0.some((f) => f.by === 'bye'), r0);
       while (t.phase === 'ko') { const f = Tour.allFixtures(t).find(Tour.ready); Tour.record(t, f.id, 'b', [0, 1]); }
       ok(`${N} players: a champion`, t.phase === 'done' && !!t.champion);
     }
+    for (const [N, groups, bracket] of [[3, 1, 2], [5, 1, 4], [6, 2, 4], [7, 2, 4], [9, 3, 8], [12, 4, 8], [13, 4, 8]]) {
+      const q = Tour.create({ id: 'q', name: 'q', by: 'p0', cfg: { kind: 'ko', max: 64 }, now: 1 });
+      for (let i = 0; i < N; i++) Tour.join(q, { name: 'p' + i, elo: 2000 - i });
+      Tour.start(q, 1);
+      ok(`${N}-player knockout: qualifying groups first (${groups}), nobody sits out`, q.phase === 'groups' && q.groups.length === groups && q.groups.every((g) => g.fixtures.length) && Tour.stageOf(q, q.groups[0].fixtures[0]) === 'Qualifying group A', q.groups.map((g) => g.players));
+      for (const g of q.groups) for (const f of g.fixtures) Tour.record(q, f.id, +f.a.slice(1) < +f.b.slice(1) ? 'a' : 'b');
+      ok(`…then a full bracket of ${bracket}, no byes`, q.phase === 'ko' && q.ko.rounds[0].length * 2 === bracket && q.ko.rounds[0].every((f) => f.a && f.b && !f.by), q.ko.rounds[0]);
+    }
+    const k8 = Tour.create({ id: 'k8', name: 'k8', by: 'a', cfg: { kind: 'ko' }, now: 1 });
+    for (let i = 0; i < 8; i++) Tour.join(k8, { name: 'p' + i, elo: 100 - i });
+    Tour.start(k8, 1);
+    ok('8 players: straight into the quarter-finals', k8.phase === 'ko' && !k8.groups && k8.ko.rounds[0].length === 4);
     const k = Tour.create({ id: 'k', name: 'k', by: 'a', cfg: { kind: 'ko' }, now: 1 });
-    ['a', 'b', 'c', 'd', 'e'].forEach((n, i) => Tour.join(k, { name: n, elo: 100 - i }));
+    ['a', 'b'].forEach((n, i) => Tour.join(k, { name: n, elo: 100 - i }));
     Tour.start(k, 1);
-    ok('5-player knockout: the top 3 seeds get byes', k.ko.rounds[0].filter((f) => f.by === 'bye').map((f) => f.a).sort().join() === 'a,b,c', k.ko.rounds[0]);
-    ok('bye winners are already in round 2', k.ko.rounds[1].filter((f) => f.a || f.b).length >= 2, k.ko.rounds[1]);
     let threw = ''; try { Tour.record(k, Tour.allFixtures(k).find(Tour.ready).id, 'draw'); } catch (e) { threw = e.message; }
     ok('a knockout match cannot be drawn', /winner/.test(threw), threw);
     const r = Tour.create({ id: 'r', name: 'r', by: 'a', cfg: { kind: 'rr' }, now: 1 });

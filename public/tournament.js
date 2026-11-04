@@ -1,6 +1,8 @@
 // Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket.
-//   gko  groups, then the top players of each group go into a knockout bracket
-//   ko   a straight knockout, seeded by rating (top seeds get byes when the field isn't a power of two)
+//   gko  groups, then the top players of each group go into a knockout bracket (topped up or trimmed to a full
+//        bracket with the best runners-up / third places, so again nobody gets a bye)
+//   ko   a knockout, seeded by rating. A bracket needs 2, 4, 8, 16… players: with any other number, everyone first plays
+//        a short qualifying group (about 3 players) and the best of them fill the bracket exactly. Nobody gets a bye.
 //   rr   one round robin: everyone plays everyone, the table decides
 // Every pairing ("fixture") is a head-to-head match (match.js) played in a normal room. Group fixtures can be
 // drawn; knockout fixtures always produce a winner (a level best-of goes to Armageddon).
@@ -23,7 +25,7 @@
       max: Math.min(kind === 'rr' ? MAX_RR : MAX_PLAYERS, pick(c.max, [4, 8, 12, 16, 32, 64], 16)),
     };
   }
-  const groupFmt = (t) => ({ fmt: 'bo', n: t.cfg.gn, tie: true });
+  const groupFmt = (t) => ({ fmt: 'bo', n: t.cfg.kind === 'ko' ? t.cfg.kn : t.cfg.gn, tie: true });   // a knockout's qualifying games use its match length
   const koFmt = (t) => ({ fmt: 'bo', n: t.cfg.kn });
 
   // poll: 2-5 time controls the signed-up players vote on; the winner becomes t.tc when the tournament starts
@@ -88,14 +90,25 @@
     resolvePoll(t);
     const seeds = [...t.players].sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name)).map((x) => x.name);
     t.started = now;
-    if (t.cfg.kind === 'ko') { buildKo(t, seeds); return t; }
-    const ng = t.cfg.kind === 'rr' ? 1 : Math.max(2, Math.round(seeds.length / t.cfg.size));
+    if (t.cfg.kind === 'ko' && pow2(seeds.length) === seeds.length) { buildKo(t, seeds); return t; }   // a full bracket: straight in
+    const ng = t.cfg.kind === 'rr' ? 1 : t.cfg.kind === 'ko' ? Math.max(1, Math.floor(seeds.length / 3)) : Math.max(2, Math.round(seeds.length / t.cfg.size));
     const groups = Array.from({ length: ng }, (_, i) => ({ name: String.fromCharCode(65 + i), players: [], fixtures: [] }));
     seeds.forEach((s, i) => { const r = Math.floor(i / ng), k = r % 2 ? ng - 1 - (i % ng) : i % ng; groups[k].players.push(s); });   // snake: groups of even strength
     for (const g of groups) g.fixtures = roundRobin(g.players).map(([a, b, r], i) => ({ ...fx(`g${g.name}${i + 1}`, a, b, groupFmt(t)), r }));
     t.groups = groups;
     t.phase = 'groups';
     return t;
+  }
+
+  const pow2 = (n) => { let p = 1; while (p * 2 <= n) p *= 2; return p; };   // the biggest full bracket that fits
+  // how many go through to the knockout: a full bracket (P), the top `per` of every group, and the `extra` best of the
+  // next place (best runners-up, best third places…)
+  function qualifySpots(t) {
+    const ng = t.groups.length;
+    const q = Math.max(2, ng * t.cfg.adv), down = pow2(q), up = Math.min(down * 2, pow2(t.players.length));
+    const P = t.cfg.kind === 'ko' ? pow2(t.players.length) : up - q < q - down || (up - q === q - down && down < 4) ? up : down;   // groups: the nearer full bracket (never just a final when a semi-final fits)
+    const per = Math.min(t.cfg.kind === 'ko' ? Infinity : t.cfg.adv, Math.floor(P / ng));
+    return { P, per, extra: P - per * ng };
   }
 
   // a group table: fixture points (win 1, draw ½), then game points, then head-to-head, then rating
@@ -170,7 +183,7 @@
   const find = (t, id) => allFixtures(t).find((f) => f.id === id) || null;
   const ready = (f) => !!(f && f.a && f.b && !f.res);
   const stageOf = (t, f) => {
-    if (f.id[0] === 'g') return t.cfg.kind === 'rr' ? 'Round robin' : `Group ${f.id[1]}`;
+    if (f.id[0] === 'g') return t.cfg.kind === 'rr' ? 'Round robin' : t.cfg.kind === 'ko' ? `Qualifying group ${f.id[1]}` : `Group ${f.id[1]}`;
     const r = +f.id.slice(1).split('-')[0], n = t.ko.rounds[r - 1].length;
     if (r === 1 && t.ko.rounds[0].some((x) => x.by === 'bye')) return 'Play-in';   // only some players play it; the rest have a bye
     return ROUND_NAMES[n] || `Round ${r}`;
@@ -188,12 +201,14 @@
     if (t.phase === 'groups' && t.groups.every((g) => g.fixtures.every((x) => x.res))) {
       if (t.cfg.kind === 'rr') { t.champion = standings(t, t.groups[0])[0].name; t.phase = 'done'; }
       else {
-        // the top `adv` of each group: all group winners first (best first), then the runners-up
-        const tables = t.groups.map((g) => standings(t, g)), groupOf = {}, q = [];
+        // a full bracket: the top `per` of each group (group winners first, best first), then the best of the next place
+        const tables = t.groups.map((g) => standings(t, g)), groupOf = {}, q = [], { per, extra } = qualifySpots(t);
         t.groups.forEach((g) => g.players.forEach((n) => { groupOf[n] = g.name; }));
         const elo = (x) => (t.players.find((p) => p.name === x.name) || {}).elo || 0;
-        const per = (x) => (x.pl ? x.pts / x.pl : 0), gper = (x) => (x.pl ? x.gp / x.pl : 0);   // groups can differ in size
-        for (let k = 0; k < t.cfg.adv; k++) q.push(...tables.map((tb) => tb[k]).filter(Boolean).sort((x, y) => per(y) - per(x) || gper(y) - gper(x) || elo(y) - elo(x)).map((x) => x.name));
+        const ppg = (x) => (x.pl ? x.pts / x.pl : 0), gpg = (x) => (x.pl ? x.gp / x.pl : 0);   // groups can differ in size
+        const best = (list) => list.filter(Boolean).sort((x, y) => ppg(y) - ppg(x) || gpg(y) - gpg(x) || elo(y) - elo(x)).map((x) => x.name);
+        for (let k = 0; k < per; k++) q.push(...best(tables.map((tb) => tb[k])));
+        if (extra) q.push(...best(tables.map((tb) => tb[per])).slice(0, extra));
         buildKo(t, q, groupOf);
       }
     } else if (t.phase === 'ko') advance(t);
@@ -211,6 +226,6 @@
   // fixtures a player can play now, the one they should play next first
   const myFixtures = (t, name) => allFixtures(t).filter((f) => ready(f) && (f.a === name || f.b === name)).sort((x, y) => (x.room ? 0 : 1) - (y.room ? 0 : 1) || roundOf(t, x) - roundOf(t, y));
 
-  const api = { setLength, lengthText, roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
+  const api = { pow2, qualifySpots, setLength, lengthText, roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tour = api;
 })(typeof self !== 'undefined' ? self : this);
