@@ -1430,6 +1430,13 @@
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
   </div>
   <div class="panel">
+    <h2 class="ph">Damage Report target</h2>
+    <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">When a marked player loses, the Damage Report line about them gets extra mean (chess only). They can still opt out of being featured.</div>
+    <form id="dtForm" class="row"><input id="dtIn" maxlength="16" placeholder="Username" autocomplete="off" style="text-align:left"><button class="primary" type="submit">Mark</button></form>
+    <div id="dtList" style="margin-top:8px"></div>
+    <div id="dtErr" role="alert" class="muted"></div>
+  </div>
+  <div class="panel">
     <h2 class="ph">Live games</h2>
     <table><thead><tr><th>White</th><th>Black</th><th>Time</th><th class="r">Moves</th><th></th></tr></thead><tbody id="adlive"></tbody></table>
   </div>
@@ -3018,6 +3025,7 @@ function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
 $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
+  loadDmgTargets();
   if (view !== 'admin') return;
   const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
@@ -3136,6 +3144,9 @@ $('#admin').addEventListener('click', async (e) => {
   loadAdmin();
 });
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
+async function loadDmgTargets() { const r = await api('admin_dmg_targets'); if (r.ok) setHTML($('#dtList'), r.targets.length ? r.targets.map((n) => `<span class="cmk" style="margin-right:6px">${esc(n)} <button class="small" data-dtoff="${esc(n)}" aria-label="Unmark ${esc(n)}">×</button></span>`).join('') : '<span class="muted">Nobody marked.</span>'); }
+$('#dtForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_dmg_target', { name: $('#dtIn').value, on: true }); $('#dtErr').textContent = r.ok ? '' : r.error || 'Failed.'; if (r.ok) $('#dtIn').value = ''; loadDmgTargets(); });
+$('#dtList').addEventListener('click', async (e) => { const b = e.target.closest('[data-dtoff]'); if (!b) return; await api('admin_dmg_target', { name: b.dataset.dtoff, on: false }); loadDmgTargets(); });
 $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); await api('admin_announce', { text: $('#annIn').value }); loadAdmin(); });
 
 // ---------- game ----------

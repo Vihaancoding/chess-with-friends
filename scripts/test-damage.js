@@ -304,6 +304,21 @@ const fix = (i, over) => { const g = gameOf(i, over); return scoreOf(g, fx[i].ev
   ok('and viewing the page afterwards never calls the AI again', calls.length === before4, calls.length - before4);
   handler.damageDeps = {};
 
+  console.log('the admin target');
+  await call('admin_claim', { key: 'test-admin-key' }, P.dan);
+  ok('only an admin can mark a target', (await call('admin_dmg_target', { name: 'bob', on: true }, P.ann)).status === 403);
+  const mkT = await call('admin_dmg_target', { name: 'bob', on: true }, P.dan);
+  ok('the admin marks bob', mkT.ok && mkT.targets.includes('bob'), mkT);
+  const gT = { ...g3, id: 'TARGT-tg001', code: 'TARGT', hist: toHist(fx[4].ucis), result: fx[4].result, reason: fx[4].reason };
+  await store.set('game:' + gT.id, gT);
+  await handler.damage.damageEnqueue(gT); await handler.damage.damageRun(gT.id);
+  const recT = await store.get('dmg:' + gT.id);
+  ok('when bob loses, the line comes from the target bank', recT.st === 'd' && /^(slight|dominant|brutal|complete)\.target\./.test(recT.tpl || ''), recT);
+  ok('and the AI is told who the punching bag is, chess only', T.promptFor(T.ctxOf(fix(4).card, fix(4).f, { target: true }), []).includes('TARGET:') && !T.promptFor(T.ctxOf(fix(4).card, fix(4).f), []).includes('TARGET:'));
+  ok('every target line passes the style rules', TEMPLATES.filter((x) => x.type === 'target').every((x) => !T.styleProblem(T.fill(x.s, { w: 'maya', l: 'jonas', moves: 14 }))));
+  await call('admin_dmg_target', { name: 'bob', on: false }, P.dan);
+  ok('and it can be unmarked', !(await call('admin_dmg_targets', {}, P.dan)).targets.includes('bob'));
+
   console.log('privacy, opting out and the hide switch');
   fd = await feed('ann');
   const ids = [fd.headline, ...fd.strip].filter(Boolean).map((x) => x.id);
