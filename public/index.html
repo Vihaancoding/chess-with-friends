@@ -743,6 +743,13 @@
   .tpo i { position: absolute; inset: 0 auto 0 0; background: #3b4a2b; z-index: 0; transition: width .3s; } .tpo span { position: relative; z-index: 1; }
   .tpo.mine { border-color: var(--green); } .tpo.won { border-color: var(--gold); } .tpo.won i { background: #4a3f1c; }
   .tpo:disabled { opacity: 1; cursor: default; }
+  /* @mentions */
+  .ment { color: #9fd0f0; font-weight: 700; } .ment.me { color: var(--gold); background: #4a3f1c; border-radius: 4px; padding: 0 3px; }
+  .mentbox { position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 25; background: var(--panel); border: 1px solid #4a4845; border-radius: 10px; padding: 4px; display: flex; flex-direction: column; min-width: 180px; max-width: 260px; box-shadow: 0 12px 30px -10px #000; }
+  .mentbox.hidden { display: none; }
+  .mentbox button { text-align: left; justify-content: flex-start; background: none; border: 0; box-shadow: none; min-height: 34px; padding: 6px 10px; border-radius: 7px; font-weight: 700; color: var(--text); }
+  .mentbox button.on, .mentbox button:hover { background: #3b4a2b; color: var(--green); }
+  .mentbox .mh { font-size: .68rem; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: 4px 10px 2px; }
 </style>
 </head>
 <body data-view="welcome">
@@ -1365,6 +1372,7 @@ function paintRtDot() {
 // session-wide subscriptions: made once after sign-in, kept while navigating
 function ensureSessionSubs() {
   rtInit().then(paintRtDot);
+  startMentions();
   if (rtSession || !user || !user.topic) return;
   rtSession = true;
   rtSubscribe(user.topic, { ping: onUserPing }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok && view === 'lobby') pollLobby(false); });
@@ -1373,6 +1381,7 @@ function ensureSessionSubs() {
 function onUserPing(d) {
   if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
+  if (d.why === 'mention' && d.m) return onMention([d.m]);
   if (d.why === 'tourwait' && d.code) {                                 // a tournament opponent is in the room, waiting for me
     if (view === 'game' && gameCode === d.code) return;
     sfx('challenge');
@@ -1936,6 +1945,7 @@ let onlineSig = '';
 const ONLINE_ST = { lobby: 'in the lobby', playing: 'playing', watching: 'watching a game' };
 const ago = (ts) => { const m = Math.floor((Date.now() - ts) / 60e3); return m < 60 ? `${Math.max(1, m)}m ago` : m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`; };
 function renderOnline(list) {
+  list.forEach((p) => knownName(p.name, p.st !== 'offline'));
   const sig = JSON.stringify([list, Math.floor(Date.now() / 60e3)]);   // redraw each minute so "seen … ago" stays right
   if (sig === onlineSig) return;
   onlineSig = sig;
@@ -1987,6 +1997,7 @@ function renderChat(msgs, isAdmin, muted) {
     if (extra.length) msgs = msgs.concat(extra).slice(-50);
   }
   curChat = msgs; curAdmin = isAdmin; curMuted = !!muted;
+  msgs.forEach((m) => knownName(m.name));
   $('#chatIn').placeholder = muted ? 'You are muted' : 'Say something…';
   $('#chatIn').disabled = !!muted;
   drawChat();
@@ -1995,7 +2006,7 @@ function drawChat() {
   const log = $('#chatlog');
   const near = !chatDrawn || log.scrollHeight - log.scrollTop - log.clientHeight < 50;
   const all = curChat.concat(chatPending.filter((p) => !curChat.some((m) => m.id === p.realId)));
-  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${esc(m.text)}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
+  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${mentionify(esc(m.text))}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
   // reuse the rows already on screen so nothing flickers; only new rows are built
   const old = new Map();
   for (const el of log.children) if (el.dataset.id) old.set(el.dataset.id, el);
@@ -2029,6 +2040,77 @@ $('#chatlog').addEventListener('click', async (e) => {
   if (!r.ok) $('#chatErr').textContent = r.error || 'Could not delete.';
   pollLobby(true);
 });
+// ---------- @mentions: highlight, the picker, and the notification when you're mentioned somewhere else ----------
+const MENT_RE = /(^|[^A-Za-z0-9_-])@([A-Za-z0-9_-]{2,16})(?![A-Za-z0-9_-])/g;
+// text is already escaped; names can't contain anything that escaping changes
+const mentionify = (h) => h.replace(MENT_RE, (all, pre, n) => `${pre}<span class="ment${user && n.toLowerCase() === user.name.toLowerCase() ? ' me' : ''}">@${n}</span>`);
+const knownNames = new Map();                                            // name -> last time seen online (0 = just known)
+function knownName(n, online) { if (!n || !/^[A-Za-z0-9_-]{2,16}$/.test(n)) return; const prev = knownNames.get(n) || 0; knownNames.set(n, online ? Date.now() : prev); }
+const mentSeen = new Set();
+function mentionLooking(m) {
+  if (document.hidden) return false;
+  return (m.kind === 'lobby' && view === 'lobby') || (m.kind === 'game' && view === 'game' && gameCode === m.code) || (m.kind === 'tour' && view === 'tours' && tourId === m.tid);
+}
+function onMention(list) {
+  const fresh = list.filter((m) => m && m.id && !mentSeen.has(m.id));
+  if (!fresh.length) return;
+  fresh.forEach((m) => mentSeen.add(m.id));
+  api('mention_seen', { ids: fresh.map((m) => m.id) });
+  const away = fresh.filter((m) => !mentionLooking(m));
+  if (!away.length) { sfx('move'); return; }                            // you're looking at that chat: the highlight is enough
+  const m = away[away.length - 1], more = away.length - 1;
+  const where = m.kind === 'lobby' ? 'the lobby chat' : m.kind === 'tour' ? `${esc(m.title || 'a tournament')} chat` : m.title ? `the ${esc(m.title)} game chat` : 'a game chat';
+  sfx('challenge');
+  showToast('@', `<span class="ct-n">${esc(m.from)}</span> mentioned you in ${where}: <span class="ct-t">${mentionify(esc(m.text))}</span>${more ? ` <span class="muted">(+${more} more)</span>` : ''}`, 'Tap to open the chat', m.kind === 'game' ? m.code : '');
+  const t = $('#chatToast').dataset;
+  if (m.kind === 'lobby') { t.lobby = '1'; t.chat = '1'; }
+  if (m.kind === 'tour') { t.tour = m.tid; t.chat = '1'; }
+  clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 15000);
+  if (document.hidden && window.Notification && Notification.permission === 'granted') {
+    try { new Notification(`${m.from} mentioned you`, { body: m.text, tag: 'chess-mention-' + m.id }); } catch {}
+  }
+}
+// the push is best-effort: ask for mentions when the page opens, and every 12 seconds while live updates are down
+let mentTimer = null;
+async function checkMentions() { if (!user || !user.token) return; const r = await api('mentions'); if (r.ok && r.mentions.length) onMention(r.mentions); }
+function startMentions() { if (mentTimer) return; checkMentions(); mentTimer = setInterval(() => { if (!document.hidden && !rtLobbyLive) checkMentions(); }, 12000); }
+// the picker: type @ in a chat box and pick a name (arrows + Enter/Tab, or click)
+function attachMentions(input) {
+  const box = document.createElement('div');
+  box.className = 'mentbox hidden';
+  input.parentElement.style.position = 'relative';
+  input.parentElement.appendChild(box);
+  let items = [], sel = 0;
+  const word = () => { const m = /(^|\s)@([A-Za-z0-9_-]{0,16})$/.exec(input.value.slice(0, input.selectionStart || 0)); return m ? m[2] : null; };
+  const hide = () => { box.classList.add('hidden'); items = []; };
+  const paint = () => { box.innerHTML = '<div class="mh">Mention</div>' + items.map((n, i) => `<button type="button" class="${i === sel ? 'on' : ''}" data-n="${esc(n)}">@${esc(n)}</button>`).join(''); box.classList.remove('hidden'); };
+  const update = () => {
+    const w = word();
+    if (w == null) return hide();
+    const lw = w.toLowerCase(), now = Date.now();
+    items = [...knownNames.keys()].filter((n) => n !== user.name && n.toLowerCase().startsWith(lw))
+      .sort((a, b) => (now - knownNames.get(a) < 120e3 ? 0 : 1) - (now - knownNames.get(b) < 120e3 ? 0 : 1) || a.localeCompare(b)).slice(0, 6);   // online first
+    if (!items.length) return hide();
+    sel = Math.min(sel, items.length - 1); paint();
+  };
+  const pick = (n) => {
+    const pos = input.selectionStart || 0, before = input.value.slice(0, pos).replace(/@([A-Za-z0-9_-]{0,16})$/, '@' + n + ' ');
+    input.value = before + input.value.slice(pos);
+    input.setSelectionRange(before.length, before.length);
+    hide(); input.focus();
+  };
+  input.addEventListener('input', () => { sel = 0; update(); });
+  input.addEventListener('keydown', (e) => {
+    if (!items.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sel = (sel + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length; paint(); }
+    else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); pick(items[sel]); }
+    else if (e.key === 'Escape') hide();
+  });
+  input.addEventListener('blur', () => setTimeout(hide, 150));
+  box.addEventListener('mousedown', (e) => { const b = e.target.closest('[data-n]'); if (b) { e.preventDefault(); pick(b.dataset.n); } });
+}
+['#chatIn', '#gcIn', '#tcIn'].forEach((id) => attachMentions($(id)));
+
 $('#chatForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = $('#chatIn'), text = input.value;
@@ -2290,6 +2372,7 @@ async function pollGame(gen) {
 // small changes (presence, spectators) without touching clocks or the board
 function patchSnap(p) { snap = { ...snap, ...p }; const s = sigOf(snap); if (s !== sig) { sig = s; render(); } }
 function applySnapshot(r) {
+  if (r && r.players && !r.local) ['w', 'b'].forEach((c) => r.players[c] && !r.players[c].bot && r.players[c].name !== 'Computer' && knownName(r.players[c].name, true));
   snap = r; snapAt = Date.now();
   const s = sigOf(r);
   if (s === sig) return;
@@ -2801,7 +2884,8 @@ function addGameMsg(m) {
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const el = document.createElement('div');
   el.className = 'gm'; el.dataset.ts = m.ts || 0;
-  el.innerHTML = `<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${esc(m.t)}`;
+  el.innerHTML = `<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${mentionify(esc(m.t))}`;
+  knownName(m.n);
   // keep time order even when the saved history arrives after a live message
   const after = [...log.children].find((x) => x.dataset.ts && +x.dataset.ts > +el.dataset.ts);   // notices have no time: never reordered
   log.insertBefore(el, after || null);
@@ -2828,7 +2912,7 @@ function chatToast(m, awayCode) {
 }
 function showToast(icon, html, more, awayCode) {
   const t = $('#chatToast');
-  t.dataset.code = awayCode || ''; t.dataset.lobby = '';
+  t.dataset.code = awayCode || ''; t.dataset.lobby = ''; t.dataset.tour = ''; t.dataset.chat = '';
   t.innerHTML = `<span class="ct-i">${icon}</span><div>${html}<div class="ct-more">${more}</div></div>`;
   t.classList.add('show');
   clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
@@ -2848,7 +2932,9 @@ function hideChatToast() { clearTimeout(chatToastTimer); $('#chatToast').classLi
 $('#chatToast').onclick = () => {
   hideChatToast();
   const code = $('#chatToast').dataset.code;
-  if ($('#chatToast').dataset.lobby) return enterLobby();
+  const tt = $('#chatToast').dataset;
+  if (tt.tour) { enterTours(tt.tour); if (tt.chat) setTimeout(() => $('#tcIn').focus({ preventScroll: false }), 400); return; }
+  if (tt.lobby) { enterLobby(); if (tt.chat) setTimeout(() => { $('#chatcard').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('#chatIn').focus({ preventScroll: true }); }, 300); return; }
   if (code) { enterGame(code); setTimeout(() => $('#gcIn').focus({ preventScroll: true }), 300); return; }
   $('#gchat').scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('#gcIn').focus({ preventScroll: true });
@@ -5322,7 +5408,7 @@ function paintTourChat(msgs) {
   const log = $('#tcLog'), atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const when = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   log.innerHTML = msgs.length ? msgs.map((m) => m.sys ? `<div class="tcm sys">${esc(m.t)}</div>`
-    : `<div class="tcm"><b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${esc(m.t)}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
+    : `<div class="tcm"><b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${mentionify(esc(m.t))}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
   if (atEnd || !log.dataset.seen) log.scrollTop = log.scrollHeight;
   log.dataset.seen = '1';
 }
@@ -5483,6 +5569,7 @@ function paintTour(t) {
     ${t.phase === 'signup' && t.startAt ? `<div style="font-weight:700">⏰ Starts ${countdownHTML(t.startAt)} <span class="muted">(${new Date(t.startAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })})</span></div>` : ''}
     <div class="tvacts">${acts.join('')}</div><div id="tvErr" role="alert" style="color:var(--bad);font-weight:600"></div>`);
   if (t.champion) celebrate(t.id);
+  t.players.forEach((p) => knownName(p.name));
   const live = Tour.allFixtures(t).filter((f) => f.room && !f.res);
   setHTML($('#tvLive'), live.length ? `<div class="panel tlive"><b>Live now</b>${live.map((f) => `<span class="lv"><span class="dotlive"></span>${esc(f.a)} vs ${esc(f.b)} <span class="muted">· ${esc(Tour.stageOf(t, f))}</span><button class="small" data-twatch="${f.room}">${f.a === user.name || f.b === user.name ? 'Rejoin' : 'Watch'}</button></span>`).join('')}</div>` : '');
   const next = Tour.myFixtures(t, user.name);
