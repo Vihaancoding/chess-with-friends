@@ -304,6 +304,9 @@ const fix = (i, over) => { const g = gameOf(i, over); return scoreOf(g, fx[i].ev
   ok('and viewing the page afterwards never calls the AI again', calls.length === before4, calls.length - before4);
   handler.damageDeps = {};
 
+  const hlAll = rows.map((r) => D.highlights(r.f));
+  ok('every report has 3 to 5 key moments, each with a move number', hlAll.every((h) => h.length >= 3 && h.length <= 5 && h.every((x) => x.move > 0 && x.text.length > 10)), hlAll.map((h) => h.length));
+  ok('the key moments are on the card', rows[4].card.hl.length >= 3);
   console.log('the admin target');
   await call('admin_claim', { key: 'test-admin-key' }, P.dan);
   ok('only an admin can mark a target', (await call('admin_dmg_target', { name: 'bob', on: true }, P.ann)).status === 403);
