@@ -29,5 +29,6 @@ const toHist = (u) => { let st = C.initial(); return u.map((x) => { const m = C.
   ok('with steady times the engine side is sure enough for a forfeit', T.judge({ ...cheat, cv: 0.2 }).strong);
   ok('on its own it is not (one signal)', !T.judge({ ...cheat, cv: 0.9 }).strong);
   ok('a 25-move window finishes in a few seconds', Date.now() - t1 < 8000, Date.now() - t1);
+  ok('the engine does not break the global fetch (the database needs it)', typeof fetch === 'function', typeof fetch);
   console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
