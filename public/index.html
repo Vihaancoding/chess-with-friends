@@ -1033,6 +1033,15 @@
     .cmrow { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 12px -12px 0; padding: 0 12px 4px; }
     .cmrow .cmc { flex: 0 0 82%; scroll-snap-align: start; }
   }
+  /* ---- fair play tribunal ---- */
+  .fpc { border: 1px solid #fa412d44; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; background: linear-gradient(160deg, #3a2420, #232120 70%); }
+  .fpc h3 { margin: 0 0 4px; font-size: 1rem; } .fpc .fpm { color: var(--muted); font-size: .8rem; font-weight: 700; }
+  .fpopts { display: grid; gap: 6px; margin: 10px 0; }
+  .fpopts button { display: flex; justify-content: space-between; text-align: left; position: relative; overflow: hidden; }
+  .fpopts button.on { outline: 2px solid var(--green); }
+  .fpopts button i { position: absolute; left: 0; top: 0; bottom: 0; background: #ffffff14; z-index: 0; } .fpopts button span { position: relative; z-index: 1; }
+  .fpcm { max-height: 140px; overflow-y: auto; font-size: .85rem; margin: 8px 0; } .fpcm p { margin: 3px 0; } .fpcm b.acc { color: var(--gold); }
+  .fpf { display: flex; gap: 6px; margin-top: 6px; } .fpf input { flex: 1; }
   /* ---- The Damage Report ---- */
   #dmgcard { padding-bottom: 14px; overflow: hidden; }
   #dmgcard h2.ph .dmgttl { letter-spacing: .09em; text-transform: uppercase; font-weight: 900; }
@@ -1180,6 +1189,7 @@
   <div class="lobby-grid">
     <div class="leftcol">
       <div id="previewwrap"><div id="preview"></div></div>
+      <div class="panel hidden" id="fpcard" role="region" aria-label="Fair play tribunal"><h2 class="ph"><span>Fair play tribunal</span></h2><div id="fpbody"></div></div>
       <div class="panel hidden" id="dmgcard" role="region" aria-label="The Damage Report"><h2 class="ph"><span class="dmgttl">The <i>Damage</i> Report</span><span class="dmgtools"><button class="small" id="dmgHide" title="Hide the Damage Report (Shift+D). Saved to your account." aria-keyshortcuts="Shift+D">Hide</button></span></h2><div id="dmgbody"><div class="dmgskel"></div></div></div>
       <div class="panel hidden" id="rvwatch"><h2 class="ph"><span>Rivalries to watch</span><button class="small" id="rvwAll">See all</button></h2><div id="rvwlist"></div></div>
       <div class="panel" id="tourcard"><h2 class="ph"><span>Tournaments</span><button class="small" id="tcAll">See all</button></h2><div id="tourmini"><div class="muted">Loading…</div></div></div>
@@ -1434,6 +1444,12 @@
   <div class="panel">
     <h2 class="ph">Announcement</h2>
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
+  </div>
+  <div class="panel">
+    <h2 class="ph">Fair play announcements</h2>
+    <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">One phrase per line, each with {name}. No threats, slurs or harassment (checked). Empty uses the built-in ones.</div>
+    <textarea id="fpPhrases" rows="4" style="width:100%"></textarea>
+    <div class="row" style="margin-top:6px"><button class="primary" id="fpPhrasesSave" type="button">Save</button><span id="fpPhrasesMsg" class="muted" role="status"></span></div>
   </div>
   <div class="panel">
     <h2 class="ph">Damage Report target</h2>
@@ -1781,6 +1797,7 @@ function ensureSessionSubs() {
   rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
 }
 function onUserPing(d) {
+  if (d.why === 'm' && d.ev && d.code === gameCode && roomH.m) return roomH.m(d.ev);                // a move for my own game, sent privately
   if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'mention' && d.m) return onMention([d.m]);
@@ -2289,6 +2306,7 @@ async function pollLobby(full = true) {
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
       $('#navAdmin').classList.toggle('hidden', !r.user.admin);
       dmgPrefs(r.user);
+      if (r.user.banUntil) $('#announce').textContent = `You are banned from playing ${r.user.banUntil > 8e15 ? 'for good' : 'until ' + new Date(r.user.banUntil).toLocaleString()}. You can still appeal in the Fair play tribunal.`, $('#announce').classList.remove('hidden');
       $('#claimForm').classList.toggle('hidden', !(wantAdmin && !r.user.admin));
       $('#announce').textContent = r.announce || '';
       $('#announce').classList.toggle('hidden', !r.announce);
@@ -2299,7 +2317,7 @@ async function pollLobby(full = true) {
       renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
-    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); renderTourMini(r.tours || [], !!r.user.admin); loadRvWatch(); loadDamage(); }
+    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); renderTourMini(r.tours || [], !!r.user.admin); loadRvWatch(); loadDamage(); loadFair(); }
   } finally {
     lobbyBusy = false;
     if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
@@ -3036,7 +3054,7 @@ function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
 $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
-  loadDmgTargets();
+  loadDmgTargets(); loadFpPhrases();
   if (view !== 'admin') return;
   const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
@@ -3155,6 +3173,8 @@ $('#admin').addEventListener('click', async (e) => {
   loadAdmin();
 });
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
+async function loadFpPhrases() { const r = await api('admin_fair_phrases'); if (r.ok) $('#fpPhrases').value = r.phrases.join('\n'); }
+$('#fpPhrasesSave').onclick = async () => { const r = await api('admin_fair_phrases', { phrases: $('#fpPhrases').value.split('\n') }); $('#fpPhrasesMsg').textContent = r.ok ? 'Saved.' : r.error; };
 async function loadDmgTargets() { const r = await api('admin_dmg_targets'); if (r.ok) setHTML($('#dtList'), r.targets.length ? r.targets.map((n) => `<span class="cmk" style="margin-right:6px">${esc(n)} <button class="small" data-dtoff="${esc(n)}" aria-label="Unmark ${esc(n)}">×</button></span>`).join('') : '<span class="muted">Nobody marked.</span>'); }
 $('#dtForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_dmg_target', { name: $('#dtIn').value, on: true }); $('#dtErr').textContent = r.ok ? '' : r.error || 'Failed.'; if (r.ok) $('#dtIn').value = ''; loadDmgTargets(); });
 $('#dtList').addEventListener('click', async (e) => { const b = e.target.closest('[data-dtoff]'); if (!b) return; await api('admin_dmg_target', { name: b.dataset.dtoff, on: false }); loadDmgTargets(); });
@@ -4763,7 +4783,7 @@ function paintOver(r) {
   const kind = res === 'draw' ? 'draw' : r.local ? 'win' : mine ? (res === r.you ? 'win' : 'loss') : '';
   $('#otitle').textContent = res === 'draw' ? 'Draw' : r.local ? `${r.players[res].name} won` : mine ? (kind === 'win' ? 'You won' : 'You lost') : `${res === 'w' ? 'White' : 'Black'} won`;
   $('#otitle').className = kind;
-  $('#osub').textContent = 'by ' + r.status.reason;
+  $('#osub').textContent = r.fp ? `${r.fp.name} was forfeited for engine assistance (${Math.round(r.fp.conf * 100)}% sure)` : 'by ' + r.status.reason;
   $('#osub').style.textTransform = '';
   const M = r.match;
   const lastG = M && M.games[M.games.length - 1];
@@ -6571,6 +6591,45 @@ function loadRvWatch() {
 $('#rvwAll').onclick = () => enterRivals();
 $('#rvwlist').addEventListener('click', (e) => { const x = e.target.closest('[data-rvwpub]'); if (!x) return; const [a, b] = x.dataset.rvwpub.split('~'); enterRivals(null, { a, b }); });
 $('#rvwlist').addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; const x = e.target.closest('[data-rvwpub]'); if (!x) return; const [a, b] = x.dataset.rvwpub.split('~'); enterRivals(null, { a, b }); });
+// ---------- fair play tribunal (main page): the open cases, the vote, the discussion and the appeal ----------
+let fpAt = 0, fpOpen = null;
+const fpWhen = (t) => { const h = Math.max(0, Math.round((t - Date.now()) / 3600e3)); return h < 1 ? 'less than an hour left' : `${h} h left`; };
+function fpCaseHTML(c) {
+  const live = c.status === 'poll' ? c : c.status === 'appeal' ? { poll: c.appeal.poll, mine: c.appeal.mine, ends: c.appeal.ends } : null;
+  const opts = c.status === 'appeal' ? [{ key: 'uphold', label: 'Uphold the punishment' }, { key: 'overturn', label: 'Overturn it' }] : c.options;
+  const tot = (live ? live.poll : c.poll).total || 0, cnt = (live ? live.poll : c.poll).counts;
+  const me = user && user.name.toLowerCase() === c.name.toLowerCase();
+  const head = c.status === 'poll' ? `What punishment should ${esc(c.name)} receive?` : c.status === 'appeal' ? `Appeal: should ${esc(c.name)}'s punishment stand?` : c.result && c.result.key === 'dismissed' ? `${esc(c.name)}: dismissed by an admin` : `${esc(c.name)}: ${esc((c.options.find((o) => o.key === (c.result && c.result.key)) || { label: 'closed' }).label)}${c.appeal && c.appeal.result && c.appeal.result.overturned ? ' (overturned on appeal)' : ''}`;
+  return `<div class="fpc" data-fpcase="${esc(c.id)}"><h3>${head}</h3>
+    <div class="fpm">Engine check, ${Math.round(c.conf * 100)}% sure${c.evidence.n ? ` · ${c.evidence.match}% engine moves, ${c.evidence.acpl} average loss over ${c.evidence.n} moves` : ''}${live ? ` · ${fpWhen(live.ends || c.pollEnds)}` : ''} · <button class="small" data-fpgame="${esc(c.id)}">View game</button></div>
+    ${live ? `<div class="fpopts">${opts.map((o) => `<button data-fpvote="${esc(o.key)}" class="${live.mine === o.key ? 'on' : ''}" ${me ? 'disabled' : ''}><i style="width:${tot ? Math.round(100 * cnt[o.key] / tot) : 0}%"></i><span>${esc(o.label)}</span><span>${cnt[o.key]}</span></button>`).join('')}</div><div class="fpm">${tot} vote${tot === 1 ? '' : 's'}${me ? ' · you cannot vote on your own case' : ''}</div>` : ''}
+    ${c.appeal ? `<p class="fpm">Appeal from ${esc(c.name)}: ${esc(c.appeal.text)}</p>` : ''}
+    <div class="fpcm">${c.comments.map((m) => `<p><b class="${m.accused ? 'acc' : ''}">${esc(m.name)}</b> ${esc(m.text)}</p>`).join('') || '<span class="muted">No comments yet.</span>'}</div>
+    ${c.status !== 'closed' ? `<form class="fpf" data-fpcomment><input maxlength="300" placeholder="Say your piece…" aria-label="Comment"><button class="small" type="submit">Post</button></form>` : ''}
+    ${c.canAppeal ? `<form class="fpf" data-fpappeal><input maxlength="400" placeholder="Why should this be overturned?" aria-label="Appeal"><button class="small primary" type="submit">Appeal</button></form>` : ''}</div>`;
+}
+async function loadFair(force) {
+  if (!force && Date.now() - fpAt < 20e3) return;
+  fpAt = Date.now();
+  const r = await api('fair_cases');
+  if (!r.ok || view !== 'lobby') return;
+  fpOpen = r.cases;
+  $('#fpcard').classList.toggle('hidden', !r.cases.length);
+  if (!(document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.closest('#fpbody'))) setHTML($('#fpbody'), r.cases.map(fpCaseHTML).join(''));
+}
+$('#fpbody').addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-fpcase]'); if (!c) return;
+  const id = c.dataset.fpcase, v = e.target.closest('[data-fpvote]'), g = e.target.closest('[data-fpgame]');
+  if (g) return enterArchive(id);
+  if (v) { const r = await api('fair_vote', { id, opt: v.dataset.fpvote }); if (!r.ok) return dmgNote(r.error || 'Could not vote.'); loadFair(true); }
+});
+$('#fpbody').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const c = e.target.closest('[data-fpcase]'), id = c.dataset.fpcase, inp = e.target.querySelector('input'), text = inp.value;
+  const r = await api(e.target.hasAttribute('data-fpappeal') ? 'fair_appeal' : 'fair_comment', { id, text });
+  if (!r.ok) return dmgNote(r.error || 'Could not send that.');
+  inp.value = ''; inp.blur(); loadFair(true);
+});
 // ---------- The Damage Report (main page) ----------
 var DMG = { hide: false, out: false, at: 0, rows: [], i: 0, paused: false, hover: false, until: 0, share: '1', timer: null, sig: '', fmt: 'portrait', cur: null, busy: false };
 const dmgReduced = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
