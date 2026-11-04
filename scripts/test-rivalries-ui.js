@@ -96,11 +96,12 @@ async function seed(a, b, results, { start, gapDays = 1, tc = { base: 300, inc: 
   ok('the featured card puts the score first', /10\s*–\s*12/.test(await A.textContent('#rvFeat .rvfh .rvbig')) && /bob leads by 2/.test(await A.textContent('#rvFeat .rvfh .rvcap')));
   const minis = await A.$$eval('#rvFeat .rvfmn', (x) => x.map((c) => c.dataset.rvgo));
   ok('cat is featured as well; a one-game rivalry is not', minis.includes('cat') && !minis.includes('dan'), minis);
+  ok('featured rows are wide, and their button stays on one line', await A.$eval('#rvFeat .rvfmn', (x) => x.getBoundingClientRect().width > 700) && await A.$eval('#rvFeat .rvfmn [data-rva="run"]', (b) => b.getBoundingClientRect().height < 42));
   ok('insights in one strip', /Most played/.test(await A.textContent('#rvInsights')), await A.textContent('#rvInsights'));
   await A.waitForSelector('#rvComm .cmf');
   const cf = await A.$eval('#rvComm .cmf', (x) => x.dataset.rvpub);
   ok('around the community: bob vs cat leads, from real games', cf === 'bob~cat', cf);
-  ok('…with why it is interesting', /changed hands|level|Separated by one game/i.test(await A.textContent('#rvComm .cmf .cmwhy')), await A.textContent('#rvComm .cmf .cmwhy'));
+  ok('…with why it is interesting', /changed hands|level|Separated by one win|wins apart/i.test(await A.textContent('#rvComm .cmf .cmwhy')), await A.textContent('#rvComm .cmf .cmwhy'));
   ok('…and other matchups beside it', (await A.$$('#rvComm .cmc')).length >= 1 && /dan/.test(await A.textContent('#rvComm .cmrow')), await A.textContent('#rvComm'));
   const rows = await A.$$eval('#rvList .rvr', (x) => x.map((c) => c.dataset.rvgo));
   ok('all rivalries: everyone still there, active ones by default', rows.length === 3 && rows.includes('dan') && !rows.includes('eve'), rows);
@@ -121,6 +122,19 @@ async function seed(a, b, results, { start, gapDays = 1, tc = { base: 300, inc: 
   await A.click('#rvFilter [data-f="active"]');
   await A.selectOption('#rvSort', 'recent');
   await A.waitForFunction(() => document.querySelectorAll('#rvList .rvr').length === 3);
+
+  console.log('the main page: rivalries to watch');
+  await A.click('#navPlay');
+  await A.waitForSelector('#rvwatch:not(.hidden) .rvw', { timeout: 10000 });
+  const watch = await A.$$eval('#rvwlist .rvw', (x) => x.map((r) => r.dataset.rvwpub));
+  ok('2–3 of the server\'s best matchups, the same for everyone', watch.length >= 2 && watch.length <= 3 && watch.includes('bob~cat'), watch);
+  ok('…each with why', /Most competitive|Community favourite|Rising rivalry/.test(await A.textContent('#rvwlist')));
+  await shot(A, 'r9-lobby-watch');
+  await A.click('#rvwlist [data-rvwpub="bob~cat"]');
+  await A.waitForSelector('.cmhero');
+  ok('a matchup opens its rivalry page', /bob/.test(await A.textContent('.cmhero')) && /cat/.test(await A.textContent('.cmhero')));
+  await A.goto(`http://localhost:${PORT}/?rivals`);
+  await A.waitForSelector('#rvFeat .rvfh');
 
   console.log('challenges');
   await A.click('#rvFeat .rvfmn[data-rvgo="cat"] [data-rva="run"]');
