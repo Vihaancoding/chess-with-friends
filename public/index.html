@@ -449,6 +449,15 @@
   #callctl .cstate.live { color: var(--green); }
   button.decline { background: #6b2a24; box-shadow: 0 2px 0 #3d1815; }
   #callctl svg { width: 15px; height: 15px; }
+  /* quiet online / offline notes: bottom corner, no sound, fades away */
+  #presNote { position: fixed; right: 16px; bottom: 16px; z-index: 18; max-width: min(340px, calc(100vw - 32px)); display: flex; align-items: center; gap: 8px;
+    background: #262522e6; border: 1px solid #3a3936; border-radius: 999px; padding: 7px 14px 7px 12px; font-size: .82rem; font-weight: 600; color: var(--muted);
+    box-shadow: 0 6px 18px -8px #000; opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .35s; pointer-events: none; }
+  #presNote.show { opacity: 1; transform: none; }
+  #presNote b { color: var(--text); font-weight: 700; } #presNote .pd { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--green); }
+  #presNote .pd.off { background: transparent; border: 2px solid #6b6966; }
+  #presNote span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { #presNote { transition: none; } }
   #chatToast { position: fixed; top: 14px; left: 50%; transform: translate(-50%, -20px); z-index: 25; max-width: min(420px, calc(100vw - 32px)); display: flex; gap: 10px; align-items: flex-start;
     padding: 10px 14px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: 10px; box-shadow: 0 8px 24px #0008;
     cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
@@ -1174,6 +1183,7 @@
       <div class="label" style="margin-top:0">Board</div><div class="swatches" id="boardSwatches"></div>
       <div class="label">Pieces</div><div class="swatches" id="pieceSwatches"></div>
       <label class="sktoggle"><input type="checkbox" id="badgeToggle"> Show move badges in games against the computer (Brilliant, Best, …)</label>
+      <label class="sktoggle"><input type="checkbox" id="presToggle"> Show a quiet note when players come online or go offline (never during your games)</label>
       <label class="sktoggle"><input type="checkbox" id="evalToggle"> Show the evaluation bar in computer and pass &amp; play games</label>
       <div class="label">Analysis engine</div><div class="swatches" id="engPick"></div>
       <div class="muted" style="font-size:.82rem;font-weight:600;margin:-2px 0 10px">For game review, move badges, the evaluation bar and the coach's grading. Stockfish is stronger (a 2 MB download the first time); computer opponents always play with ours.</div>
@@ -1185,6 +1195,7 @@
 </div></div>
 <div id="busybar" aria-hidden="true"></div>
 <div id="chatToast" role="status" aria-live="polite"></div>
+<div id="presNote" role="status" aria-live="polite"></div>
 <div id="colorbar"><span id="cbIcon"></span><span class="cbmain"><b id="cbText"></b><span id="cbTurn"></span></span></div>
 
 <div id="promo" class="hidden"><div class="box"></div></div>
@@ -1377,7 +1388,7 @@ function paintRtDot() {
 // session-wide subscriptions: made once after sign-in, kept while navigating
 function ensureSessionSubs() {
   rtInit().then(paintRtDot);
-  startMentions();
+  startMentions(); startPresence();
   if (rtSession || !user || !user.topic) return;
   rtSession = true;
   rtSubscribe(user.topic, { ping: onUserPing }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok && view === 'lobby') pollLobby(false); });
@@ -1819,7 +1830,7 @@ function paintSkinModal() {
   for (let sq = 0; sq < 64; sq++) h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}">${st.board[sq] ? pieceHTML(st.board[sq]) : ''}</div>`;
   setHTML($('#skinPreview'), h);
 }
-function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; $('#evalToggle').checked = SKIN.evalbar !== false; paintSkinModal(); paintSounds(); paintEngPick(); }
+function openSkins() { $('#skinModal').classList.remove('hidden'); $('#badgeToggle').checked = SKIN.badges !== false; $('#evalToggle').checked = SKIN.evalbar !== false; $('#presToggle').checked = SKIN.presence !== false; paintSkinModal(); paintSounds(); paintEngPick(); }
 // ----- analysis engine: ours (bot.js) or Stockfish (sfengine.js); both answer the same "analyze" messages -----
 const ENGINES = { ours: 'Ours', stockfish: 'Stockfish' };
 const useStockfish = () => SKIN.engine === 'stockfish' && window.Stockfish && Stockfish.available;
@@ -1951,6 +1962,7 @@ const ONLINE_ST = { lobby: 'in the lobby', playing: 'playing', watching: 'watchi
 const ago = (ts) => { const m = Math.floor((Date.now() - ts) / 60e3); return m < 60 ? `${Math.max(1, m)}m ago` : m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`; };
 function renderOnline(list) {
   list.forEach((p) => knownName(p.name, p.st !== 'offline'));
+  presenceFeed(list.filter((p) => p.st !== 'offline').map((p) => p.name));
   const sig = JSON.stringify([list, Math.floor(Date.now() / 60e3)]);   // redraw each minute so "seen … ago" stays right
   if (sig === onlineSig) return;
   onlineSig = sig;
@@ -2045,6 +2057,58 @@ $('#chatlog').addEventListener('click', async (e) => {
   if (!r.ok) $('#chatErr').textContent = r.error || 'Could not delete.';
   pollLobby(true);
 });
+// ---------- quiet online / offline notes ----------
+// The lobby's player list (or, on other pages, a light check every 20 s) says who is online. Changes become one small
+// note in the corner: grouped, no sound, gone after a few seconds, never shown during a game you're in. A short
+// absence (a reload, a flaky connection) doesn't count as going offline, and nobody is announced twice in 3 minutes.
+const PRES = { on: new Set(), offSince: new Map(), last: new Map(), fed: 0, queue: { on: [], off: [] }, flushT: null, hideT: null, timer: null };
+const PRES_OFF_AFTER = 45e3, PRES_COOLDOWN = 3 * 60e3;
+function presenceFeed(names) {
+  const now = Date.now(), set = new Set(names.filter((n) => user && n !== user.name));
+  const fresh = now - PRES.fed > 75e3;                                    // first look, or back after a while: no notes for that
+  PRES.fed = now;
+  if (fresh) { PRES.on = set; PRES.offSince.clear(); return; }
+  for (const n of set) {
+    if (PRES.offSince.has(n)) { PRES.offSince.delete(n); continue; }      // back before we said they'd gone: nothing to say
+    if (!PRES.on.has(n)) presenceEvent(n, 'on', now);
+  }
+  for (const n of PRES.on) {
+    if (set.has(n)) continue;
+    if (!PRES.offSince.has(n)) { PRES.offSince.set(n, now); set.add(n); continue; }   // missing once: wait and see
+    if (now - PRES.offSince.get(n) < PRES_OFF_AFTER) { set.add(n); continue; }
+    PRES.offSince.delete(n); presenceEvent(n, 'off', now);
+  }
+  PRES.on = set;
+}
+function presenceEvent(n, kind, now) {
+  const k = n + ':' + kind;
+  if (now - (PRES.last.get(k) || 0) < PRES_COOLDOWN) return;
+  PRES.last.set(k, now);
+  const q = PRES.queue;
+  q.on = q.on.filter((x) => x !== n); q.off = q.off.filter((x) => x !== n);
+  q[kind].push(n);
+  clearTimeout(PRES.flushT); PRES.flushT = setTimeout(presenceFlush, 1500);   // gather what happens at about the same time
+}
+function presenceFlush() {
+  const { on, off } = PRES.queue; PRES.queue = { on: [], off: [] };
+  if (SKIN.presence === false || view === 'game' || view === 'welcome' || document.hidden) return;
+  const who = (list) => (list.length === 1 ? `<b>${esc(list[0])}</b>` : list.length === 2 ? `<b>${esc(list[0])}</b> and <b>${esc(list[1])}</b>` : `<b>${esc(list[0])}</b>, <b>${esc(list[1])}</b> and ${list.length - 2} other${list.length > 3 ? 's' : ''}`);
+  if (!on.length && !off.length) return;
+  const html = on.length ? `<span class="pd"></span><span>${who(on)} ${on.length === 1 ? 'is' : 'are'} online${off.length ? ` · ${who(off)} went offline` : ''}</span>`
+    : `<span class="pd off"></span><span>${who(off)} went offline</span>`;
+  const el = $('#presNote');
+  el.innerHTML = html;
+  el.classList.add('show');
+  clearTimeout(PRES.hideT); PRES.hideT = setTimeout(hidePresence, 4500);
+}
+function hidePresence() { clearTimeout(PRES.hideT); $('#presNote').classList.remove('show'); }
+// pages other than the lobby (and not a game): a light check every 20 seconds
+function presenceTick() {
+  if (!user || !user.token || document.hidden || view === 'lobby' || view === 'game' || view === 'welcome') return;
+  api('presence').then((r) => { if (r.ok && Array.isArray(r.on)) presenceFeed(r.on); });
+}
+function startPresence() { if (!PRES.timer) PRES.timer = setInterval(presenceTick, 20000); }
+
 // ---------- @mentions: highlight, the picker, and the notification when you're mentioned somewhere else ----------
 const MENT_RE = /(^|[^A-Za-z0-9_-])@([A-Za-z0-9_-]{2,16})(?![A-Za-z0-9_-])/g;
 // text is already escaped; names can't contain anything that escaping changes
@@ -3520,6 +3584,11 @@ function drawEval(v) {
   t.className = cp >= 0 ? 'w' : 'b';
   bar.title = end ? 'Game over' : `Evaluation ${fmtEval(cp)} (White's view)`;
 }
+$('#presToggle').addEventListener('change', (e) => {
+  SKIN.presence = e.target.checked;
+  try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
+  if (!e.target.checked) hidePresence();
+});
 $('#evalToggle').addEventListener('change', (e) => {
   SKIN.evalbar = e.target.checked;
   try { localStorage.setItem('chess:skin', JSON.stringify(SKIN)); } catch {}
