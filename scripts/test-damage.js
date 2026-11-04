@@ -188,6 +188,14 @@ const fix = (i, over) => { const g = gameOf(i, over); return scoreOf(g, fx[i].ev
   ok('if the AI call throws the bank is used', out.src === 'template', out);
   out = await T.commentary(c3.card, c3.f, [], { apiKey: '' });
   ok('with no AI key the bank is used, quietly', out.src === 'template' && out.line, out);
+  // Llama through an OpenAI-compatible host
+  let lcalls = [];
+  const llamaAI = (answers) => ({ provider: 'llama', apiKey: 'llama-key', baseUrl: 'http://llama.test/v1', fetch: async (url, opts) => { lcalls.push({ url, opts, body: JSON.parse(opts.body) }); return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: JSON.stringify(answers.shift()) } }] }) }; } });
+  out = await T.commentary(c3.card, c3.f, [], llamaAI([{ lines: [lines.invented, lines.good, lines.dash] }, { pick: 0 }]));
+  ok('Llama: same checks, the good line kept, sent to /chat/completions with a bearer key and a system message', out.src === 'ai' && out.line === lines.good && lcalls[0].url === 'http://llama.test/v1/chat/completions' && lcalls[0].opts.headers.authorization === 'Bearer llama-key' && lcalls[0].body.messages[0].role === 'system' && /llama/.test(lcalls[0].body.model), [out, lcalls[0] && lcalls[0].url]);
+  out = await T.commentary(c3.card, c3.f, [], { ...llamaAI([{ lines: [lines.invented, lines.mate, lines.generic] }]) });
+  ok('Llama: if every candidate is rejected the bank is used', out.src === 'template', out);
+  ok('Llama without a key is simply off', !T.aiEnabled({ provider: 'llama', apiKey: '' }) && T.aiEnabled({ provider: 'llama', apiKey: 'x' }));
   ok('the prompt makes the AI avoid its recent lines', T.promptFor(ctx3, [{ line: 'a recent joke about a queen' }]).includes('a recent joke about a queen'));
 
   console.log('the pipeline');
