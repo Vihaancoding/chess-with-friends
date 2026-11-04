@@ -662,6 +662,8 @@
   .tchamp b { color: var(--gold); }
   .tplayers { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; }
   .tplayers div { background: var(--panel2); border-radius: 8px; padding: 8px 10px; font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
+  .tgroups tr.qmaybe td:first-child { box-shadow: inset 3px 0 var(--gold); }
+  .banner.tqinfo { background: var(--panel2); border-left-color: #5c8bb0; font-weight: 600; }
   .tgroups { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
   .tgroups table td, .tgroups table th { padding: 6px 6px; } .tgroups tr.q td:first-child { box-shadow: inset 3px 0 var(--green); }
   .tgroups td.pn { font-weight: 700; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -5469,7 +5471,7 @@ function paintTourForm() {
   $('#tnMax').querySelectorAll('option').forEach((o) => { o.disabled = k === 'rr' && +o.value > 12; });
   if (k === 'rr' && +$('#tnMax').value > 12) $('#tnMax').value = '12';
   setText($('#tnDesc'), k === 'gko' ? `Players are split into groups of about ${$('#tnSize').value} (seeded by rating), play everyone in their group, and the top ${$('#tnAdv').value === '1' ? 'player' : 'two'} of each group go into a knockout bracket.`
-    : k === 'ko' ? 'A seeded bracket: lose and you are out. Top seeds get byes when the numbers are uneven.' : 'Everyone plays everyone once. The table decides the winner (up to 12 players).');
+    : k === 'ko' ? 'A seeded bracket: lose and you are out. No byes: if the numbers don\'t fill a bracket (2, 4, 8, 16…), everyone first plays a short qualifying group and the best of them fill it.' : 'Everyone plays everyone once. The table decides the winner (up to 12 players).');
 }
 ['#tnKind', '#tnSize', '#tnAdv', '#tnMax', '#tnTc', '#tnLen'].forEach((id) => $(id).addEventListener('change', paintTourForm));
 $('#tourNew').addEventListener('submit', async (e) => {
@@ -5509,11 +5511,11 @@ function fxRow(t, f, run, next) {
   return `<div class="fxr${me && f.id === next ? ' me' : ''}${f.res ? ' done' : ''}">${me && f.id === next ? '<span class="ytag">Your next game</span>' : ''}<span class="fa${w && w === f.a ? ' w' : ''}">${esc(f.a)}</span><span class="fs">${fxScore(f)}</span><span class="fb${w && w === f.b ? ' w' : ''}">${esc(f.b)}</span><span class="fx-act">${fxActions(t, f, next)}</span>${fxEdit(t, f, run)}</div>`;
 }
 function groupHTML(t, g, run) {
-  const rows = Tour.standings(t, g), adv = t.cfg.kind === 'gko' ? t.cfg.adv : 1;
+  const rows = Tour.standings(t, g), sp = t.cfg.kind === 'rr' ? { per: 1, extra: 0 } : Tour.qualifySpots(t), adv = sp.per;
   const done = g.fixtures.filter((f) => f.res).length;
-  return `<div class="panel"><h2 class="ph"><span>${t.cfg.kind === 'rr' ? 'Table' : 'Group ' + g.name}</span><span class="muted" style="font-size:.8rem">${done} / ${g.fixtures.length} played</span></h2>
+  return `<div class="panel"><h2 class="ph"><span>${t.cfg.kind === 'rr' ? 'Table' : (t.cfg.kind === 'ko' ? 'Qualifying group ' : 'Group ') + g.name}</span><span class="muted" style="font-size:.8rem">${done} / ${g.fixtures.length} played</span></h2>
     <table><thead><tr><th>#</th><th>Player</th><th class="r">P</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r" title="Game points">GP</th><th class="r">Pts</th></tr></thead><tbody>
-    ${rows.map((x, i) => `<tr class="${i < adv ? 'q' : ''}"><td>${i + 1}</td><td class="pn">${esc(x.name)}${x.name === user.name ? ' <span class="youtag">you</span>' : ''}</td><td class="r">${x.pl}</td><td class="r">${x.w}</td><td class="r">${x.d}</td><td class="r">${x.l}</td><td class="r">${half(x.gp)}</td><td class="r"><b>${half(x.pts)}</b></td></tr>`).join('')}
+    ${rows.map((x, i) => `<tr class="${i < adv ? 'q' : i === adv && sp.extra ? 'qmaybe' : ''}" ${i === adv && sp.extra ? 'title="Goes through if among the best at this place"' : ''}><td>${i + 1}</td><td class="pn">${esc(x.name)}${x.name === user.name ? ' <span class="youtag">you</span>' : ''}</td><td class="r">${x.pl}</td><td class="r">${x.w}</td><td class="r">${x.d}</td><td class="r">${x.l}</td><td class="r">${half(x.gp)}</td><td class="r"><b>${half(x.pts)}</b></td></tr>`).join('')}
     </tbody></table><div class="fxl">${fixturesByRound(t, g, run)}</div></div>`;
 }
 function fixturesByRound(t, g, run) {
@@ -5573,7 +5575,7 @@ function paintTour(t) {
   }
   if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
   acts.push('<button data-tact="link">Copy link</button>');
-  setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${PHASE[t.phase]}</span></div>
+  setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${t.phase === 'groups' && t.cfg.kind === 'ko' ? 'Qualifying' : PHASE[t.phase]}</span></div>
     <div class="muted" style="font-weight:600">${tourKindLine(t)} · ${fmts} · ${t.players.length}${t.phase === 'signup' ? ' / ' + cfg.max : ''} players · organized by ${esc(t.by)}</div>
     ${t.champion ? `<div class="tchamp">🏆 Champion: <b>${esc(t.champion)}</b></div>` : ''}
     ${t.phase === 'signup' && t.startAt ? `<div style="font-weight:700">⏰ Starts ${countdownHTML(t.startAt)} <span class="muted">(${new Date(t.startAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })})</span></div>` : ''}
@@ -5595,7 +5597,14 @@ function paintTour(t) {
   if (t.phase === 'signup') body += `<div class="panel"><h2 class="ph">Players</h2>${t.players.length ? `<div class="tplayers">${t.players.map((p) => `<div><span>${esc(p.name)}</span><span class="muted">${p.elo}</span></div>`).join('')}</div>` : '<div class="muted">Nobody has joined yet.</div>'}
     <div class="muted" style="font-size:.85rem;font-weight:600;margin-top:10px">${run ? `Start it when everyone is in (at least ${Tour.MIN[cfg.kind]} players). Seeding goes by rating.` : 'The organizer starts it when everyone is in.'}</div></div>`;
   if (t.ko) body += bracketHTML(t, run);
-  if (t.groups) body += `${t.ko ? '<h2 class="ph" style="margin:6px 0 0">Group stage</h2>' : ''}<div class="tgroups">${t.groups.map((g) => groupHTML(t, g, run)).join('')}</div>`;
+  const quali = t.groups && t.cfg.kind !== 'rr' ? (() => {
+    const { P, per, extra } = Tour.qualifySpots(t), place = ['winner', 'runner-up', 'third-placed player', 'fourth-placed player'];
+    const rnd = Tour.ROUND_NAMES[P / 2] || 'the knockout';
+    const top = per ? `the top ${per === 1 ? 'player' : per} of each group` : '';
+    const best = extra ? `the ${extra === 1 ? 'best' : extra + ' best'} ${place[per] || 'next-placed player'}${extra === 1 ? '' : 's'}` : '';
+    return `<div class="banner tqinfo"><span>${t.ko ? '' : `${t.cfg.kind === 'ko' ? 'Qualifying groups (so nobody gets a bye). ' : ''}`}<b>${P}</b> go through to ${t.ko ? 'the knockout' : 'the ' + rnd.toLowerCase()}: ${[top, best].filter(Boolean).join(' and ')}${extra ? ', by points per game' : ''}.</span></div>`;
+  })() : '';
+  if (t.groups) body += `${t.ko ? '<h2 class="ph" style="margin:6px 0 0">' + (t.cfg.kind === 'ko' ? 'Qualifying groups' : 'Group stage') + '</h2>' : ''}${quali}<div class="tgroups">${t.groups.map((g) => groupHTML(t, g, run)).join('')}</div>`;
   setHTML($('#tvBody'), body);
 }
 async function tourPlay(id, fx) {
