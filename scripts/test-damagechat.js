@@ -1,0 +1,24 @@
+const C=require('../lib/damagechat'),T=require('../lib/damagetext');
+// In-game chat for the Damage Report: what may be used, and quotes must be real. Run: node scripts/test-damagechat.js
+let ok=0,bad=0;const t=(n,c)=>{c?ok++:(bad++,console.log('FAIL',n))};
+const g={players:{w:{name:'ann'},b:{name:'bob'}},startedAt:1000,endedAt:900000,mt:[1000,1000,1000,1000]};
+const m=(n,s,t,ts=3000)=>({n,s,t,ts});
+const p=(msgs,mu)=>C.pick(g,msgs,mu).map(x=>x.t);
+t('keeps gg ez',p([m('ann','w','gg ez')]).join()==='gg ez');
+t('drops spectator',!p([m('cat','s','gg ez')]).length);
+t('drops spoofed name',!p([m('bob','w','gg ez')]).length);
+t('drops other game',!p([m('ann','w','gg ez',50)]).length);
+t('drops link',!p([m('ann','w','gg ez google.com')]).length);
+t('drops phone',!p([m('ann','w','gg 555 123 4567')]).length);
+t('drops threat',!p([m('ann','w','gg ez i will kill you')]).length);
+t('drops slur',!p([m('ann','w','gg ez retard')]).length);
+t('friends banter is kept',p([m('ann','w','gg you absolute donkey')]).length===1);
+t('contact details dropped',!p([m('ann','w','gg dm me on insta or my phone 5')]).length);
+t('drops long',!p([m('ann','w','gg ez '+'x'.repeat(100))]).length);
+t('any short message is fine',p([m('ann','w','e4 then d4 ok')]).length===1);
+t('muted skip',!p([m('ann','w','gg ez')],['Bob']).length);
+t('quote real ok',!C.chatProblem('they typed "gg ez" then got mated',[{t:'gg ez'}]));
+t('quote fake bad',!!C.chatProblem('they typed "git gud" then died',[{t:'gg ez'}]));
+t('quote with no chat bad',!!C.chatProblem('they said "hi there" and lost',[]));
+t('no quote ok',!C.chatProblem('plain line',[]));
+console.log(ok+' passed, '+bad+' failed'); process.exit(bad?1:0);

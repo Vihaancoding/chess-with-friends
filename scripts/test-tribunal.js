@@ -63,6 +63,25 @@ const LONG = fx[9].ucis;                                           // 50 plies
   await sleep(100);
   ok('bob is paid for the win (the game was settled)', (await call('me', {}, P.bob)).user.w >= 1);
 
+  console.log('exceptions are silent');
+  ok('only an admin can set exceptions', (await call('admin_fair_exempt', { name: 'eve', on: true }, P.cat)).status >= 400);
+  ok('an admin exempts eve; the list holds her', (await call('admin_fair_exempt', { name: 'eve', on: true }, P.dan)).exempt.includes('eve'));
+  handler.fairDeps = { scan: async (h, color) => (color === 'w' ? strong : null) };
+  const gx = await start('eve', 'fay');
+  for (let i = 0; i < 40; i++) await mv(gx, LONG[i], i % 2 ? 'fay' : 'eve');
+  await sleep(500);
+  const rx = await call('room', { code: gx }, P.cat);
+  ok('the exempt player is not forfeited, no case, no announcement', rx.status.reason !== 'fair play forfeit' && !rx.fp && !(await call('me', {}, P.cat)).chat.some((m) => /eve/.test(m.text || '') && m.fp), rx.status);
+  ok('the list can be cleared', !(await call('admin_fair_exempt', { name: 'eve', on: false }, P.dan)).exempt.includes('eve'));
+  await call('resign', { code: gx }, P.eve);
+
+  console.log('the Damage Report can be turned off per server');
+  ok('only an admin can', (await call('admin_dmg_server', { id: '1', off: true }, P.cat)).status >= 400);
+  await call('admin_dmg_server', { id: '1', off: true }, P.dan);
+  ok('the feed says off and the admin list shows it', (await call('damage_feed', {}, P.cat)).off === true && (await call('admin_servers', {}, P.dan)).servers[0].dmgOff === true);
+  await call('admin_dmg_server', { id: '1', off: false }, P.dan);
+  ok('turned back on', !(await call('damage_feed', {}, P.cat)).off && (await call('admin_servers', {}, P.dan)).servers[0].dmgOff === false);
+
   console.log('the poll');
   let cs = (await call('fair_cases', {}, P.cat)).cases;
   ok('the case is public with the five options', cs.length === 1 && cs[0].options.map((o) => o.label).join('|') === 'Warning only|24-hour ban|7-day ban|30-day ban|Permanent ban', cs[0] && cs[0].options);

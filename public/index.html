@@ -1452,6 +1452,13 @@
     <div class="row" style="margin-top:6px"><button class="primary" id="fpPhrasesSave" type="button">Save</button><span id="fpPhrasesMsg" class="muted" role="status"></span></div>
   </div>
   <div class="panel">
+    <h2 class="ph">Fair play exceptions</h2>
+    <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">Exempt players are never engine-checked. Silent: they and everyone else are not told.</div>
+    <form id="feForm" class="row"><input id="feIn" maxlength="16" placeholder="Username" autocomplete="off" style="text-align:left"><button class="primary" type="submit">Exempt</button></form>
+    <div id="feList" style="margin-top:8px"></div>
+    <div id="feErr" role="alert" class="muted"></div>
+  </div>
+  <div class="panel">
     <h2 class="ph">Damage Report target</h2>
     <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">When a marked player loses, the Damage Report line about them gets extra mean (chess only). They can still opt out of being featured.</div>
     <form id="dtForm" class="row"><input id="dtIn" maxlength="16" placeholder="Username" autocomplete="off" style="text-align:left"><button class="primary" type="submit">Mark</button></form>
@@ -3054,7 +3061,7 @@ function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
 $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
-  loadDmgTargets(); loadFpPhrases();
+  loadDmgTargets(); loadFpPhrases(); loadFpExempt();
   if (view !== 'admin') return;
   const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
@@ -3067,6 +3074,7 @@ async function loadAdmin() {
       <td class="r">${x.players}</td>
       <td><div class="acts">${x.id === sv.current ? '' : `<button class="small primary" data-act="srvswitch" data-id="${x.id}">Switch here</button>`}
       <button class="small" data-act="srvrename" data-id="${x.id}" data-v="${esc(x.name)}">Rename</button>
+      <button class="small" data-act="srvdmg" data-id="${x.id}" data-off="${x.dmgOff ? 0 : 1}">Damage Report: ${x.dmgOff ? 'off (turn on)' : 'on (turn off)'}</button>
       ${x.code ? `<button class="small" data-act="srvlink" data-code="${esc(x.code)}">Copy invite link</button>` : ''}
       ${x.id === '1' ? '' : `<button class="small" data-act="srvcode" data-id="${x.id}">${x.code ? 'New code' : 'Turn on code'}</button>${x.code ? `<button class="small" data-act="srvoff" data-id="${x.id}">Turn off code</button>` : ''}`}</div></td></tr>`).join('');
   }
@@ -3146,6 +3154,7 @@ $('#admin').addEventListener('click', async (e) => {
   }
   if (act === 'srvswitch') { const r = await api('admin_move', { to: b.dataset.id }); if (!r.ok) return alert(r.error || 'Could not switch.'); return location.reload(); }
   if (act === 'srvrename') { const n = prompt('New name:', b.dataset.v); if (!n) return; const r = await api('admin_server_edit', { id: b.dataset.id, name: n }); if (!r.ok) alert(r.error); return loadAdmin(); }
+  if (act === 'srvdmg') { const r = await api('admin_dmg_server', { id: b.dataset.id, off: b.dataset.off === '1' }); if (!r.ok) alert(r.error); return loadAdmin(); }
   if (act === 'srvcode' || act === 'srvoff') {
     if (act === 'srvoff' && !confirm('Turn off this code? Nobody new can join this server until you make a new one.')) return;
     if (act === 'srvcode' && b.textContent === 'New code' && !confirm('Make a new code? The old one stops working.')) return;
@@ -3175,6 +3184,9 @@ $('#admin').addEventListener('click', async (e) => {
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
 async function loadFpPhrases() { const r = await api('admin_fair_phrases'); if (r.ok) $('#fpPhrases').value = r.phrases.join('\n'); }
 $('#fpPhrasesSave').onclick = async () => { const r = await api('admin_fair_phrases', { phrases: $('#fpPhrases').value.split('\n') }); $('#fpPhrasesMsg').textContent = r.ok ? 'Saved.' : r.error; };
+async function loadFpExempt(r) { r = r || await api('admin_fair_exempt'); if (r.ok) setHTML($('#feList'), r.exempt.length ? r.exempt.map((n) => `<span class="cmk" style="margin-right:6px">${esc(n)} <button class="small" data-feoff="${esc(n)}" aria-label="Remove ${esc(n)}">×</button></span>`).join('') : '<span class="muted">Nobody exempt.</span>'); }
+$('#feForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_fair_exempt', { name: $('#feIn').value, on: true }); $('#feErr').textContent = r.ok ? '' : r.error || 'Failed.'; if (r.ok) $('#feIn').value = ''; loadFpExempt(r.ok ? r : null); });
+$('#feList').addEventListener('click', async (e) => { const b = e.target.closest('[data-feoff]'); if (!b) return; loadFpExempt(await api('admin_fair_exempt', { name: b.dataset.feoff, on: false })); });
 async function loadDmgTargets() { const r = await api('admin_dmg_targets'); if (r.ok) setHTML($('#dtList'), r.targets.length ? r.targets.map((n) => `<span class="cmk" style="margin-right:6px">${esc(n)} <button class="small" data-dtoff="${esc(n)}" aria-label="Unmark ${esc(n)}">×</button></span>`).join('') : '<span class="muted">Nobody marked.</span>'); }
 $('#dtForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_dmg_target', { name: $('#dtIn').value, on: true }); $('#dtErr').textContent = r.ok ? '' : r.error || 'Failed.'; if (r.ok) $('#dtIn').value = ''; loadDmgTargets(); });
 $('#dtList').addEventListener('click', async (e) => { const b = e.target.closest('[data-dtoff]'); if (!b) return; await api('admin_dmg_target', { name: b.dataset.dtoff, on: false }); loadDmgTargets(); });
@@ -6688,6 +6700,7 @@ async function loadDamage(force) {
   if (view !== 'lobby') return;
   if (!r.ok) { DMG.at = 0; if (!DMG.loaded) $('#dmgcard').classList.add('hidden'); return; }
   DMG.loaded = true; DMG.share = r.share || '1'; DMG.out = !!r.optOut;
+  if (r.off) { $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
   if (r.hide) { DMG.hide = true; $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
   $('#dmgcard').classList.remove('hidden');
   dmgRender(r);
