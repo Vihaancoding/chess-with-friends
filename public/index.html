@@ -3074,6 +3074,7 @@ async function loadAdmin() {
       <td class="r">${x.players}</td>
       <td><div class="acts">${x.id === sv.current ? '' : `<button class="small primary" data-act="srvswitch" data-id="${x.id}">Switch here</button>`}
       <button class="small" data-act="srvrename" data-id="${x.id}" data-v="${esc(x.name)}">Rename</button>
+      <button class="small" data-act="srvdmg" data-id="${x.id}" data-off="${x.dmgOff ? 0 : 1}">Damage Report: ${x.dmgOff ? 'off (turn on)' : 'on (turn off)'}</button>
       ${x.code ? `<button class="small" data-act="srvlink" data-code="${esc(x.code)}">Copy invite link</button>` : ''}
       ${x.id === '1' ? '' : `<button class="small" data-act="srvcode" data-id="${x.id}">${x.code ? 'New code' : 'Turn on code'}</button>${x.code ? `<button class="small" data-act="srvoff" data-id="${x.id}">Turn off code</button>` : ''}`}</div></td></tr>`).join('');
   }
@@ -3153,6 +3154,7 @@ $('#admin').addEventListener('click', async (e) => {
   }
   if (act === 'srvswitch') { const r = await api('admin_move', { to: b.dataset.id }); if (!r.ok) return alert(r.error || 'Could not switch.'); return location.reload(); }
   if (act === 'srvrename') { const n = prompt('New name:', b.dataset.v); if (!n) return; const r = await api('admin_server_edit', { id: b.dataset.id, name: n }); if (!r.ok) alert(r.error); return loadAdmin(); }
+  if (act === 'srvdmg') { const r = await api('admin_dmg_server', { id: b.dataset.id, off: b.dataset.off === '1' }); if (!r.ok) alert(r.error); return loadAdmin(); }
   if (act === 'srvcode' || act === 'srvoff') {
     if (act === 'srvoff' && !confirm('Turn off this code? Nobody new can join this server until you make a new one.')) return;
     if (act === 'srvcode' && b.textContent === 'New code' && !confirm('Make a new code? The old one stops working.')) return;
@@ -6698,6 +6700,7 @@ async function loadDamage(force) {
   if (view !== 'lobby') return;
   if (!r.ok) { DMG.at = 0; if (!DMG.loaded) $('#dmgcard').classList.add('hidden'); return; }
   DMG.loaded = true; DMG.share = r.share || '1'; DMG.out = !!r.optOut;
+  if (r.off) { $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
   if (r.hide) { DMG.hide = true; $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
   $('#dmgcard').classList.remove('hidden');
   dmgRender(r);

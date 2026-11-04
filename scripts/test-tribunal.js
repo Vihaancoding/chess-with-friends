@@ -75,6 +75,13 @@ const LONG = fx[9].ucis;                                           // 50 plies
   ok('the list can be cleared', !(await call('admin_fair_exempt', { name: 'eve', on: false }, P.dan)).exempt.includes('eve'));
   await call('resign', { code: gx }, P.eve);
 
+  console.log('the Damage Report can be turned off per server');
+  ok('only an admin can', (await call('admin_dmg_server', { id: '1', off: true }, P.cat)).status >= 400);
+  await call('admin_dmg_server', { id: '1', off: true }, P.dan);
+  ok('the feed says off and the admin list shows it', (await call('damage_feed', {}, P.cat)).off === true && (await call('admin_servers', {}, P.dan)).servers[0].dmgOff === true);
+  await call('admin_dmg_server', { id: '1', off: false }, P.dan);
+  ok('turned back on', !(await call('damage_feed', {}, P.cat)).off && (await call('admin_servers', {}, P.dan)).servers[0].dmgOff === false);
+
   console.log('the poll');
   let cs = (await call('fair_cases', {}, P.cat)).cases;
   ok('the case is public with the five options', cs.length === 1 && cs[0].options.map((o) => o.label).join('|') === 'Warning only|24-hour ban|7-day ban|30-day ban|Permanent ban', cs[0] && cs[0].options);
