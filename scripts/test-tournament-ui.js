@@ -277,6 +277,33 @@ process.on('exit', () => { if (srv) srv.kill(); });
     ok('on a phone the bracket scrolls sideways, not the page', await Q.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1 && document.querySelector('.kb').scrollWidth > document.querySelector('.kb').clientWidth));
   }
 
+  console.log('9 players: a play-in game instead of a column of byes');
+  {
+    const N9 = {}; for (const n of ['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8']) N9[n] = await su(n);
+    const nc = await api('tour_create', { name: 'Nine Cup', tc: { base: 600, inc: 0 }, cfg: { kind: 'ko' } }, P.ann);
+    for (const n of Object.keys(N9)) await api('tour_join', { id: nc.tour.id }, N9[n]);
+    const nt = (await api('tour_start', { id: nc.tour.id }, P.ann)).tour;
+    const pin = nt.ko.rounds[0].find((f) => f.by !== 'bye');
+    const who = (n) => P[n] || N9[n];
+    const pr = await api('tour_play', { id: nc.tour.id, fx: pin.id }, who(pin.a));
+    const rm = await api('room', { code: pr.code }, who(pin.a));
+    await api('move', { code: pr.code, from: 52, to: 36 }, who(rm.players.w.name));      // White plays e4; Black never opens the game
+    await A.goto(`http://localhost:${PORT}/?tour=${nc.tour.id}`);
+    await A.waitForSelector('.kb .km');
+    const first = await A.$eval('.kround:first-child', (x) => ({ h: x.querySelector('h3').textContent, cards: x.querySelectorAll('.km').length, text: x.textContent }));
+    ok('the first column is a play-in game, with only the real game in it', /Play-in game/.test(first.h) && /7 through on a bye/.test(first.h) && first.cards === 1 && !/bye/i.test(first.text.replace(first.h, '')), first);
+    ok('players who went straight through get a small "bye" tag next round', (await A.$$('.kround:nth-child(2) .kbyetag')).length === 7);
+    await shot(A, 't14-nine-players');
+    const S = await open(P.cat, { width: 1280, height: 860 });
+    await S.goto(`http://localhost:${PORT}/?game=${pr.code}`);
+    await S.waitForFunction(() => snap && snap.you === 's' && snap.moves.length === 1);
+    await S.waitForFunction(() => /to join/.test(document.querySelector('#status').textContent), null, { timeout: 10000 }).catch(() => {});
+    ok('a spectator sees who hasn\'t joined, not "Black to move"', new RegExp(`Waiting for ${rm.players.b.name}( and ${rm.players.w.name})? to join`).test(await S.textContent('#status')) || /Waiting for .* to join/.test(await S.textContent('#status')), await S.textContent('#status'));
+    ok('…and that the game hasn\'t started', /hasn't|haven't/.test(await S.textContent('#sub')), await S.textContent('#sub'));
+    ok('no "claim the win" anywhere', !(await S.$('#mpClaim')) && !/claim/i.test(await S.textContent('#sub')));
+    await shot(S, 't15-spectator-wait');
+  }
+
   await br.close(); srv.kill();
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);

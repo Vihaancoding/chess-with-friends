@@ -696,6 +696,9 @@
   .kround:not(:last-child) .kslot:only-child::before { display: none; }
   .kslot.won::after, .kslot.won::before { border-color: var(--green) !important; }
   .kround:not(:first-child) .kslot > div::before { content: ''; position: absolute; left: calc(-1 * var(--kgap) - 2px); top: 50%; width: var(--kgap); border-top: 2px solid var(--kline); }
+  .kslot.kbye::before, .kslot.kbye::after { display: none !important; }
+  .kround:not(:first-child) .kslot > div.kbyein::before { display: none; }
+  .kbyetag { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: #3a3936; border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px; }
   .km { position: relative; width: 100%; background: var(--panel2); border-radius: 10px; border: 2px solid #3a3936; }
   .km.me { border-color: var(--green); box-shadow: 0 0 0 3px #81b64c22; } .km.live { border-color: #5c8bb0; box-shadow: 0 0 0 3px #5c8bb033; }
   .km.final { border-color: var(--gold); }
@@ -2460,14 +2463,15 @@ function render() {
     else { t = `${nm(state.turn)} to move (${state.turn === 'w' ? 'White' : 'Black'})`; s = (status.check ? 'Check! · ' : '') + 'Pass & play · ' + tcLabel(snap.tc); }
   }
   const oppC = you === 'w' ? 'b' : 'w';
-  if (snap.tour && mine && !status.over && !moves.length && players.w && players.b && !present[oppC]) {   // tournament waiting room
+  const oppMoved = moves.length >= (oppC === 'w' ? 1 : 2);
+  if (snap.tour && mine && !status.over && !oppMoved && players.w && players.b && !present[oppC]) {   // tournament waiting room
     t = `Waiting for ${players[oppC].name}…`;
-    s = `They've been sent a notification. ${you === 'w' ? 'You play White: make your first move when they arrive.' : 'They play White and will move first.'}`;
+    s = `They've been sent a notification. ${you === 'w' ? (moves.length ? 'Your move is in; the clocks start once they reply.' : 'You play White: you can move now or wait for them.') : 'They play White and will move first.'}`;
   }
-  const specWait = !mine && !isArchive() && !isLocal() && !status.over && !moves.length && players.w && players.b && !(present.w && present.b) ? ['w', 'b'].filter((c) => !present[c]).map((c) => players[c].name) : null;
-  if (specWait) {   // spectating a game nobody has started yet (e.g. a tournament match whose players haven't both arrived)
-    t = `Waiting for ${specWait.join(' and ')}…`;
-    s = 'The game starts when both players are here · You are spectating';
+  const specWait = !mine && !isArchive() && !isLocal() && !status.over && moves.length < 2 && players.w && players.b && !(present.w && present.b) ? ['w', 'b'].filter((c) => !present[c]).map((c) => players[c].name) : null;
+  if (specWait) {   // spectating a game that hasn't really started (e.g. a tournament match whose players haven't both arrived)
+    t = `Waiting for ${specWait.join(' and ')} to join…`;
+    s = "They haven't opened the game yet; it starts once both players have moved · You are spectating";
   }
   if (snap.paused && !status.over) { t = 'Game paused'; s = 'Both players must press Resume to continue'; }
   if (!live) { t = `Reviewing move ${viewPly}`; s = 'Use the arrows below, or press End, to return to the game'; }
@@ -4021,10 +4025,11 @@ function paintMatch() {
   const series = past.length && sides.length === 2 ? ` · Matches: ${sides.map((x) => `${esc(x.name)} ${wonBy(x.name)}`).join(', ')}` : '';
   setHTML($('#mpNote'), (matchNote(snap) || '') + series);
   const mine = snap.you === 'w' || snap.you === 'b';
-  $('#mpActs').classList.toggle('hidden', !mine || m.done || !(snap.status.over || !snap.moves.length));
+  $('#mpActs').classList.toggle('hidden', !mine || m.done || !(snap.status.over || snap.moves.length < (snap.tour ? 2 : 1)));
   $('#mpEnd').classList.toggle('hidden', !!snap.tour);
   const oc = snap.you === 'w' ? 'b' : 'w';
-  $('#mpRemind').classList.toggle('hidden', !(snap.tour && mine && !snap.status.over && !snap.moves.length && snap.players[oc] && !snap.present[oc]));                     // tournament matches are played to the end
+  const waitingOpp = !!(snap.tour && mine && !snap.status.over && snap.moves.length < (oc === 'w' ? 1 : 2) && snap.players[oc] && !snap.present[oc] && !(snap.match && snap.match.games.length));
+  $('#mpRemind').classList.toggle('hidden', !waitingOpp);                     // tournament matches are played to the end
   const c = paintCount();
   if (c && c.hold && !mTimer) mTimer = setInterval(matchTick, 250);
 }
@@ -5522,12 +5527,14 @@ function fixturesByRound(t, g, run) {
 // knockout bracket: rounds as columns joined by connector lines, the winner's path in green, a champion slot at the end
 function bracketHTML(t, run) {
   const R = t.ko.rounds, seeds = t.ko.seeds || [], next = (Tour.myFixtures(t, user.name)[0] || {}).id;
+  const byes = new Set(R[0].filter((f) => f.by === 'bye').map((f) => f.a || f.b)), real0 = R[0].filter((f) => f.by !== 'bye').length;
   const seed = (n) => { const i = seeds.indexOf(n); return i < 0 ? '' : i + 1; };
   const row = (f, side) => {
     const n = f[side], w = Tour.winnerOf(f);
     if (!n) return `<div class="kp tbd"><span class="sd"></span><span class="nm">${f.by === 'bye' ? 'bye' : 'TBD'}</span><span class="sc"></span></div>`;
     const sc = f.score && f.by !== 'awarded' ? half(f.score[side === 'a' ? 0 : 1]) : w ? (w === n ? '✓' : '') : '';
-    return `<div class="kp${w ? (w === n ? ' w' : ' l') : ''}"><span class="sd">${seed(n)}</span><span class="nm">${esc(n)}${n === user.name ? ' <span class="youtag">you</span>' : ''}</span><span class="sc">${sc}</span></div>`;
+    const byeTag = byes.has(n) && f.id.startsWith('k2-') ? ' <span class="kbyetag" title="Went straight through the play-in round">bye</span>' : '';
+    return `<div class="kp${w ? (w === n ? ' w' : ' l') : ''}"><span class="sd">${seed(n)}</span><span class="nm">${esc(n)}${n === user.name ? ' <span class="youtag">you</span>' : ''}${byeTag}</span><span class="sc">${sc}</span></div>`;
   };
   const foot = (f) => {
     const mine = f.a === user.name || f.b === user.name;
@@ -5539,10 +5546,13 @@ function bracketHTML(t, run) {
     return '<span>Ready to play</span>';
   };
   const cols = R.map((round, r) => {
-    const name = Tour.ROUND_NAMES[round.length] || 'Round ' + (r + 1), len = round[0] && round[0].fmt ? Tour.lengthText(round[0].fmt.n, true) : '';
-    return `<div class="kround"><h3>${name}<small>${esc(len)}</small></h3><div class="kmatches">${round.map((f) => {
+    const playIn = r === 0 && byes.size > 0;
+    const name = playIn ? (real0 === 1 ? 'Play-in game' : 'Play-in round') : Tour.ROUND_NAMES[round.length] || 'Round ' + (r + 1);
+    const len = (playIn ? `${byes.size} through on a bye · ` : '') + (round[0] && round[0].fmt ? Tour.lengthText(round[0].fmt.n, true) : '');
+    return `<div class="kround${playIn ? ' kplayin' : ''}"><h3>${name}<small>${esc(len)}</small></h3><div class="kmatches">${round.map((f, i) => {
+      if (f.by === 'bye') return '<div class="kslot kbye"></div>';     // an empty place: the player is already in the next round
       const live = f.room && !f.res, me = Tour.ready(f) && (f.a === user.name || f.b === user.name);
-      return `<div class="kslot${f.res ? ' won' : ''}"><div class="km${me ? ' me' : ''}${live ? ' live' : ''}${r === R.length - 1 ? ' final' : ''}">${row(f, 'a')}${row(f, 'b')}<div class="kfoot">${foot(f)}</div>${fxEdit(t, f, run).replace('fxedit', 'fxedit kedit')}</div></div>`;
+      return `<div class="kslot${f.res ? ' won' : ''}"><div class="km${me ? ' me' : ''}${live ? ' live' : ''}${r === R.length - 1 ? ' final' : ''}${r === 1 && [R[0][2 * i], R[0][2 * i + 1]].every((x) => x && x.by === 'bye') ? ' kbyein' : ''}">${row(f, 'a')}${row(f, 'b')}<div class="kfoot">${foot(f)}</div>${fxEdit(t, f, run).replace('fxedit', 'fxedit kedit')}</div></div>`;
     }).join('')}</div></div>`;
   }).join('');
   const champ = `<div class="kround kchampcol"><h3>Champion<small>&nbsp;</small></h3><div class="kmatches"><div class="kslot"><div class="kchamp${t.champion ? ' on' : ''}"><span class="ktrophy">🏆</span><b>${t.champion ? esc(t.champion) : '?'}</b><span>${t.champion ? (t.champion === user.name ? 'That\'s you!' : 'Winner') : 'To be decided'}</span></div></div></div></div>`;
