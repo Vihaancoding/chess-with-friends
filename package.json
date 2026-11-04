@@ -1,1 +1,1 @@
-{"name":"chess-with-friends","version":"1.0.0","scripts":{"start":"node server.js"},"dependencies":{"nodemailer":"^10.0.15"}}
+{"name":"chess-with-friends","version":"1.0.0","scripts":{"start":"node server.js"},"dependencies":{"@resvg/resvg-js":"^2.6.2","nodemailer":"^10.0.15"}}
