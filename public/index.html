@@ -1118,7 +1118,7 @@
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
-    <button id="navCoach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
+    <button id="navCoach" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
     <button id="navTour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg> Tournaments</button>
     <button id="navRivals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3"/></svg> Rivalries</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
@@ -1658,6 +1658,8 @@ function pieceHTML(p) {
   const g = GLYPH[p[1]] + '\uFE0E';
   return `<img class="piece" src="${PIECE_CDN}${p}.svg" alt="" draggable="false" onerror="if(this.src.indexOf('${PIECE_LOCAL}')<0)this.src='${PIECE_LOCAL}${p}.svg';else{this.outerHTML='<span class=&quot;glyph ${p[0]}&quot;>${g}</span>'}">`;
 }
+// The Coach is archived: hidden from the menu, and ?coach links open the main page. Set to false to bring it back.
+const COACH_ARCHIVED = true;
 const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
@@ -1982,8 +1984,8 @@ async function start() {
   ensureSessionSubs();
   const params = new URLSearchParams(location.search);
   if (params.has('learn')) return enterLearn();
-  if (params.get('coach') === 'game') { const b = botLoad('chess:coachgame'); if (b) return enterBot(b); }
-  if (params.has('coach')) return enterCoach();
+  if (!COACH_ARCHIVED && params.get('coach') === 'game') { const b = botLoad('chess:coachgame'); if (b) return enterBot(b); }
+  if (!COACH_ARCHIVED && params.has('coach')) return enterCoach();
   if (params.has('tour')) return enterTours(params.get('tour'));
   if (params.has('tours')) return enterTours();
   if (params.has('rival')) return enterRivals(params.get('rival'));
@@ -2224,7 +2226,7 @@ function enterLobby() {
   lobbyTimer = setInterval(() => {
     if (document.hidden) return;
     lobbyTick++;
-    const fullEvery = rtLobbyLive ? 10 : 3, pingEvery = rtLobbyLive ? 5 : 1;
+    const fullEvery = 10, pingEvery = 5;                               // same pace with or without live updates (keeps server load down)
     if (lobbyTick % fullEvery === 0) pollLobby(true); else if (lobbyTick % pingEvery === 0) pollLobby(false);
   }, 1000);
 }
@@ -2511,8 +2513,8 @@ function enterRivals(name, pub) {
     if (view !== 'rivals') return stopRivals();
     if (document.hidden) return;
     RV.tick++; rvPing();
-    if (RV.tick % 8 === 0) rvLoad();                                    // the records themselves change only when a game ends
-  }, 2500);
+    if (RV.tick % 360 === 0) rvLoad();                                  // the records: every 30 minutes (the server rebuilds them as often)
+  }, 5000);
 }
 $('#navRivals').onclick = () => enterRivals();
 async function rvLoad() {
@@ -4619,6 +4621,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (view === 'game' && !isBot()) kick();
   else if (view === 'lobby') pollLobby(true);
+  else if (view === 'tours') loadTours();
 });
 
 // ---------- fair play: signs of an engine helper on the board ----------
@@ -6059,6 +6062,7 @@ $('#coHint').onclick = () => coachHint(false);
 $('#coTake').onclick = coachTakeback;
 $('#coGo').onclick = () => { const b = botGame; if (!isCoach() || !b.coach.wait) return; b.coach.wait = false; CO.arrow = null; CO.msg = null; paintCoach(); botThink(); };
 $('#navCoach').onclick = enterCoach;
+if (!COACH_ARCHIVED) $('#navCoach').classList.remove('hidden');
 
 // ----- Ask the coach: questions -> an explanation plus lessons and opening trainers (answers come from coachask.js) -----
 const ASK = { log: [], busy: false };   // kept while the page is open, so coming back to the coach keeps the conversation
@@ -6315,7 +6319,7 @@ function enterTours(id) {
   if (id) { setHTML($('#tvHead'), '<span class="sk" style="width:240px;height:1.4em"></span>'); setHTML($('#tvMine'), ''); setHTML($('#tvBody'), ''); }
   else paintTourForm();
   loadTours();
-  tourTimer = setInterval(() => { if (!document.hidden) loadTours(); }, 4000);
+  tourTimer = setInterval(() => { if (!document.hidden) loadTours(); }, 30000);
   clearInterval(tourClock); tourClock = setInterval(tickCountdowns, 1000);
   tcSig = ''; setHTML($('#tcLog'), ''); setText($('#tcErr'), '');
 }
