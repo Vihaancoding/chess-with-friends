@@ -135,6 +135,14 @@ const LONG = fx[9].ucis;                                           // 50 plies
   const done = await call('room', { code: g3 }, P.cat);
   ok('once the game is over everyone sees all of it', done.hist.length === 10 && !done.delayed);
 
+  console.log('an admin can flag a player');
+  ok('only an admin can flag', (await call('admin_fair_flag', { name: 'fay' }, P.cat)).status >= 400);
+  const fl = await call('admin_fair_flag', { name: 'fay', note: 'looks off' }, P.dan);
+  const flc = (await call('fair_cases', {}, P.cat)).cases.find((c) => c.id === fl.id);
+  ok('the flag opens a vote with no forfeit and no engine score', fl.ok && flc && flc.manual && flc.conf === null && flc.status === 'poll' && flc.game === null, flc);
+  ok('people can vote on it', (await call('fair_vote', { id: fl.id, opt: 'warn' }, P.cat)).ok);
+  ok('an admin cannot be flagged', (await call('admin_fair_flag', { name: 'dan' }, P.dan)).status >= 400);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
