@@ -1448,6 +1448,11 @@
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
   </div>
   <div class="panel">
+    <h2 class="ph">Fair play investigations</h2>
+    <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">Games the detector rated Suspicious. Only admins see this. Nothing happens to the player unless you open a vote.</div>
+    <div id="finvList"></div>
+  </div>
+  <div class="panel">
     <h2 class="ph">Flag a player for fair play</h2>
     <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">Opens a community vote on them right away (no forfeit). Optionally add a game id and a short note.</div>
     <form id="ffForm" class="row" style="flex-wrap:wrap"><input id="ffName" maxlength="16" placeholder="Username" autocomplete="off" style="text-align:left"><input id="ffGame" maxlength="30" placeholder="Game id (optional)" autocomplete="off" style="text-align:left"><input id="ffNote" maxlength="200" placeholder="Note (optional)" autocomplete="off" style="text-align:left;flex:1;min-width:140px"><button class="primary" type="submit">Flag</button></form>
@@ -3069,7 +3074,7 @@ function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
 $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
-  loadDmgTargets(); loadFpPhrases(); loadFpExempt();
+  loadDmgTargets(); loadFpPhrases(); loadFpExempt(); loadFairInv();
   if (view !== 'admin') return;
   const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
@@ -3105,8 +3110,11 @@ async function loadAdmin() {
 let adServers = [];
 // ----- fair play -----
 let adFairBusy = false, adFairOpen = null, adFairDetail = null;
+const FAIR_LV = { 1: ['Normal', ''], 2: ['Unusual', 'gold'], 3: ['Suspicious', 'red'], 4: ['High confidence', 'red'], 5: ['Confirmed', 'red'] };
+const fairLvBadge = (d) => (d && d.level >= 2 ? `<span class="badge ${FAIR_LV[d.level][1]}" title="${esc(d.label || '')}">${FAIR_LV[d.level][0]}</span> ` : '');
 function fairCheckTxt(f) {
   const v = f && f.verdict;
+  if (f && f.det && f.det.level >= 2) return fairLvBadge(f.det) + `<span class="muted">${f.det.games} games analysed${f.det.p < 1 ? ' · p = ' + f.det.p.toExponential(1) : ''}</span>`;
   if (!v || !v.games) return f && f.pending ? '<span class="muted">checking…</span>' : '<span class="muted">no long games yet</span>';
   const s = `${v.match}% top move · ${v.acpl} avg loss · ${v.games} game${v.games > 1 ? 's' : ''}`;
   return v.flag ? `<span class="badge red">possible engine</span> ${esc(v.flag)}` : `<span class="muted">${s}</span>`;
@@ -3124,7 +3132,8 @@ function fairDetailHTML(d) {
   const day = (ts) => new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const ext = d.ext.length ? d.ext.map((x) => `<div>${day(x.ts)} · game ${esc(x.game || '?')} · ${esc(x.what)}</div>`).join('') : '<div class="muted">No board reports.</div>';
   const games = d.games.length ? d.games.map((g) => `<div>${day(g.at)} · vs ${esc(g.opp)} (${g.color === 'w' ? 'White' : 'Black'}, ${g.result}) · ${g.scan ? `${g.scan.match}% top move, ${g.scan.acpl} avg loss over ${g.scan.n} moves${g.scan.cv !== null ? `, move-time spread ${g.scan.cv}` : ''}` : 'too short to judge'}</div>`).join('') : '<div class="muted">No games checked yet.</div>';
-  return `<div style="font-size:.88rem;line-height:1.6"><b>Board reports</b>${ext}<b>Engine check</b>${games}</div>`;
+  const det = d.det ? `<b>Detector</b><div>${fairLvBadge(d.det) || '<span class="badge">Normal</span> '}${d.det.games} analysed game${d.det.games === 1 ? '' : 's'}${d.det.shift && d.det.shift.enough ? ` · earlier ${d.det.shift.earlier}, recent ${d.det.shift.recent} (standard units)${d.det.shift.significant ? ' · significant jump' : ''}` : ''}${d.det.confirmed ? ` · ${d.det.confirmed} confirmed by review` : ''}</div>${d.det.last ? `<div class="muted">Latest game: ${esc(d.det.last.label)}</div>${(d.det.last.evidence || []).map((x) => `<div>${esc(x)}</div>`).join('')}` : ''}${(d.det.history || []).length ? `<div class="muted">Recent: ${d.det.history.slice(-12).map((e) => `${e.level}`).join(' ')} (level per game)</div>` : ''}` : '';
+  return `<div style="font-size:.88rem;line-height:1.6"><b>Board reports</b>${ext}${det}<b>Engine check</b>${games}</div>`;
 }
 // one player's unchecked games per tick, while the panel is open
 function fairTick(users) {
@@ -3191,6 +3200,16 @@ $('#admin').addEventListener('click', async (e) => {
 });
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
 $('#ffForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_fair_flag', { name: $('#ffName').value, game: $('#ffGame').value, note: $('#ffNote').value }); $('#ffMsg').textContent = r.ok ? 'Flagged. The vote is open in the Fair play tribunal.' : r.error || 'Failed.'; if (r.ok) { $('#ffName').value = $('#ffGame').value = $('#ffNote').value = ''; fpAt = 0; } });
+async function loadFairInv() {
+  const r = await api('admin_fair_inv'); if (!r.ok) return;
+  setHTML($('#finvList'), r.items.length ? r.items.map((x) => `<div class="fpc" data-inv="${esc(x.id)}"><h3>${esc(x.name)} · ${esc(FAIR_LV[x.level][0])}</h3><div class="fpm">p = ${x.p.toExponential(1)} · game ${esc(x.gid)}</div>${x.evidence.map((e) => `<div style="font-size:.85rem">${esc(e)}</div>`).join('')}${x.corroboration.length ? `<div style="font-size:.85rem">Supporting: ${x.corroboration.map(esc).join('; ')}</div>` : ''}<div class="acts" style="margin-top:6px"><button class="small primary" data-invact="vote">Open community vote</button><button class="small" data-invact="dismiss">Dismiss</button><button class="small" data-invgame="${esc(x.gid)}">View game</button></div></div>`).join('') : '<span class="muted">Nothing waiting.</span>');
+}
+$('#finvList').addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-inv]'), b = e.target.closest('[data-invact]'), g = e.target.closest('[data-invgame]');
+  if (g) return enterArchive(g.dataset.invgame);
+  if (!c || !b) return;
+  const r = await api('admin_fair_inv_act', { id: c.dataset.inv, act: b.dataset.invact }); if (!r.ok) alert(r.error || 'Failed.'); loadFairInv(); fpAt = 0;
+});
 async function loadFpPhrases() { const r = await api('admin_fair_phrases'); if (r.ok) $('#fpPhrases').value = r.phrases.join('\n'); }
 $('#fpPhrasesSave').onclick = async () => { const r = await api('admin_fair_phrases', { phrases: $('#fpPhrases').value.split('\n') }); $('#fpPhrasesMsg').textContent = r.ok ? 'Saved.' : r.error; };
 async function loadFpExempt(r) { r = r || await api('admin_fair_exempt'); if (r.ok) setHTML($('#feList'), r.exempt.length ? r.exempt.map((n) => `<span class="cmk" style="margin-right:6px">${esc(n)} <button class="small" data-feoff="${esc(n)}" aria-label="Remove ${esc(n)}">×</button></span>`).join('') : '<span class="muted">Nobody exempt.</span>'); }
@@ -6622,7 +6641,7 @@ function fpCaseHTML(c) {
   const me = user && user.name.toLowerCase() === c.name.toLowerCase();
   const head = c.status === 'poll' ? `What punishment should ${esc(c.name)} receive?` : c.status === 'appeal' ? `Appeal: should ${esc(c.name)}'s punishment stand?` : c.result && c.result.key === 'dismissed' ? `${esc(c.name)}: dismissed by an admin` : `${esc(c.name)}: ${esc((c.options.find((o) => o.key === (c.result && c.result.key)) || { label: 'closed' }).label)}${c.appeal && c.appeal.result && c.appeal.result.overturned ? ' (overturned on appeal)' : ''}`;
   return `<div class="fpc" data-fpcase="${esc(c.id)}"><h3>${head}</h3>
-    <div class="fpm">${c.manual ? 'Flagged by an admin' : `Engine check, ${Math.round(c.conf * 100)}% sure`}${c.evidence.n ? ` · ${c.evidence.match}% engine moves, ${c.evidence.acpl} average loss over ${c.evidence.n} moves` : ''}${live ? ` · ${fpWhen(live.ends || c.pollEnds)}` : ''} ${c.game ? ` · <button class="small" data-fpgame="${esc(c.game)}">View game</button>` : ''}</div>${c.manual && c.evidence.reasons[0] ? `<p class="fpm">${esc(c.evidence.reasons[0])}</p>` : ''}
+    <div class="fpm">${c.manual ? 'Flagged by an admin' : `Engine check, ${Math.round(c.conf * 100)}% sure`}${c.evidence.n ? ` · ${c.evidence.match}% engine moves, ${c.evidence.acpl} average loss over ${c.evidence.n} moves` : ''}${live ? ` · ${fpWhen(live.ends || c.pollEnds)}` : ''} ${c.game ? ` · <button class="small" data-fpgame="${esc(c.game)}">View game</button>` : ''}</div>${c.evidence.reasons && c.evidence.reasons.length ? `<details class="fpm"><summary>Why was this flagged?</summary>${c.evidence.reasons.map((x) => `<div>${esc(x)}</div>`).join('')}</details>` : ''}
     ${live ? `<div class="fpopts">${opts.map((o) => `<button data-fpvote="${esc(o.key)}" class="${live.mine === o.key ? 'on' : ''}" ${me ? 'disabled' : ''}><i style="width:${tot ? Math.round(100 * cnt[o.key] / tot) : 0}%"></i><span>${esc(o.label)}</span><span>${cnt[o.key]}</span></button>`).join('')}</div><div class="fpm">${tot} vote${tot === 1 ? '' : 's'}${me ? ' · you cannot vote on your own case' : ''}</div>` : ''}
     ${c.appeal ? `<p class="fpm">Appeal from ${esc(c.name)}: ${esc(c.appeal.text)}</p>` : ''}
     <div class="fpcm">${c.comments.map((m) => `<p><b class="${m.accused ? 'acc' : ''}">${esc(m.name)}</b> ${esc(m.text)}</p>`).join('') || '<span class="muted">No comments yet.</span>'}</div>

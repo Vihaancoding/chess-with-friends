@@ -1,0 +1,1266 @@
+{
+ "thresholds": {
+  "minPositions": 8,
+  "minPositionsSuspicious": 10,
+  "minPositionsHigh": 14,
+  "pUnusual": 0.02,
+  "pSuspicious": 0.001,
+  "pHigh": 0.00001564674329956118,
+  "timeZ": 2,
+  "minCorroboration": 2
+ },
+ "dataset": {
+  "train": {
+   "games": 99,
+   "samples": 198,
+   "human": 158,
+   "cheat": 40
+  },
+  "valid": {
+   "games": 49,
+   "samples": 98,
+   "human": 75,
+   "cheat": 23
+  },
+  "test": {
+   "games": 98,
+   "samples": 196,
+   "human": 163,
+   "cheat": 33
+  }
+ },
+ "overall": {
+  "old (before this upgrade): automatic forfeit rule": {
+   "tp": 0,
+   "fn": 33,
+   "fp": 0,
+   "tn": 163,
+   "precision": null,
+   "recall": 0,
+   "fpr": 0,
+   "fnr": 1,
+   "fprCI": [
+    0,
+    0.023025432506041655
+   ],
+   "recallCI": [
+    0,
+    0.10427343003561192
+   ]
+  },
+  "new: Suspicious or higher (goes to investigation)": {
+   "tp": 17,
+   "fn": 16,
+   "fp": 0,
+   "tn": 163,
+   "precision": 1,
+   "recall": 0.5151515151515151,
+   "fpr": 0,
+   "fnr": 0.48484848484848486,
+   "fprCI": [
+    0,
+    0.023025432506041655
+   ],
+   "recallCI": [
+    0.35218104586210247,
+    0.6749621835307578
+   ]
+  },
+  "new: High-confidence (automatic forfeit allowed)": {
+   "tp": 1,
+   "fn": 32,
+   "fp": 0,
+   "tn": 163,
+   "precision": 1,
+   "recall": 0.030303030303030304,
+   "fpr": 0,
+   "fnr": 0.9696969696969697,
+   "fprCI": [
+    0,
+    0.023025432506041655
+   ],
+   "recallCI": [
+    0.005369272089651719,
+    0.1531906167316807
+   ]
+  },
+  "new, move times withheld: Suspicious or higher": {
+   "tp": 5,
+   "fn": 28,
+   "fp": 0,
+   "tn": 163,
+   "precision": 1,
+   "recall": 0.15151515151515152,
+   "fpr": 0,
+   "fnr": 0.8484848484848485,
+   "fprCI": [
+    0,
+    0.023025432506041655
+   ],
+   "recallCI": [
+    0.06650359257960956,
+    0.30920213138460484
+   ]
+  },
+  "new, move times withheld: High-confidence": {
+   "tp": 0,
+   "fn": 33,
+   "fp": 0,
+   "tn": 163,
+   "precision": null,
+   "recall": 0,
+   "fpr": 0,
+   "fnr": 1,
+   "fprCI": [
+    0,
+    0.023025432506041655
+   ],
+   "recallCI": [
+    0,
+    0.10427343003561192
+   ]
+  }
+ },
+ "slices": {
+  "rating (genuine games)": {
+   "800": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 14,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 14,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 14,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 14,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 14,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "850": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "900": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "950": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1050": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1100": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1150": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1200": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 11,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 11,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 11,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 11,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 11,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1250": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1300": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1350": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1400": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1450": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1500": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 8,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 8,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 8,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 8,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 8,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1550": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1600": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 18,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 18,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 18,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 18,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 18,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1650": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1700": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 2,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1750": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1800": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1850": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1900": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "1950": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2000": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 20,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 20,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 20,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 20,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 20,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2050": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2100": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 3,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2150": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 4,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2200": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2300": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 5,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2350": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 1,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "2400": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 16,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 16,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 16,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 16,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 16,
+     "flagged": 0,
+     "rate": 0
+    }
+   }
+  },
+  "time control": {
+   "blitz": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 78,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 78,
+     "flagged": 9,
+     "rate": 0.11538461538461539
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 78,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 78,
+     "flagged": 2,
+     "rate": 0.02564102564102564
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 78,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "bullet": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 54,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 54,
+     "flagged": 3,
+     "rate": 0.05555555555555555
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 54,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 54,
+     "flagged": 1,
+     "rate": 0.018518518518518517
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 54,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "rapid": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 64,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 64,
+     "flagged": 5,
+     "rate": 0.078125
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 64,
+     "flagged": 1,
+     "rate": 0.015625
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 64,
+     "flagged": 2,
+     "rate": 0.03125
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 64,
+     "flagged": 0,
+     "rate": 0
+    }
+   }
+  },
+  "game length": {
+   "20-34 positions": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 88,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 88,
+     "flagged": 5,
+     "rate": 0.056818181818181816
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 88,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 88,
+     "flagged": 1,
+     "rate": 0.011363636363636364
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 88,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "35+ positions": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 29,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 29,
+     "flagged": 3,
+     "rate": 0.10344827586206896
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 29,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 29,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 29,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "under 20 positions": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 79,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 79,
+     "flagged": 9,
+     "rate": 0.11392405063291139
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 79,
+     "flagged": 1,
+     "rate": 0.012658227848101266
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 79,
+     "flagged": 4,
+     "rate": 0.05063291139240506
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 79,
+     "flagged": 0,
+     "rate": 0
+    }
+   }
+  },
+  "cheat style": {
+   "critical": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 9,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 9,
+     "flagged": 7,
+     "rate": 0.7777777777777778
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 9,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 9,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 9,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "evade": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 6,
+     "flagged": 2,
+     "rate": 0.3333333333333333
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 6,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "full": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 8,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 8,
+     "flagged": 4,
+     "rate": 0.5
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 8,
+     "flagged": 1,
+     "rate": 0.125
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 8,
+     "flagged": 2,
+     "rate": 0.25
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 8,
+     "flagged": 0,
+     "rate": 0
+    }
+   },
+   "mix": {
+    "old (before this upgrade): automatic forfeit rule": {
+     "n": 10,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new: Suspicious or higher (goes to investigation)": {
+     "n": 10,
+     "flagged": 6,
+     "rate": 0.6
+    },
+    "new: High-confidence (automatic forfeit allowed)": {
+     "n": 10,
+     "flagged": 0,
+     "rate": 0
+    },
+    "new, move times withheld: Suspicious or higher": {
+     "n": 10,
+     "flagged": 1,
+     "rate": 0.1
+    },
+    "new, move times withheld: High-confidence": {
+     "n": 10,
+     "flagged": 0,
+     "rate": 0
+    }
+   }
+  }
+ },
+ "distribution": {
+  "genuine (levels 1-4)": [
+   159,
+   4,
+   0,
+   0
+  ],
+  "engine-assisted (levels 1-4)": [
+   6,
+   10,
+   16,
+   1
+  ]
+ },
+ "history": {
+  "honestSeries": 400,
+  "honestFlaggedEver": 1,
+  "honestFalseFlagRate": 0.0025,
+  "switchSeries": 200,
+  "switchDetected": 200,
+  "switchDetectionRate": 1,
+  "meanGamesAfterSwitch": 4.47
+ },
+ "depth": 12,
+ "multipv": 3
+}
