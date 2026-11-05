@@ -3453,7 +3453,7 @@ function render() {
     setText($('#cbTurn'), status.over ? 'Game over' : `${players[liveTurn].name} · ${liveTurn === 'w' ? 'White' : 'Black'} to move`);
   } else {
     setText($('#cbText'), isArchive() ? (mine ? `Replay · you played ${you === 'w' ? 'White' : 'Black'}` : 'Replay') : mine ? `You are playing ${you === 'w' ? 'White' : 'Black'}` : 'You are spectating');
-    setText($('#cbTurn'), isArchive() ? (live ? 'Final position' : `Move ${upto} of ${(snap.hist || []).length}`) : status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : botGame.clone ? "Bot's move" : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
+    setText($('#cbTurn'), isArchive() ? (archive.note && archive.noteAt != null && upto === Math.min(archive.noteAt, (snap.hist || []).length) ? archive.note : live ? 'Final position' : `Move ${upto} of ${(snap.hist || []).length}`) : status.over ? 'Game over' : !bothIn ? 'Waiting for opponent' : mine ? (liveTurn === you ? 'Your move' : (isBot() ? (botGame.coach ? (botGame.coach.wait ? 'Paused' : "Coach's move") : botGame.clone ? "Bot's move" : "Computer's move") : "Opponent's move")) : `${liveTurn === 'w' ? 'White' : 'Black'} to move`);
   }
 
   renderMoves(moves, upto, live);
@@ -5607,9 +5607,9 @@ function archiveSnap(g) {
     cat: g.cat, ratings: g.ratings, unrated: !g.rated, startedAt: g.startedAt, endedAt: g.endedAt, v: 0, paused: false, pauseReq: null, resumeReady: [],
   };
 }
-async function enterArchive(id, { analyze = false, back = null, at = 0 } = {}) {
+async function enterArchive(id, { analyze = false, back = null, at = 0, note = '' } = {}) {
   stopLobby(); stopAdmin(); stopGame();
-  archive = { id, back, game: null }; view = 'game'; gameCode = 'ARCHIVE';
+  archive = { id, back, game: null, note, noteAt: note ? at : null }; view = 'game'; gameCode = 'ARCHIVE';
   snap = null; sig = ''; selected = null; legal = []; premoves = []; arrows = []; marks = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = 'ARCHIVE'; pending = null; sending = false;
   $('#over').classList.add('hidden'); document.title = 'Game replay · Chess';
@@ -6776,14 +6776,14 @@ function openDmgReport(id) {
   DMG.rep = r;
   const hl = (r.hl || []).slice(0, 5);
   setHTML($('#dmgRepBody'), `${dmgCardHTML(r, false).replace(/<div class="dmgact">[\s\S]*?<\/div>\s*<\/article>/, '</article>')}
-    ${hl.length ? `<div class="label" style="margin-top:0">Key moments</div><ul class="dmghl">${hl.map((h) => `<li><button type="button" class="dmghb" data-ply="${h.ply == null ? 9999 : h.ply}" title="Watch this moment in the replay"><b>Move ${h.move}</b><span>${esc(h.text)}</span>${h.kind === 'blunder' ? '<i class="mk bl">??</i>' : h.kind === 'brilliant' ? '<i class="mk br">!!</i>' : h.kind === 'missed' ? '<i class="mk ms">?</i>' : ''}</button></li>`).join('')}</ul>` : ''}`);
+    ${hl.length ? `<div class="label" style="margin-top:0">Key moments</div><ul class="dmghl">${hl.map((h) => `<li><button type="button" class="dmghb" data-ply="${h.ply != null ? h.ply : 2 * h.move}" title="Watch this moment in the replay"><b>Move ${h.move}</b><span>${esc(h.text)}</span>${h.kind === 'blunder' ? '<i class="mk bl">??</i>' : h.kind === 'brilliant' ? '<i class="mk br">!!</i>' : h.kind === 'missed' ? '<i class="mk ms">?</i>' : ''}</button></li>`).join('')}</ul>` : ''}`);
   $('#dmgRep').classList.remove('hidden'); $('#dmgRepWatch').focus();
 }
 const closeDmgReport = () => $('#dmgRep').classList.add('hidden');
 $('#dmgRepClose').onclick = closeDmgReport;
 $('#dmgRep').addEventListener('click', (e) => { if (e.target.id === 'dmgRep') closeDmgReport(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#dmgRep').classList.contains('hidden')) closeDmgReport(); });
-$('#dmgRepBody').addEventListener('click', (e) => { const b = e.target.closest('.dmghb'); if (!b) return; closeDmgReport(); enterArchive(DMG.rep.id, { analyze: true, at: +b.dataset.ply }); });   // opens the replay at that moment with the move badges (blunder, brilliant...) on
+$('#dmgRepBody').addEventListener('click', (e) => { const b = e.target.closest('.dmghb'); if (!b) return; closeDmgReport(); enterArchive(DMG.rep.id, { analyze: true, at: +b.dataset.ply, note: b.querySelector('span').textContent }); });   // opens the replay at that moment with the move badges (blunder, brilliant...) on
 $('#dmgRepWatch').onclick = () => { closeDmgReport(); enterArchive(DMG.rep.id); };
 $('#dmgRepShare').onclick = () => { closeDmgReport(); openDmgShare(DMG.rep.id); };
 // share
