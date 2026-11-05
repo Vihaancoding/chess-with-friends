@@ -1,7 +1,7 @@
 // Fair play: the automatic forfeit (only when sure), the announcement, the community poll, bans, appeals, the audit trail,
 // and spectators seeing a live game a few moves late. Run: node scripts/test-tribunal.js
 delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
-process.env.ADMIN_KEY = 'test-admin-key'; delete process.env.ANTHROPIC_API_KEY;
+process.env.ADMIN_KEY = 'test-admin-key'; process.env.SPEC_DELAY_PLIES = '4'; delete process.env.ANTHROPIC_API_KEY;
 const handler = require('../lib/app');
 const store = require('../lib/store');
 const C = require('../public/chess.js');
