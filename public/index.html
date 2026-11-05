@@ -1448,6 +1448,12 @@
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
   </div>
   <div class="panel">
+    <h2 class="ph">Flag a player for fair play</h2>
+    <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">Opens a community vote on them right away (no forfeit). Optionally add a game id and a short note.</div>
+    <form id="ffForm" class="row" style="flex-wrap:wrap"><input id="ffName" maxlength="16" placeholder="Username" autocomplete="off" style="text-align:left"><input id="ffGame" maxlength="30" placeholder="Game id (optional)" autocomplete="off" style="text-align:left"><input id="ffNote" maxlength="200" placeholder="Note (optional)" autocomplete="off" style="text-align:left;flex:1;min-width:140px"><button class="primary" type="submit">Flag</button></form>
+    <div id="ffMsg" role="status" class="muted"></div>
+  </div>
+  <div class="panel">
     <h2 class="ph">Fair play announcements</h2>
     <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">One phrase per line, each with {name}. No threats, slurs or harassment (checked). Empty uses the built-in ones.</div>
     <textarea id="fpPhrases" rows="4" style="width:100%"></textarea>
@@ -3184,6 +3190,7 @@ $('#admin').addEventListener('click', async (e) => {
   loadAdmin();
 });
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
+$('#ffForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_fair_flag', { name: $('#ffName').value, game: $('#ffGame').value, note: $('#ffNote').value }); $('#ffMsg').textContent = r.ok ? 'Flagged. The vote is open in the Fair play tribunal.' : r.error || 'Failed.'; if (r.ok) { $('#ffName').value = $('#ffGame').value = $('#ffNote').value = ''; fpAt = 0; } });
 async function loadFpPhrases() { const r = await api('admin_fair_phrases'); if (r.ok) $('#fpPhrases').value = r.phrases.join('\n'); }
 $('#fpPhrasesSave').onclick = async () => { const r = await api('admin_fair_phrases', { phrases: $('#fpPhrases').value.split('\n') }); $('#fpPhrasesMsg').textContent = r.ok ? 'Saved.' : r.error; };
 async function loadFpExempt(r) { r = r || await api('admin_fair_exempt'); if (r.ok) setHTML($('#feList'), r.exempt.length ? r.exempt.map((n) => `<span class="cmk" style="margin-right:6px">${esc(n)} <button class="small" data-feoff="${esc(n)}" aria-label="Remove ${esc(n)}">×</button></span>`).join('') : '<span class="muted">Nobody exempt.</span>'); }
@@ -6615,7 +6622,7 @@ function fpCaseHTML(c) {
   const me = user && user.name.toLowerCase() === c.name.toLowerCase();
   const head = c.status === 'poll' ? `What punishment should ${esc(c.name)} receive?` : c.status === 'appeal' ? `Appeal: should ${esc(c.name)}'s punishment stand?` : c.result && c.result.key === 'dismissed' ? `${esc(c.name)}: dismissed by an admin` : `${esc(c.name)}: ${esc((c.options.find((o) => o.key === (c.result && c.result.key)) || { label: 'closed' }).label)}${c.appeal && c.appeal.result && c.appeal.result.overturned ? ' (overturned on appeal)' : ''}`;
   return `<div class="fpc" data-fpcase="${esc(c.id)}"><h3>${head}</h3>
-    <div class="fpm">Engine check, ${Math.round(c.conf * 100)}% sure${c.evidence.n ? ` · ${c.evidence.match}% engine moves, ${c.evidence.acpl} average loss over ${c.evidence.n} moves` : ''}${live ? ` · ${fpWhen(live.ends || c.pollEnds)}` : ''} · <button class="small" data-fpgame="${esc(c.id)}">View game</button></div>
+    <div class="fpm">${c.manual ? 'Flagged by an admin' : `Engine check, ${Math.round(c.conf * 100)}% sure`}${c.evidence.n ? ` · ${c.evidence.match}% engine moves, ${c.evidence.acpl} average loss over ${c.evidence.n} moves` : ''}${live ? ` · ${fpWhen(live.ends || c.pollEnds)}` : ''} ${c.game ? ` · <button class="small" data-fpgame="${esc(c.game)}">View game</button>` : ''}</div>${c.manual && c.evidence.reasons[0] ? `<p class="fpm">${esc(c.evidence.reasons[0])}</p>` : ''}
     ${live ? `<div class="fpopts">${opts.map((o) => `<button data-fpvote="${esc(o.key)}" class="${live.mine === o.key ? 'on' : ''}" ${me ? 'disabled' : ''}><i style="width:${tot ? Math.round(100 * cnt[o.key] / tot) : 0}%"></i><span>${esc(o.label)}</span><span>${cnt[o.key]}</span></button>`).join('')}</div><div class="fpm">${tot} vote${tot === 1 ? '' : 's'}${me ? ' · you cannot vote on your own case' : ''}</div>` : ''}
     ${c.appeal ? `<p class="fpm">Appeal from ${esc(c.name)}: ${esc(c.appeal.text)}</p>` : ''}
     <div class="fpcm">${c.comments.map((m) => `<p><b class="${m.accused ? 'acc' : ''}">${esc(m.name)}</b> ${esc(m.text)}</p>`).join('') || '<span class="muted">No comments yet.</span>'}</div>
