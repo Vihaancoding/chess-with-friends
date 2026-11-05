@@ -14,7 +14,7 @@ node server.js          # needs Node 18+
 
 Open http://localhost:3000. With no database configured, everything is stored in memory and resets when the server restarts. That's fine for development.
 
-Tests: `node scripts/test-archive.js` (game archive API), `node scripts/test-match.js` (head-to-head matches), `node scripts/test-tournament.js` (tournaments), `node scripts/test-mentions.js` (@mentions), `node scripts/test-rivalries.js` (rivalries), `node scripts/test-damage.js` (The Damage Report), `node scripts/test-damagechat.js` (game chat in the commentary), `node scripts/test-tribunal.js` (fair-play forfeit, poll and appeals), `node scripts/test-sfserver.js` (Stockfish on the server), `node scripts/test-servers.js` (servers), `node scripts/test-coach-ask.js` (Ask the coach), `node scripts/test-pass-play.js` (rated pass & play results) and `node scripts/test-style.js` (playstyle profiles and clone bots), no dependencies. The browser tests `node scripts/test-archive-ui.js`, `node scripts/test-match-ui.js`, `node scripts/test-tournament-ui.js`, `node scripts/test-premoves.js` and `node scripts/test-style-ui.js` and `node scripts/test-damage-ui.js` and `node scripts/test-tribunal-ui.js` need Playwright.
+Tests: `node scripts/test-archive.js` (game archive API), `node scripts/test-match.js` (head-to-head matches), `node scripts/test-tournament.js` (tournaments), `node scripts/test-mentions.js` (@mentions), `node scripts/test-rivalries.js` (rivalries), `node scripts/test-damage.js` (The Damage Report), `node scripts/test-damagechat.js` (game chat in the commentary), `node scripts/test-tribunal.js` (fair-play forfeit, poll and appeals), `node scripts/test-sfserver.js` (Stockfish on the server), `node scripts/test-fairworker.js` (the fair-play check in its own function), `node scripts/test-fairmodel.js` (the statistical model and its held-out benchmark), `node scripts/test-fairdetect.js` (the detector wired into the server), `node scripts/test-servers.js` (servers), `node scripts/test-coach-ask.js` (Ask the coach), `node scripts/test-pass-play.js` (rated pass & play results) and `node scripts/test-style.js` (playstyle profiles and clone bots), no dependencies. The browser tests `node scripts/test-archive-ui.js`, `node scripts/test-match-ui.js`, `node scripts/test-tournament-ui.js`, `node scripts/test-premoves.js` and `node scripts/test-style-ui.js` and `node scripts/test-damage-ui.js` and `node scripts/test-tribunal-ui.js` need Playwright.
 
 Optional: `ADMIN_KEY=something-long node server.js` to enable the admin panel (see below).
 
@@ -119,6 +119,12 @@ Piece images are the Cburnett set, loaded from the [lichess](https://github.com/
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Fair-play detection
+
+Stockfish never runs in `api/index.js` (moves, chat). After a move, `api/index.js` POSTs `{ code, srv }` to `/api/fairplay` with the shared secret in `x-fair-secret` and does not wait; `api/fairplay.js` (maxDuration 60) answers 202 at once and checks the game in the background after every move, and also analyses finished games. **Set `FAIR_SECRET` in Vercel** (any long random string); without it the check is off on Vercel. Locally (`node server.js`) the check runs in the same process and needs nothing.
+
+The detector is a rating- and difficulty-adjusted statistical model with five levels (Normal, Unusual, Suspicious, High-confidence, Confirmed). Only High-confidence can forfeit a game automatically; Suspicious opens an admin-only investigation. How it works, the benchmark against the old rule and the limitations: [docs/fairplay-detection.md](docs/fairplay-detection.md). Rebuild the calibration with `node scripts/fair-calibrate.js`.
 
 ## Third-party code
 
