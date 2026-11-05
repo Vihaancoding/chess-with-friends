@@ -6319,7 +6319,7 @@ function enterTours(id) {
   if (id) { setHTML($('#tvHead'), '<span class="sk" style="width:240px;height:1.4em"></span>'); setHTML($('#tvMine'), ''); setHTML($('#tvBody'), ''); }
   else paintTourForm();
   loadTours();
-  tourTimer = setInterval(() => { if (!document.hidden) loadTours(); }, 10000);
+  tourTimer = setInterval(() => { if (!document.hidden) loadTours(); }, 30000);
   clearInterval(tourClock); tourClock = setInterval(tickCountdowns, 1000);
   tcSig = ''; setHTML($('#tcLog'), ''); setText($('#tcErr'), '');
 }
