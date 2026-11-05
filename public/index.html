@@ -6776,7 +6776,7 @@ function openDmgReport(id) {
   DMG.rep = r;
   const hl = (r.hl || []).slice(0, 5);
   setHTML($('#dmgRepBody'), `${dmgCardHTML(r, false).replace(/<div class="dmgact">[\s\S]*?<\/div>\s*<\/article>/, '</article>')}
-    ${hl.length ? `<div class="label" style="margin-top:0">Key moments</div><ul class="dmghl">${hl.map((h) => `<li><button type="button" class="dmghb" data-ply="${h.ply == null ? 9999 : h.ply}" title="Watch this moment in the replay"><b>Move ${h.move}</b><span>${esc(h.text)}</span>${h.kind === 'blunder' ? '<i class="mk bl">??</i>' : h.kind === 'brilliant' ? '<i class="mk br">!!</i>' : h.kind === 'missed' ? '<i class="mk ms">?</i>' : ''}</button></li>`).join('')}</ul>` : ''}`);
+    ${hl.length ? `<div class="label" style="margin-top:0">Key moments</div><ul class="dmghl">${hl.map((h) => `<li><button type="button" class="dmghb" data-ply="${h.ply != null ? h.ply : 2 * h.move}" title="Watch this moment in the replay"><b>Move ${h.move}</b><span>${esc(h.text)}</span>${h.kind === 'blunder' ? '<i class="mk bl">??</i>' : h.kind === 'brilliant' ? '<i class="mk br">!!</i>' : h.kind === 'missed' ? '<i class="mk ms">?</i>' : ''}</button></li>`).join('')}</ul>` : ''}`);
   $('#dmgRep').classList.remove('hidden'); $('#dmgRepWatch').focus();
 }
 const closeDmgReport = () => $('#dmgRep').classList.add('hidden');
