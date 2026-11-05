@@ -2226,7 +2226,7 @@ function enterLobby() {
   lobbyTimer = setInterval(() => {
     if (document.hidden) return;
     lobbyTick++;
-    const fullEvery = rtLobbyLive ? 10 : 3, pingEvery = rtLobbyLive ? 5 : 1;
+    const fullEvery = 10, pingEvery = 5;                               // same pace with or without live updates (keeps server load down)
     if (lobbyTick % fullEvery === 0) pollLobby(true); else if (lobbyTick % pingEvery === 0) pollLobby(false);
   }, 1000);
 }
@@ -2513,8 +2513,8 @@ function enterRivals(name, pub) {
     if (view !== 'rivals') return stopRivals();
     if (document.hidden) return;
     RV.tick++; rvPing();
-    if (RV.tick % 8 === 0) rvLoad();                                    // the records themselves change only when a game ends
-  }, 2500);
+    if (RV.tick % 360 === 0) rvLoad();                                  // the records: every 30 minutes (the server rebuilds them as often)
+  }, 5000);
 }
 $('#navRivals').onclick = () => enterRivals();
 async function rvLoad() {
@@ -4621,6 +4621,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (view === 'game' && !isBot()) kick();
   else if (view === 'lobby') pollLobby(true);
+  else if (view === 'tours') loadTours();
 });
 
 // ---------- fair play: signs of an engine helper on the board ----------
@@ -6318,7 +6319,7 @@ function enterTours(id) {
   if (id) { setHTML($('#tvHead'), '<span class="sk" style="width:240px;height:1.4em"></span>'); setHTML($('#tvMine'), ''); setHTML($('#tvBody'), ''); }
   else paintTourForm();
   loadTours();
-  tourTimer = setInterval(() => { if (!document.hidden) loadTours(); }, 4000);
+  tourTimer = setInterval(() => { if (!document.hidden) loadTours(); }, 10000);
   clearInterval(tourClock); tourClock = setInterval(tickCountdowns, 1000);
   tcSig = ''; setHTML($('#tcLog'), ''); setText($('#tcErr'), '');
 }
