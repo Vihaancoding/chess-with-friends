@@ -6690,19 +6690,20 @@ function dmgRender(d) {
 function dmgPrefs(u) {
   if (!u) return;
   DMG.hide = !!u.dmgHide; DMG.out = !!u.dmgOut;
-  $('#dmgcard').classList.toggle('hidden', DMG.hide || (!DMG.rows.length && !DMG.loaded));
+  $('#dmgcard').classList.toggle('hidden', DMG.hide || DMG.off || (!DMG.rows.length && !DMG.loaded));
 }
 async function loadDamage(force) {
-  if (DMG.hide) { $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
+  if (DMG.hide || (DMG.off && Date.now() - DMG.at < 45e3)) { $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
   if (!force && Date.now() - DMG.at < 45e3) return;
   if (DMG.busy) return; DMG.busy = true; DMG.at = Date.now();
-  if (!DMG.loaded) $('#dmgcard').classList.remove('hidden');
+  if (!DMG.loaded && !DMG.off) $('#dmgcard').classList.remove('hidden');
   const r = await api('damage_feed');
   DMG.busy = false;
   if (view !== 'lobby') return;
   if (!r.ok) { DMG.at = 0; if (!DMG.loaded) $('#dmgcard').classList.add('hidden'); return; }
   DMG.loaded = true; DMG.share = r.share || '1'; DMG.out = !!r.optOut;
-  if (r.off) { $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
+  DMG.off = !!r.off;
+  if (r.off) { DMG.rows = []; $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
   if (r.hide) { DMG.hide = true; $('#dmgcard').classList.add('hidden'); stopDmgTimer(); return; }
   $('#dmgcard').classList.remove('hidden');
   dmgRender(r);
