@@ -146,6 +146,13 @@ const LONG = fx[9].ucis;                                           // 50 plies
     ok('applying again changes nothing', (await call('admin_fair_apply', { id: open.id }, P.dan)).case.result.key === 'ban24h', null);
   }
 
+  console.log('an admin can unban');
+  ok('the banned player (fay, from the apply test) shows as banned in the admin list', ((await call('admin_overview', {}, P.dan)).users.find((u) => u.name === 'fay') || {}).banUntil > Date.now(), null);
+  ok('players cannot unban', (await call('admin_unban', { name: 'fay' }, P.cat)).status >= 400, null);
+  const ub = await call('admin_unban', { name: 'fay' }, P.dan);
+  ok('an admin lifts the ban and the player can play again', ub.ok && ub.wasBanned && (await call('me', {}, P.fay)).status !== 403 && !(await call('me', {}, P.fay)).user.banUntil, ub);
+  ok('and they are no longer listed as banned', !((await call('admin_overview', {}, P.dan)).users.find((u) => u.name === 'fay') || {}).banUntil, null);
+
   console.log('an admin can flag a player');
   ok('only an admin can flag', (await call('admin_fair_flag', { name: 'fay' }, P.cat)).status >= 400);
   const fl = await call('admin_fair_flag', { name: 'fay', note: 'looks off' }, P.dan);
