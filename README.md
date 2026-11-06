@@ -122,7 +122,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Camera / Chat tabs
 
-In a live game the two players get CAMERA and CHAT tabs beside the board. The camera is video only (never any audio or microphone), browser-to-browser WebRTC at 320x240, 15 fps and 140 kbps at most, never recorded or stored. Each player turns their own camera on (the browser asks); the server only relays the handshake (`cam_signal`), privately to the opponent, and only between the two players. Text chat is for the two players while the game is on (set `GAME_CHAT_SPECTATORS=1` to let spectators chat during games). Test: `node scripts/test-camera-ui.js` (two real browsers with fake cameras).
+In a live game the two players get CAMERA and CHAT tabs beside the board. The camera is video only (never any audio or microphone), browser-to-browser WebRTC at 320x240, 15 fps and 140 kbps at most, never recorded or stored. Each player turns their own camera on (the browser asks); the server only relays the handshake (`cam_signal`), privately to the opponent, and only between the two players. Spectators can chat as before (set `GAME_CHAT_PLAYERS_ONLY=1` to keep a live game's chat to the two players) and can open the CAMERA tab to watch both players' cameras (receive only, at most 3 spectators per player at once, only while their tab is open). Test: `node scripts/test-camera-ui.js` (two real browsers with fake cameras).
 
 ## Fair-play detection
 

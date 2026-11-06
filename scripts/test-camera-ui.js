@@ -14,9 +14,11 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   const g = await api('create', { color: 'w', tc: { base: 300, inc: 0 } }, P.ann); await api('join', { code: g.code }, P.bob);
 
   console.log('the server');
-  ok('a spectator cannot send video signals', (await api('cam_signal', { code: g.code, t: 'who' }, P.cat)).status === 403, null);
+  ok('a spectator cannot talk to the players like a player', (await api('cam_signal', { code: g.code, t: 'who' }, P.cat)).status === 403 && (await api('cam_signal', { code: g.code, t: 'offer', to: 'ann' }, P.cat)).status === 403, null);
+  ok('a player cannot send video to someone who has not asked to watch', (await api('cam_signal', { code: g.code, t: 'offer', to: 'cat' }, P.ann)).status === 403, null);
+  ok('a spectator can ask a player for video, and only a player of this game', (await api('cam_signal', { code: g.code, t: 'watch', to: 'bob' }, P.cat)).ok && (await api('cam_signal', { code: g.code, t: 'watch', to: 'cat' }, P.cat)).status === 403, null);
   ok('a player can, and bad types are refused', (await api('cam_signal', { code: g.code, t: 'who' }, P.ann)).ok && (await api('cam_signal', { code: g.code, t: 'nope' }, P.ann)).status === 400, null);
-  ok('spectators cannot read or write the chat while the game is on', (await api('game_chat', { code: g.code }, P.cat)).status === 403 && (await api('game_chat_send', { code: g.code, text: 'hi' }, P.cat)).status === 403, null);
+  ok('spectators can read the chat during a game', Array.isArray((await api('game_chat', { code: g.code }, P.cat)).msgs), null);
   ok('the players can chat', (await api('game_chat_send', { code: g.code, text: 'hello bob' }, P.ann)).ok && (await api('game_chat', { code: g.code }, P.bob)).msgs.length === 1, null);
 
   const args = ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'];
@@ -27,7 +29,7 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   await A.waitForSelector('#tabCam:not(.hidden)'); await B.waitForSelector('#tabCam:not(.hidden)');
   ok('both players have CAMERA and CHAT tabs, chat is the default', (await A.getAttribute('#tabChat', 'aria-selected')) === 'true' && (await A.isVisible('#gclog')), null);
   const spec = await open(P.cat); await spec.goto(`http://localhost:${PORT}/?game=${g.code}`); await sleep(1200);
-  ok('a spectator sees no CAMERA tab and the chat box is off', !(await spec.isVisible('#tabCam')) && (await spec.isDisabled('#gcIn')), null);
+  ok('a spectator gets the CAMERA tab and can still chat', (await spec.isVisible('#tabCam')) && !(await spec.isDisabled('#gcIn')) && !(await spec.isVisible('#camToggle')), null);
 
   console.log('camera');
   await A.click('#tabCam'); await B.click('#tabCam');
@@ -40,6 +42,10 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   ok('the opponent sees my video (WebRTC, one-way: their camera is off)', true);
   await B.click('#camToggle'); await B.waitForSelector('#camMe.live'); await A.waitForSelector('#camOpp.live', { timeout: 20000 });
   ok('both cameras on: each sees the other', true);
+  await spec.click('#tabCam'); await spec.waitForSelector('#camOpp.live', { timeout: 25000 }); await spec.waitForSelector('#camMe.live', { timeout: 25000 });
+  await spec.waitForFunction(() => [...document.querySelectorAll('.camtile video')].every((v) => v.videoWidth > 0), null, { timeout: 20000 });
+  ok('a spectator sees both players, receive only, no sound', await spec.evaluate(() => [...CAM.sv.values()].every((v) => v.pc.getReceivers().every((r) => r.track.kind === 'video'))), null);
+  ok('and the players are told someone is watching', /spectator/.test(await A.textContent('#camNote')), await A.textContent('#camNote'));
   if (process.env.SHOT) { await sleep(800); await A.screenshot({ path: process.env.SHOT + '-desktop.png' }); await A.setViewportSize({ width: 390, height: 844 }); await sleep(500); await A.screenshot({ path: process.env.SHOT + '-phone.png', fullPage: true }); await A.setViewportSize({ width: 1280, height: 900 }); }
   const media = await A.evaluate(() => ({ audioTracks: CAM.stream.getAudioTracks().length, kinds: CAM.pc.getTransceivers().map((t) => t.receiver.track.kind + '/' + (t.sender.track ? t.sender.track.kind : '-')), max: CAM.pc.getSenders().map((s) => s.getParameters().encodings[0].maxBitrate) }));
   ok('no audio anywhere: no audio track, only video senders and receivers', media.audioTracks === 0 && media.kinds.every((k) => k === 'video/video'), media);

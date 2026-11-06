@@ -1587,7 +1587,7 @@
           <figure class="camtile me" id="camMe"><video playsinline autoplay muted disablePictureInPicture></video><div class="camph"><b></b><span></span></div><figcaption>You</figcaption></figure>
         </div>
         <div class="camctl"><button id="camToggle" class="primary small" type="button">Turn camera on</button><span id="camNote" class="muted" role="status"></span></div>
-        <div class="muted camfine">Video only, straight between you and your opponent. Never recorded, never any sound.</div>
+        <div class="muted camfine">Video only, never recorded, never any sound. Your opponent and anyone watching the game can see your camera while it is on.</div>
       </div>
       <div id="chatPane">
       <div id="vcpeople" class="hidden"></div>
@@ -4086,11 +4086,13 @@ window.addEventListener('beforeunload', () => { if (VC.on && gameCode) vcSend('l
 // The server relays only the handshake, privately to the opponent (cam_signal); the video itself goes browser to browser.
 // The player with the alphabetically smaller name makes the call; every change of either camera is a fresh, numbered negotiation.
 const camAvail = () => view === 'game' && !!gameCode && !isBot() && !isArchive() && isPlayer() && !!snap && !snap.status.over;
+const camSpecAvail = () => view === 'game' && !!gameCode && !isBot() && !isArchive() && !!snap && snap.you === 's' && !snap.status.over && !!snap.players.w && !!snap.players.b && !snap.players.w.bot && !snap.players.b.bot;
+const CAM_MAX_VIEWERS = 3;                                                      // spectators one player sends video to at once (each costs a little upload)
 const camOpp = () => { const p = snap && snap.players && snap.players[snap.you === 'w' ? 'b' : 'w']; return p && !p.bot ? p.name : null; };
 const camOfferer = () => { const o = camOpp(); return !!o && user.name.toLowerCase() < o.toLowerCase(); };
 const camSend = (t, d, x) => api('cam_signal', { code: gameCode, t, d, fc: RTC.conn, ...(x || {}) });
-function camReset() { Object.assign(CAM, { hiFor: null, peerOn: false, peerSeq: 0, peerConn: null, nid: 0, lastN: 0, state: 'idle', failN: 0, remote: null, early: [] }); }
-function camNote(t) { const n = $('#camNote'); if (n) n.textContent = t || ''; }
+function camReset() { camViewersClose(); camSpecStop(true); Object.assign(CAM, { watchers: new Map(), hiFor: null, peerOn: false, peerSeq: 0, peerConn: null, nid: 0, lastN: 0, state: 'idle', failN: 0, remote: null, early: [] }); }
+function camNote(t) { const n = $('#camNote'); if (n) { n.textContent = t || ''; n.dataset.msg = t ? '1' : ''; } }
 const camError = (e) => {
   const n = e && e.name;
   if (n === 'NotAllowedError' || n === 'SecurityError') return 'Camera blocked. Allow it with the lock icon next to the address bar, then try again. Chat still works.';
@@ -4099,8 +4101,9 @@ const camError = (e) => {
   return 'Could not start the camera' + (n ? ` (${n})` : '') + '. Chat still works.';
 };
 function camSetTab(t) {
-  if (t === 'cam' && !camAvail()) t = 'chat';
-  CAM.tab = t;
+  if (t === 'cam' && !camAvail() && !camSpecAvail()) t = 'chat';
+  const was = CAM.tab; CAM.tab = t;
+  if (camSpecAvail()) { if (t === 'cam') camSpecWatch(); else if (was === 'cam') camSpecStop(); }
   $('#camPane').classList.toggle('hidden', t !== 'cam'); $('#chatPane').classList.toggle('hidden', t === 'cam');
   $('#callctl').classList.toggle('hidden', t === 'cam');                       // the voice buttons belong to the chat; the camera tab has no sound at all
   $('#tabCam').setAttribute('aria-selected', String(t === 'cam')); $('#tabChat').setAttribute('aria-selected', String(t !== 'cam'));
@@ -4108,13 +4111,12 @@ function camSetTab(t) {
   paintCam();
 }
 function paintCamTab() {
-  const ok = camAvail();
-  $('#tabCam').classList.toggle('hidden', !ok);
-  if (!ok && CAM.tab === 'cam') camSetTab('chat');
-  const spec = !!snap && snap.you === 's' && !snap.status.over && !!snap.players.w && !!snap.players.b;   // spectators of a live game cannot chat
+  const ok = camAvail(), sp = camSpecAvail();
+  $('#tabCam').classList.toggle('hidden', !ok && !sp);
+  if (!ok && !sp && CAM.tab === 'cam') camSetTab('chat');
+  $('#camToggle').parentElement.classList.toggle('hidden', sp);
   if (ok && camOpp() && CAM.hiFor !== gameCode + '|' + camOpp()) { CAM.hiFor = gameCode + '|' + camOpp(); camHello(); }   // first time both players are here: where is their camera?
-  $('#gcIn').disabled = spec; $('#gcIn').placeholder = spec ? 'Chat is for the two players while the game is on' : 'Message everyone in this game…';
-  if (ok) paintCam();
+  if (ok || sp) paintCam();
 }
 function camTile(el, vid, stream, cls, text, sub, name) {
   const v = el.querySelector('video'), ph = el.querySelector('.camph');
@@ -4123,6 +4125,15 @@ function camTile(el, vid, stream, cls, text, sub, name) {
 }
 function paintCam() {
   if (!$('#camPane') || !snap) return;
+  if (camSpecAvail()) {                                                          // a spectator: both players' cameras, receive only
+    [['#camOpp', 'w'], ['#camMe', 'b']].forEach(([sel, c]) => {
+      const p = snap.players[c], v = CAM.sv.get(p.name), live = v && v.stream && v.state === 'ok';
+      $(sel).classList.remove('me'); $(sel + ' figcaption').textContent = `${p.name} · ${c === 'w' ? 'White' : 'Black'}`;
+      camTile($(sel), null, live ? v.stream : null, '', v && v.state === 'bad' ? 'Disconnected' : v && v.on ? 'Connecting…' : 'Camera off', '', p.name);
+    });
+    $('#camNote').textContent = ''; return;
+  }
+  $('#camMe').classList.add('me');
   const opp = camOpp();
   $('#camOpp figcaption').textContent = opp || 'Opponent';
   const mineState = CAM.starting ? 'Waiting for permission…' : CAM.on ? '' : 'Camera off';
@@ -4131,6 +4142,7 @@ function paintCam() {
   const showing = CAM.remote && CAM.peerOn && CAM.state === 'ok';
   if (!opp) t = 'Waiting for opponent'; else if (CAM.state === 'bad') t = 'Disconnected'; else if (CAM.peerOn && !showing) t = CAM.state === 'retry' ? 'Reconnecting…' : 'Connecting…';
   camTile($('#camOpp'), null, showing ? CAM.remote : null, '', t, '', opp || '?');
+  const watching = [...CAM.watchers.keys()].length; $('#camNote').textContent = CAM.on && watching && !$('#camNote').dataset.msg ? `${watching} spectator${watching === 1 ? '' : 's'} watching` : $('#camNote').textContent;
   const b = $('#camToggle'); b.textContent = CAM.starting ? 'Starting…' : CAM.on ? 'Turn camera off' : 'Turn camera on'; b.classList.toggle('on', CAM.on); b.disabled = CAM.starting || !opp;
 }
 async function camStart() {
@@ -4156,9 +4168,10 @@ function camClosePC() {
   if (CAM.pc) { const pc = CAM.pc; CAM.pc = null; pc.onicecandidate = pc.ontrack = pc.onconnectionstatechange = null; try { pc.close(); } catch {} }
   CAM.remote = null; CAM.early = []; if (CAM.state !== 'bad') CAM.state = 'idle';
 }
-function camLeave() { if (CAM.stream) CAM.stream.getTracks().forEach((t) => t.stop()); CAM.stream = null; CAM.on = false; CAM.starting = false; camClosePC(); camSetTab('chat'); }
+function camLeave() { camViewersClose(); camSpecStop(true); if (CAM.stream) CAM.stream.getTracks().forEach((t) => t.stop()); CAM.stream = null; CAM.on = false; CAM.starting = false; camClosePC(); camSetTab('chat'); }
 // my camera changed: tell the other side, then (if I am the caller) call again
 function camChanged() {
+  camViewersRefresh();
   camClosePC(); CAM.failN = 0; CAM.state = 'idle'; CAM.seq++;
   if (!camAvail()) return paintCam();
   camSend('poke', null, { on: CAM.on, q: CAM.seq });
@@ -4202,7 +4215,10 @@ async function camOffer() {
   } catch (e) { if (CAM.pc === pc) camRetry(); }
 }
 async function camOnSignal(ev) {
-  if (view !== 'game' || !snap || ev.code !== gameCode || !camAvail() || ev.f !== camOpp()) return;
+  if (view !== 'game' || !snap || ev.code !== gameCode) return;
+  if (camSpecAvail()) return camSpecSignal(ev);
+  if (camAvail() && ev.f !== camOpp()) return camViewerSignal(ev);              // a spectator asking to watch
+  if (!camAvail() || ev.f !== camOpp()) return;
   if (ev.tc && ev.tc !== RTC.conn) return;                                    // meant for another tab of mine
   try {
     switch (ev.t) {
@@ -4238,8 +4254,80 @@ async function camOnSignal(ev) {
     }
   } catch (e) { camRetry(); }
 }
+// ---- players: send my video to spectators who asked (at most CAM_MAX_VIEWERS) ----
+CAM.vpc = new Map(); CAM.sv = new Map(); CAM.watchers = new Map();
+function camViewerClose(name) { const v = CAM.vpc.get(name); if (v) { v.pc.onicecandidate = v.pc.onconnectionstatechange = null; try { v.pc.close(); } catch {} CAM.vpc.delete(name); } }
+function camViewersClose() { for (const n of [...CAM.vpc.keys()]) camViewerClose(n); }
+function camViewersRefresh() {                                                  // my camera started or stopped: re-send, or tell them it is off
+  camViewersClose();
+  for (const [n, at] of [...CAM.watchers]) if (Date.now() - at > 75000) CAM.watchers.delete(n);
+  [...CAM.watchers.keys()].slice(0, CAM_MAX_VIEWERS).forEach((n) => (CAM.on ? camViewerOffer(n) : camSend('poke', null, { to: n, on: false })));
+}
+async function camViewerOffer(name) {
+  camViewerClose(name);
+  if (!CAM.on || !camAvail() || CAM.vpc.size >= CAM_MAX_VIEWERS) return;
+  const pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] }), n = ++CAM.oid;
+  CAM.vpc.set(name, { pc, n });
+  pc.onicecandidate = (e) => { const v = CAM.vpc.get(name); if (e.candidate && v && v.pc === pc) camSend('ice', e.candidate.toJSON(), { to: name, n }); };
+  pc.onconnectionstatechange = () => { if (['failed', 'closed'].includes(pc.connectionState)) { const v = CAM.vpc.get(name); if (v && v.pc === pc) camViewerClose(name); } };
+  try {
+    const tr = pc.addTransceiver('video', { direction: 'sendonly' });
+    await tr.sender.replaceTrack(CAM.stream.getVideoTracks()[0]); camTune(tr.sender);
+    const o = await pc.createOffer(); await pc.setLocalDescription(o);
+    camSend('offer', { type: o.type, sdp: o.sdp }, { to: name, n });
+  } catch (e) { camViewerClose(name); }
+}
+async function camViewerSignal(ev) {
+  try {
+    if (ev.t === 'watch') {
+      CAM.watchers.set(ev.f, Date.now());
+      for (const [k, at] of [...CAM.watchers]) if (Date.now() - at > 75000) { CAM.watchers.delete(k); camViewerClose(k); }
+      if (CAM.on && !CAM.vpc.has(ev.f)) camViewerOffer(ev.f);
+      paintCam();
+    } else if (ev.t === 'unwatch') { CAM.watchers.delete(ev.f); camViewerClose(ev.f); paintCam(); }
+    else if (ev.t === 'answer') { const v = CAM.vpc.get(ev.f); if (v && v.n === ev.n && v.pc.signalingState === 'have-local-offer') await v.pc.setRemoteDescription(ev.d); }
+    else if (ev.t === 'ice') { const v = CAM.vpc.get(ev.f); if (v && v.n === ev.n && v.pc.remoteDescription) await v.pc.addIceCandidate(ev.d).catch(() => {}); }
+  } catch (e) { camViewerClose(ev.f); }
+}
+// ---- spectators: ask both players for their video (only while the camera tab is open), receive only ----
+function camSpecWatch() {
+  clearInterval(CAM.watchT);
+  const ask = () => ['w', 'b'].forEach((c) => camSend('watch', null, { to: snap.players[c].name }));
+  ask(); CAM.watchT = setInterval(() => { if (!camSpecAvail() || CAM.tab !== 'cam') return camSpecStop(); ask(); }, 25000);
+  paintCam();
+}
+function camSpecStop(silent) {
+  clearInterval(CAM.watchT);
+  if (!silent && snap && snap.players && snap.players.w && snap.players.b && camSpecAvail()) ['w', 'b'].forEach((c) => camSend('unwatch', null, { to: snap.players[c].name }));
+  for (const v of CAM.sv.values()) { try { v.pc.close(); } catch {} }
+  CAM.sv.clear();
+}
+async function camSpecSignal(ev) {
+  const p = ['w', 'b'].map((c) => snap.players[c]).find((x) => x && x.name === ev.f);
+  if (!p || CAM.tab !== 'cam') return;
+  try {
+    if (ev.t === 'poke') { if (!ev.on) { const v = CAM.sv.get(p.name); if (v) { try { v.pc.close(); } catch {} } CAM.sv.set(p.name, { on: false, state: 'idle' }); paintCam(); } }
+    else if (ev.t === 'offer') {
+      const old = CAM.sv.get(p.name); if (old && old.pc) { try { old.pc.close(); } catch {} }
+      const pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] }), v = { pc, on: true, state: 'wait', stream: null, n: ev.n, early: [] };
+      CAM.sv.set(p.name, v);
+      pc.onicecandidate = (e) => { if (e.candidate && CAM.sv.get(p.name) === v) camSend('ice', e.candidate.toJSON(), { to: p.name, n: ev.n }); };
+      pc.ontrack = (e) => { v.stream = e.streams[0] || new MediaStream([e.track]); paintCam(); };
+      pc.onconnectionstatechange = () => { if (CAM.sv.get(p.name) !== v) return; if (pc.connectionState === 'connected') v.state = 'ok'; else if (['failed', 'disconnected'].includes(pc.connectionState)) v.state = 'bad'; paintCam(); };
+      await pc.setRemoteDescription(ev.d);
+      for (const c of v.early) await pc.addIceCandidate(c).catch(() => {});
+      v.early = [];
+      const a = await pc.createAnswer(); await pc.setLocalDescription(a);
+      camSend('answer', { type: a.type, sdp: a.sdp }, { to: p.name, n: ev.n }); paintCam();
+    } else if (ev.t === 'ice') {
+      const v = CAM.sv.get(p.name);
+      if (v && v.pc && v.n === ev.n && v.pc.remoteDescription) await v.pc.addIceCandidate(ev.d).catch(() => {});
+      else if (v && v.early) v.early.push(ev.d);
+    }
+  } catch (e) { /* the next offer starts over */ }
+}
 // a game page that just opened (or came back after a reconnect) asks where the other camera is
-function camHello() { if (camAvail() && camOpp()) camSend('who', null, { q: CAM.seq }); }
+function camHello() { if (camAvail() && camOpp()) camSend('who', null, { q: CAM.seq }); else if (camSpecAvail() && CAM.tab === 'cam') camSpecWatch(); }
 $('#tabCam').onclick = () => camSetTab('cam');
 $('#tabChat').onclick = () => camSetTab('chat');
 $('#camToggle').onclick = () => (CAM.on ? camStop() : camStart());
