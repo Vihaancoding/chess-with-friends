@@ -6647,6 +6647,7 @@ function fpCaseHTML(c) {
   return `<div class="fpc" data-fpcase="${esc(c.id)}"><h3>${head}</h3>
     <div class="fpm">${c.manual ? 'Flagged by an admin' : `Engine check, ${Math.round(c.conf * 100)}% sure`}${c.evidence.n ? ` · ${c.evidence.match}% engine moves, ${c.evidence.acpl} average loss over ${c.evidence.n} moves` : ''}${live ? ` · ${fpWhen(live.ends || c.pollEnds)}` : ''} ${c.game ? ` · <button class="small" data-fpgame="${esc(c.game)}">View game</button>` : ''}</div>${c.evidence.reasons && c.evidence.reasons.length ? `<details class="fpm"><summary>Why was this flagged?</summary>${c.evidence.reasons.map((x) => `<div>${esc(x)}</div>`).join('')}</details>` : ''}
     ${live ? `<div class="fpopts">${opts.map((o) => `<button data-fpvote="${esc(o.key)}" class="${live.mine === o.key ? 'on' : ''}" ${me ? 'disabled' : ''}><i style="width:${tot ? Math.round(100 * cnt[o.key] / tot) : 0}%"></i><span>${esc(o.label)}</span><span>${cnt[o.key]}</span></button>`).join('')}</div><div class="fpm">${tot} vote${tot === 1 ? '' : 's'}${me ? ' · you cannot vote on your own case' : ''}</div>` : ''}
+    ${user && user.admin && live ? `<div class="fpf"><button class="small primary" data-fpapply type="button">Apply the result now</button></div>` : ''}
     ${c.appeal ? `<p class="fpm">Appeal from ${esc(c.name)}: ${esc(c.appeal.text)}</p>` : ''}
     <div class="fpcm">${c.comments.map((m) => `<p><b class="${m.accused ? 'acc' : ''}">${esc(m.name)}</b> ${esc(m.text)}</p>`).join('') || '<span class="muted">No comments yet.</span>'}</div>
     ${c.status !== 'closed' ? `<form class="fpf" data-fpcomment><input maxlength="300" placeholder="Say your piece…" aria-label="Comment"><button class="small" type="submit">Post</button></form>` : ''}
@@ -6664,7 +6665,9 @@ async function loadFair(force) {
 $('#fpbody').addEventListener('click', async (e) => {
   const c = e.target.closest('[data-fpcase]'); if (!c) return;
   const id = c.dataset.fpcase, v = e.target.closest('[data-fpvote]'), g = e.target.closest('[data-fpgame]');
-  if (g) return enterArchive(id);
+  if (g) return enterArchive(g.dataset.fpgame);
+  const ap = e.target.closest('[data-fpapply]');
+  if (ap) { if (!confirm('End the vote now and apply the result? The community choice (with the usual vote minimums) takes effect immediately.')) return; const r = await api('admin_fair_apply', { id }); if (!r.ok) return dmgNote(r.error || 'Could not apply it.'); return loadFair(true); }
   if (v) { const r = await api('fair_vote', { id, opt: v.dataset.fpvote }); if (!r.ok) return dmgNote(r.error || 'Could not vote.'); loadFair(true); }
 });
 $('#fpbody').addEventListener('submit', async (e) => {

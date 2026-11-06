@@ -135,6 +135,17 @@ const LONG = fx[9].ucis;                                           // 50 plies
   const done = await call('room', { code: g3 }, P.cat);
   ok('once the game is over everyone sees all of it', done.hist.length === 10 && !done.delayed);
 
+  console.log('an admin can apply the poll result at once');
+  const fl2 = await call('admin_fair_flag', { name: 'fay', note: 'apply test' }, P.dan), open = { id: fl2.id, name: 'fay' };
+  ok('players cannot apply a result', (await call('admin_fair_apply', { id: open.id }, P.cat)).status >= 400, null);
+  {
+    for (const n of ['bob', 'cat', 'eve']) await call('fair_vote', { id: open.id, opt: 'ban24h' }, P[n]);
+    const done = await call('admin_fair_apply', { id: open.id }, P.dan);
+    ok('the poll closes now with the community decision', done.ok && done.case.status === 'decided' && done.case.result.key === 'ban24h', done.case);
+    ok('and the ban applies to the player', (await call('me', {}, P[open.name])).status >= 400 || (await call('me', {}, P[open.name])).user.banUntil > Date.now(), null);
+    ok('applying again changes nothing', (await call('admin_fair_apply', { id: open.id }, P.dan)).case.result.key === 'ban24h', null);
+  }
+
   console.log('an admin can flag a player');
   ok('only an admin can flag', (await call('admin_fair_flag', { name: 'fay' }, P.cat)).status >= 400);
   const fl = await call('admin_fair_flag', { name: 'fay', note: 'looks off' }, P.dan);
