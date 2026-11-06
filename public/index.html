@@ -57,6 +57,12 @@
   .label { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 18px 0 8px; }
   .panel { background: var(--panel); border-radius: 10px; padding: 18px; }
   .ptitle { margin: 0 0 4px; font-size: 1.5rem; font-weight: 800; }
+  .pitch { max-width: 520px; margin: 10px auto 14px; font-size: .88rem; line-height: 1.55; font-weight: 600; color: var(--muted); text-align: center; }
+  #reqLinks { margin-top: 12px; font-size: .85rem; font-weight: 600; text-align: center; }
+  #reqLinks .link { display: inline; padding: 0; }
+  input.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  #reqBox label { display: block; margin-top: 10px; }
+  #reqErr { color: var(--bad); font-weight: 700; min-height: 1.2em; margin-top: 6px; }
   #err, #werr { color: var(--bad); min-height: 1.3em; margin-top: 10px; font-size: .88rem; font-weight: 600; }
 
   /* ---------- app shell ---------- */
@@ -1161,6 +1167,7 @@
 <div id="welcome" class="hidden">
   <div class="brand"><img src="/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="muted" style="font-weight:600">Play your friends. Climb the leaderboard.</div>
+  <p class="pitch">Chess is a private chess club for you and your friends. Play live rated games with real clocks, climb a leaderboard that belongs only to your group, and settle old scores in rivalries and tournaments. Review every game with Stockfish, learn with the built-in lessons and coach, relive the worst blunders in the Damage Report, and, if you like, see your opponent on camera while you play. Every group gets its own server, so the players, rankings and chat are just your circle, and a built-in fair-play system keeps the games honest.</p>
   <div class="panel">
     <div class="authtabs" id="authTabs"><button id="tabUp" class="on">Sign up</button><button id="tabIn">Log in</button></div>
     <form id="authForm" novalidate>
@@ -1188,7 +1195,19 @@
       <div id="werr" role="alert"></div>
       <div id="wok" class="okmsg" role="status"></div>
       <button class="primary big" id="go" type="submit">Sign up</button>
+      <div id="reqLinks" class="muted"><span>No code?</span> <button type="button" class="link" data-req="join">Request access</button> <span>or</span> <button type="button" class="link" data-req="server">request a server for your group</button></div>
       <div id="authLinks"><button type="button" class="link" id="forgotLink">Forgot password?</button><button type="button" class="link hidden" id="mailLink">Email me a reset link instead</button><button type="button" class="link hidden" id="backLink">Back to log in</button></div>
+    </form>
+    <form id="reqBox" class="hidden" novalidate>
+      <h2 class="ph" id="reqTitle">Request access</h2>
+      <div class="muted" id="reqIntro" style="font-size:.9rem;font-weight:600;margin-bottom:8px"></div>
+      <label class="label" for="reqName">Who are you?</label><input id="reqName" maxlength="40" placeholder="Your name, so we know who to let in" autocomplete="name">
+      <label class="label" for="reqEmail">Email</label><input id="reqEmail" type="email" maxlength="254" placeholder="you@example.com" autocomplete="email" inputmode="email">
+      <div id="reqSrvRow" class="hidden"><label class="label" for="reqSrv">Name for your server</label><input id="reqSrv" maxlength="30" placeholder="For example: Room 12 Chess Club" autocomplete="off"></div>
+      <label class="label" for="reqNote">Anything we should know? (optional)</label><input id="reqNote" maxlength="300" placeholder="Who invited you, or who you want to play with" autocomplete="off">
+      <input id="reqWeb" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div id="reqErr" role="alert"></div><div id="reqOk" class="okmsg" role="status"></div>
+      <div class="row"><button class="primary big" id="reqGo" type="submit">Send request</button><button type="button" class="link" id="reqBack">Back</button></div>
     </form>
     <div id="recoverBox" class="hidden">
       <h2 class="ph">Save your recovery code</h2>
@@ -1469,6 +1488,11 @@
   <div class="panel">
     <h2 class="ph">Announcement</h2>
     <form id="annForm" class="row"><input id="annIn" maxlength="200" placeholder="Message shown to everyone in the lobby (leave empty to clear)" style="text-align:left"><button class="primary" type="submit">Post</button></form>
+  </div>
+  <div class="panel">
+    <h2 class="ph">Access requests</h2>
+    <div class="muted" style="font-size:.85rem;font-weight:600;margin-bottom:8px">People asking to join, or asking for a server. You choose which server they go to; approved people can then sign up with that email without a code.</div>
+    <div id="areqList"></div>
   </div>
   <div class="panel">
     <h2 class="ph">Fair play investigations</h2>
@@ -2009,6 +2033,23 @@ $('#recDone').onclick = () => {
   setMode('in');
   start();
 };
+// ---- request access / request a server (no code needed): an admin decides which server ----
+function reqOpen(kind) {
+  $('#authForm').classList.add('hidden'); $('#authTabs').classList.add('hidden'); $('#reqBox').classList.remove('hidden');
+  $('#reqBox').dataset.kind = kind; $('#reqErr').textContent = ''; $('#reqOk').textContent = ''; $('#reqGo').disabled = false;
+  $('#reqTitle').textContent = kind === 'server' ? 'Request a server' : 'Request access';
+  $('#reqIntro').textContent = kind === 'server' ? 'Want a space for your own group? Tell us who you are and what to call it. When it is approved you get an invite link to share.' : 'No server code? Ask to be let in. An admin picks the server for you; once approved, just sign up with this email address (no code needed).';
+  $('#reqSrvRow').classList.toggle('hidden', kind !== 'server');
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-req]'); if (b) reqOpen(b.dataset.req); });
+$('#reqBack').onclick = () => { $('#reqBox').classList.add('hidden'); $('#authForm').classList.remove('hidden'); $('#authTabs').classList.remove('hidden'); };
+$('#reqBox').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#reqErr').textContent = ''; $('#reqOk').textContent = ''; $('#reqGo').disabled = true;
+  const r = await api('access_request', { kind: $('#reqBox').dataset.kind, name: $('#reqName').value, email: $('#reqEmail').value, serverName: $('#reqSrv').value, note: $('#reqNote').value, website: $('#reqWeb').value });
+  if (!r.ok) { $('#reqErr').textContent = r.error || 'Could not send that.'; $('#reqGo').disabled = false; return; }
+  $('#reqOk').textContent = r.approved ? 'You are already approved: go back and sign up with this email.' : 'Request sent. When an admin approves it, come back and sign up with this email address.';
+});
 $('#signout').onclick = () => { localStorage.removeItem('chess:user'); location.href = '/'; };
 
 async function boot() {
@@ -3111,7 +3152,7 @@ function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
 $('#navAdmin').onclick = enterAdmin;
 
 async function loadAdmin() {
-  loadDmgTargets(); loadFpPhrases(); loadFpExempt(); loadFairInv();
+  loadDmgTargets(); loadFpPhrases(); loadFpExempt(); loadFairInv(); loadAccess();
   if (view !== 'admin') return;
   const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
   if (view !== 'admin') return;
@@ -3238,6 +3279,21 @@ $('#admin').addEventListener('click', async (e) => {
 });
 $('#adClearChat').onclick = async () => { if (confirm('Delete every message in the lobby chat?')) { await api('admin_clear_chat'); loadAdmin(); } };
 $('#ffForm').addEventListener('submit', async (e) => { e.preventDefault(); const r = await api('admin_fair_flag', { name: $('#ffName').value, game: $('#ffGame').value, note: $('#ffNote').value }); $('#ffMsg').textContent = r.ok ? 'Flagged. The vote is open in the Fair play tribunal.' : r.error || 'Failed.'; if (r.ok) { $('#ffName').value = $('#ffGame').value = $('#ffNote').value = ''; fpAt = 0; } });
+async function loadAccess() {
+  const r = await api('admin_access_list'); if (!r.ok) return;
+  const sv = ((await api('admin_servers')).servers) || [];
+  setHTML($('#areqList'), r.items.length ? r.items.map((x) => `<div class="fpc" data-areq="${esc(x.id)}"><h3>${esc(x.name)} <span class="badge ${x.kind === 'server' ? 'gold' : ''}">${x.kind === 'server' ? 'wants a server' : 'wants to join'}</span>${x.status !== 'open' ? ` <span class="badge">${esc(x.status)}</span>` : ''}</h3>
+    <div class="fpm">${esc(x.email)} · ${new Date(x.at).toLocaleDateString()}${x.kind === 'server' ? ` · "${esc(x.serverName)}"` : ''}</div>${x.note ? `<div style="font-size:.85rem">${esc(x.note)}</div>` : ''}
+    ${x.status === 'open' ? `<div class="acts" style="margin-top:6px">${x.kind === 'server' ? `<input data-asn value="${esc(x.serverName)}" maxlength="30" aria-label="Server name" style="max-width:200px">` : `<select data-asv aria-label="Server">${sv.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select>`}<button class="small primary" data-aact="approve">Approve</button><button class="small" data-aact="deny">Deny</button></div>` : x.status === 'approved' ? `<div class="muted" style="font-size:.85rem">Server: ${esc(x.serverName || x.server)}</div>` : ''}</div>`).join('') : '<span class="muted">No requests.</span>');
+}
+$('#areqList').addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-areq]'), b = e.target.closest('[data-aact]'); if (!c || !b) return;
+  const body = { id: c.dataset.areq, act: b.dataset.aact }, sel = c.querySelector('[data-asv]'), nm = c.querySelector('[data-asn]');
+  if (sel) body.server = sel.value; if (nm) body.serverName = nm.value;
+  const r = await api('admin_access_decide', body); if (!r.ok) return alert(r.error || 'Failed.');
+  if (r.link && b.dataset.aact === 'approve' && !r.mailed) prompt(`Approved. Send them this link${r.server && r.server.code ? ' (it also holds the server code ' + r.server.code + ')' : ''}:`, r.link);
+  loadAccess(); loadAdmin();
+});
 async function loadFairInv() {
   const r = await api('admin_fair_inv'); if (!r.ok) return;
   setHTML($('#finvList'), r.items.length ? r.items.map((x) => `<div class="fpc" data-inv="${esc(x.id)}"><h3>${esc(x.name)} · ${esc(FAIR_LV[x.level][0])}</h3><div class="fpm">p = ${x.p.toExponential(1)} · game ${esc(x.gid)}</div>${x.evidence.map((e) => `<div style="font-size:.85rem">${esc(e)}</div>`).join('')}${x.corroboration.length ? `<div style="font-size:.85rem">Supporting: ${x.corroboration.map(esc).join('; ')}</div>` : ''}<div class="acts" style="margin-top:6px"><button class="small primary" data-invact="vote">Open community vote</button><button class="small" data-invact="dismiss">Dismiss</button><button class="small" data-invgame="${esc(x.gid)}">View game</button></div></div>`).join('') : '<span class="muted">Nothing waiting.</span>');
