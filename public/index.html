@@ -18,7 +18,9 @@
 <link rel="preload" as="image" href="/piece/cburnett/bP.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<!-- the font must never hold the page up (slow or filtered networks): it loads in the background and swaps in -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
 <style>
   :root {
     --bg: #302e2b; --side: #262522; --panel: #262522; --panel2: #1f1e1b; --row: #2b2926; --line: rgba(255,255,255,.07);
@@ -1696,7 +1698,7 @@ function pieceHTML(p) {
 }
 // The Coach is archived: hidden from the menu, and ?coach links open the main page. Set to false to bring it back.
 const COACH_ARCHIVED = true;
-const show = (id) => { document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -4796,10 +4798,15 @@ function paintOpening(H, upto) {
     <div class="opnote">ECO ${esc(o.eco)} · reached on move ${n}${same ? '' : ' by a different move order (transposition)'}</div>`);
 }
 $('#opening').onclick = () => { OP.open = !OP.open; if (snap) render(); };
-{ // the opening list is ~50 KB gzipped: fetch it after the page is up, then refresh the label
+// the opening list is ~400 KB (50 KB gzipped) and only names openings in a game: fetch it the first time a game is shown, not on the lobby
+let openingsReq = false;
+function ensureOpenings() {
+  if (openingsReq || self.OPENINGS_TSV) return;
+  openingsReq = true;
   const s = document.createElement('script');
   s.src = 'openings.js'; s.async = true;
   s.onload = () => { if (view === 'game' && snap) render(); };
+  s.onerror = () => { openingsReq = false; };
   document.head.append(s);
 }
 
