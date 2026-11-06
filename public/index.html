@@ -3101,10 +3101,10 @@ async function loadAdmin() {
       <td><div class="acts"><button class="small" data-act="watch" data-code="${g.code}">Watch</button><button class="small danger" data-act="abort" data-code="${g.code}">End game</button></div></td></tr>`).join('')
     : '<tr><td colspan="5" class="muted">No games in progress.</td></tr>';
   paintFair(r.users); fairTick(r.users);
-  $('#adusers').innerHTML = r.users.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.admin ? '<span class="badge gold">admin</span>' : ''}${u.muted ? '<span class="badge red">muted</span>' : ''}</td>
+  $('#adusers').innerHTML = r.users.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.admin ? '<span class="badge gold">admin</span>' : ''}${u.muted ? '<span class="badge red">muted</span>' : ''}${u.banUntil ? `<span class="badge red" title="${u.banUntil > 8e15 ? 'permanent' : 'until ' + esc(new Date(u.banUntil).toLocaleString())}">banned</span>` : ''}</td>
       <td class="muted">${esc(u.email || '—')}</td><td class="r">${u.elo}</td><td class="r muted">${u.w}-${u.l}-${u.d}</td>
       <td>${u.name === user.name ? '' : `<select class="small" data-act="move" data-name="${esc(u.name)}" aria-label="Move ${esc(u.name)} to another server">${adServers.map((x) => `<option value="${x.id}"${x.id === user.srv ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`}</td>
-      <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>
+      <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>${u.banUntil ? `<button class="small primary" data-act="unban" data-name="${esc(u.name)}">Unban</button>` : ''}
       <button class="small" data-act="reset" data-name="${esc(u.name)}">Reset rating</button>
       <button class="small" data-act="resetlink" data-name="${esc(u.name)}">Password link</button>
       <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
@@ -3187,6 +3187,7 @@ $('#admin').addEventListener('click', async (e) => {
     if (!r.ok) return alert(r.error || 'Could not load it.');
     adFairDetail = r; return loadAdmin();
   }
+  if (act === 'unban') { if (!confirm(`Lift ${name}'s ban now?`)) return; const r = await api('admin_unban', { name }); if (!r.ok) alert(r.error || 'Could not unban.'); }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
   if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
   if (act === 'delete') { if (!confirm(`Permanently delete ${name}'s account?`)) return; await api('admin_delete', { name }); }
