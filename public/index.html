@@ -442,6 +442,27 @@
   /* in-game chat + voice call */
   #gchat { padding: 0; overflow: hidden; }
   .gchead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 8px 14px; background: #1f1e1b; border-bottom: 1px solid var(--line); font-weight: 800; min-height: 48px; }
+  .gctabs { display: flex; gap: 2px; background: #161512; border-radius: 8px; padding: 2px; }
+  .gctabs button { position: relative; min-height: 30px; padding: 3px 14px; font-size: .74rem; font-weight: 800; letter-spacing: .1em; background: transparent; color: var(--muted); border-radius: 6px; box-shadow: none; transition: background .18s, color .18s; }
+  .gctabs button[aria-selected="true"] { background: var(--panel2, #33312e); color: var(--text); }
+  .gctabs i { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  #camPane { padding: 10px 12px 12px; animation: camin .2s ease-out; }
+  #chatPane { animation: camin .2s ease-out; }
+  @keyframes camin { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+  .camtiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .camtile { position: relative; margin: 0; aspect-ratio: 4 / 3; max-height: 150px; border-radius: 10px; overflow: hidden; background: #161512; border: 1px solid var(--line); }
+  .camtile video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+  .camtile.me video { transform: scaleX(-1); }
+  .camtile video.off { display: none; }
+  .camph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); font-size: .72rem; font-weight: 700; text-align: center; padding: 6px; }
+  .camph b { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #2a2926; color: var(--text); font-size: .95rem; }
+  .camph.hide { display: none; }
+  .camtile figcaption { position: absolute; left: 6px; bottom: 5px; font-size: .68rem; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: #000a; color: #fff; max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .camtile.live { border-color: var(--green); }
+  .camctl { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .camctl button.on { background: #6b2a24; box-shadow: 0 2px 0 #3d1815; }
+  .camfine { font-size: .7rem; font-weight: 600; margin-top: 8px; }
+  @media (prefers-reduced-motion: reduce) { #camPane, #chatPane { animation: none; } .gctabs button { transition: none; } }
   #callctl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   #callctl button { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
   #callctl button:disabled { opacity: .45; }
@@ -1559,11 +1580,21 @@
       <div class="muted annote">Reviewed by the built-in engine, which looks a few moves deep. Treat it as a guide, not gospel.</div>
     </div>
     <div class="panel hidden" id="gchat">
-      <div class="gchead"><span>Chat</span><span id="callctl"></span></div>
+      <div class="gchead"><div class="gctabs" role="tablist" aria-label="Camera or chat"><button type="button" role="tab" id="tabCam" class="hidden" aria-selected="false" aria-controls="camPane">CAMERA</button><button type="button" role="tab" id="tabChat" aria-selected="true" aria-controls="chatPane">CHAT<i id="chatDot" class="hidden" aria-label="New messages"></i></button></div><span id="callctl"></span></div>
+      <div id="camPane" class="hidden" role="tabpanel" aria-labelledby="tabCam">
+        <div class="camtiles">
+          <figure class="camtile" id="camOpp"><video playsinline autoplay muted disablePictureInPicture></video><div class="camph"><b></b><span></span></div><figcaption></figcaption></figure>
+          <figure class="camtile me" id="camMe"><video playsinline autoplay muted disablePictureInPicture></video><div class="camph"><b></b><span></span></div><figcaption>You</figcaption></figure>
+        </div>
+        <div class="camctl"><button id="camToggle" class="primary small" type="button">Turn camera on</button><span id="camNote" class="muted" role="status"></span></div>
+        <div class="muted camfine">Video only, never recorded, never any sound. Your opponent and anyone watching the game can see your camera while it is on.</div>
+      </div>
+      <div id="chatPane">
       <div id="vcpeople" class="hidden"></div>
       <div id="gclog"></div>
       <form id="gcForm" class="row"><input id="gcIn" maxlength="200" placeholder="Message everyone in this game…" autocomplete="off"><button class="primary small" type="submit">Send</button></form>
       <audio id="callAudio" autoplay playsinline></audio>
+      </div>
     </div>
   </aside>
 </div>
@@ -1674,12 +1705,13 @@ let lobbyTimer = null, gameTimer = null, clockTimer = null, adminTimer = null;
 let gameCode = null, snap = null, snapAt = 0, sig = '';
 let selected = null, legal = [];
 let viewPly = null;                       // null = live position; otherwise ply index being reviewed
+const CAM = { tab: 'chat', on: false, starting: false, stream: null, pc: null, peerOn: false, peerSeq: 0, peerConn: null, nid: 0, lastN: 0, oid: 0, seq: 0, state: 'idle', failN: 0, retryT: null, remote: null, early: [] };   // the camera (see "camera" below)
 let stCache = { hist: [], states: [Chess.initial()], caps: [null] };
 let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
+const QUIET = new Set(['cam_signal', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 const API_TIMEOUT = { sync: 5000, ping: 5000, move: 6000 };   // heartbeats are tiny and a move is quick: retry sooner (move retries are safe)
@@ -1820,6 +1852,7 @@ function ensureSessionSubs() {
 }
 function onUserPing(d) {
   if (d.why === 'm' && d.ev && d.code === gameCode && roomH.m) return roomH.m(d.ev);                // a move for my own game, sent privately
+  if (d.why === 'cam') return camOnSignal(d);                         // the opponent's video handshake, sent privately
   if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'mention' && d.m) return onMention([d.m]);
@@ -3235,7 +3268,7 @@ function enterGame(code, seed) {
   openGameChat(code);
   awayGame = null; hideChatToast();
   rtRoomLive = false;
-  const st = (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } };
+  const st = (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); camHello(); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } };
   roomH = { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal, st };
   if (!roomSubscribe(code) && roomConn) st(true);           // came back to a game we kept listening to while away
   kick();
@@ -3254,6 +3287,7 @@ function gameSkeleton() {
   $('#arrows').innerHTML = ''; ovSig = '';
 }
 function stopGame() {
+  camLeave();
   const live = gameCode && !isBot() && !isArchive() && view === 'game' && snap && snap.code === gameCode && snap.status && !snap.status.over && (snap.you === 'w' || snap.you === 'b');
   vcLeave(); resetAnalysis(); leaveArchive(); hideChatToast();
   pollGen++; clearTimeout(gameTimer); clearInterval(clockTimer); gameTimer = null; clockTimer = null; botLeave();
@@ -3332,7 +3366,8 @@ function applySnapshot(r) {
   if (s === sig) return;
   if (!sig || sig.split('|')[0] !== String(r.moves.length) || sig.split('|')[1] !== r.you) { selected = null; legal = []; }
   sig = s; afterSnapshot(r);
-  if (r.status.over) premoves = [];
+  if (r.status.over) { premoves = []; if (CAM.on) { camStop(); camNote('The game is over: your camera was turned off.'); } }
+  paintCamTab();
   render();
   queueMicrotask(runPremove);   // after the caller has finished reacting to this position
 }
@@ -3822,6 +3857,7 @@ let gchatIds = new Set(), gchatKs = new Set(), gchatLoad = 0, gchatSending = fal
 // true when one of the latest chat messages (numbered 1, 2, 3…) never reached this screen
 const gchatMissing = (c) => { for (let k = c; k > 0 && k > c - 30; k--) if (!gchatKs.has(k)) return true; return false; };
 function openGameChat(code) {
+  camLeave(); camReset(); paintCamTab();
   gchatIds = new Set(); gchatKs = new Set(); VC.roster.clear(); VC.early.clear();
   $('#gclog').innerHTML = '';
   $('#gchat').classList.remove('hidden');
@@ -3836,6 +3872,7 @@ function loadGameChat(code) {
 function addGameMsg(m) {
   if (!m || !m.id || gchatIds.has(m.id)) return false;
   gchatIds.add(m.id); if (m.k) gchatKs.add(m.k);
+  if (CAM.tab === 'cam' && m.n !== user.name) $('#chatDot').classList.remove('hidden');
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const el = document.createElement('div');
   el.className = 'gm'; el.dataset.ts = m.ts || 0;
@@ -4043,6 +4080,258 @@ $('#callctl').addEventListener('click', (e) => {
   else if (c === 'mute') { VC.muted = !VC.muted; if (VC.stream) VC.stream.getAudioTracks().forEach((t) => (t.enabled = !VC.muted)); paintCall(); }
 });
 window.addEventListener('beforeunload', () => { if (VC.on && gameCode) vcSend('leave'); });
+
+// ---------- camera: video only, between the two players of a live game ----------
+// Video only: getUserMedia is asked for video and never audio, no audio track is ever added, nothing is recorded or stored.
+// The server relays only the handshake, privately to the opponent (cam_signal); the video itself goes browser to browser.
+// The player with the alphabetically smaller name makes the call; every change of either camera is a fresh, numbered negotiation.
+const camAvail = () => view === 'game' && !!gameCode && !isBot() && !isArchive() && isPlayer() && !!snap && !snap.status.over;
+const camSpecAvail = () => view === 'game' && !!gameCode && !isBot() && !isArchive() && !!snap && snap.you === 's' && !snap.status.over && !!snap.players.w && !!snap.players.b && !snap.players.w.bot && !snap.players.b.bot;
+const CAM_MAX_VIEWERS = 3;                                                      // spectators one player sends video to at once (each costs a little upload)
+const camOpp = () => { const p = snap && snap.players && snap.players[snap.you === 'w' ? 'b' : 'w']; return p && !p.bot ? p.name : null; };
+const camOfferer = () => { const o = camOpp(); return !!o && user.name.toLowerCase() < o.toLowerCase(); };
+const camSend = (t, d, x) => api('cam_signal', { code: gameCode, t, d, fc: RTC.conn, ...(x || {}) });
+function camReset() { camViewersClose(); camSpecStop(true); Object.assign(CAM, { watchers: new Map(), hiFor: null, peerOn: false, peerSeq: 0, peerConn: null, nid: 0, lastN: 0, state: 'idle', failN: 0, remote: null, early: [] }); }
+function camNote(t) { const n = $('#camNote'); if (n) { n.textContent = t || ''; n.dataset.msg = t ? '1' : ''; } }
+const camError = (e) => {
+  const n = e && e.name;
+  if (n === 'NotAllowedError' || n === 'SecurityError') return 'Camera blocked. Allow it with the lock icon next to the address bar, then try again. Chat still works.';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No camera was found on this device. Chat still works.';
+  if (n === 'NotReadableError') return 'Your camera is being used by another app.';
+  return 'Could not start the camera' + (n ? ` (${n})` : '') + '. Chat still works.';
+};
+function camSetTab(t) {
+  if (t === 'cam' && !camAvail() && !camSpecAvail()) t = 'chat';
+  const was = CAM.tab; CAM.tab = t;
+  if (camSpecAvail()) { if (t === 'cam') camSpecWatch(); else if (was === 'cam') camSpecStop(); }
+  $('#camPane').classList.toggle('hidden', t !== 'cam'); $('#chatPane').classList.toggle('hidden', t === 'cam');
+  $('#callctl').classList.toggle('hidden', t === 'cam');                       // the voice buttons belong to the chat; the camera tab has no sound at all
+  $('#tabCam').setAttribute('aria-selected', String(t === 'cam')); $('#tabChat').setAttribute('aria-selected', String(t !== 'cam'));
+  if (t !== 'cam') { $('#chatDot').classList.add('hidden'); const l = $('#gclog'); l.scrollTop = l.scrollHeight; }
+  paintCam();
+}
+function paintCamTab() {
+  const ok = camAvail(), sp = camSpecAvail();
+  $('#tabCam').classList.toggle('hidden', !ok && !sp);
+  if (!ok && !sp && CAM.tab === 'cam') camSetTab('chat');
+  $('#camToggle').parentElement.classList.toggle('hidden', sp);
+  if (ok && camOpp() && CAM.hiFor !== gameCode + '|' + camOpp()) { CAM.hiFor = gameCode + '|' + camOpp(); camHello(); }   // first time both players are here: where is their camera?
+  if (ok || sp) paintCam();
+}
+function camTile(el, vid, stream, cls, text, sub, name) {
+  const v = el.querySelector('video'), ph = el.querySelector('.camph');
+  if (stream) { if (v.srcObject !== stream) v.srcObject = stream; v.classList.remove('off'); ph.classList.add('hide'); el.classList.add('live'); }
+  else { if (v.srcObject) v.srcObject = null; v.classList.add('off'); ph.classList.remove('hide'); el.classList.remove('live'); ph.querySelector('b').textContent = (name || '?')[0].toUpperCase(); ph.querySelector('span').textContent = text; }
+}
+function paintCam() {
+  if (!$('#camPane') || !snap) return;
+  if (camSpecAvail()) {                                                          // a spectator: both players' cameras, receive only
+    [['#camOpp', 'w'], ['#camMe', 'b']].forEach(([sel, c]) => {
+      const p = snap.players[c], v = CAM.sv.get(p.name), live = v && v.stream && v.state === 'ok';
+      $(sel).classList.remove('me'); $(sel + ' figcaption').textContent = `${p.name} · ${c === 'w' ? 'White' : 'Black'}`;
+      camTile($(sel), null, live ? v.stream : null, '', v && v.state === 'bad' ? 'Disconnected' : v && v.on ? 'Connecting…' : 'Camera off', '', p.name);
+    });
+    $('#camNote').textContent = ''; return;
+  }
+  $('#camMe').classList.add('me');
+  const opp = camOpp();
+  $('#camOpp figcaption').textContent = opp || 'Opponent';
+  const mineState = CAM.starting ? 'Waiting for permission…' : CAM.on ? '' : 'Camera off';
+  camTile($('#camMe'), null, CAM.on ? CAM.stream : null, '', mineState, '', user.name);
+  let t = 'Camera off';
+  const showing = CAM.remote && CAM.peerOn && CAM.state === 'ok';
+  if (!opp) t = 'Waiting for opponent'; else if (CAM.state === 'bad') t = 'Disconnected'; else if (CAM.peerOn && !showing) t = CAM.state === 'retry' ? 'Reconnecting…' : 'Connecting…';
+  camTile($('#camOpp'), null, showing ? CAM.remote : null, '', t, '', opp || '?');
+  const watching = [...CAM.watchers.keys()].length; $('#camNote').textContent = CAM.on && watching && !$('#camNote').dataset.msg ? `${watching} spectator${watching === 1 ? '' : 's'} watching` : $('#camNote').textContent;
+  const b = $('#camToggle'); b.textContent = CAM.starting ? 'Starting…' : CAM.on ? 'Turn camera off' : 'Turn camera on'; b.classList.toggle('on', CAM.on); b.disabled = CAM.starting || !opp;
+}
+async function camStart() {
+  if (CAM.on || CAM.starting || !camAvail()) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection || !window.isSecureContext) return camNote('Camera is not supported in this browser. Chat still works.');
+  CAM.starting = true; camNote(''); paintCam();
+  let s;
+  try { s = await navigator.mediaDevices.getUserMedia({ audio: false, video: { width: { ideal: 320, max: 640 }, height: { ideal: 240, max: 480 }, frameRate: { ideal: 15, max: 20 }, facingMode: 'user' } }); }   // the browser asks the player
+  catch (e) { CAM.starting = false; paintCam(); return camNote(camError(e)); }
+  s.getAudioTracks().forEach((t) => { t.stop(); s.removeTrack(t); });          // never any audio, whatever the browser hands back
+  if (!camAvail() || !s.getVideoTracks().length) { s.getTracks().forEach((t) => t.stop()); CAM.starting = false; return paintCam(); }
+  CAM.stream = s; CAM.on = true; CAM.starting = false;
+  s.getVideoTracks()[0].addEventListener('ended', () => camStop());             // unplugged, or permission taken back
+  paintCam(); camChanged();
+}
+function camStop() {
+  if (!CAM.on) return;
+  if (CAM.stream) CAM.stream.getTracks().forEach((t) => t.stop());
+  CAM.stream = null; CAM.on = false; paintCam(); camChanged();
+}
+function camClosePC() {
+  clearTimeout(CAM.retryT);
+  if (CAM.pc) { const pc = CAM.pc; CAM.pc = null; pc.onicecandidate = pc.ontrack = pc.onconnectionstatechange = null; try { pc.close(); } catch {} }
+  CAM.remote = null; CAM.early = []; if (CAM.state !== 'bad') CAM.state = 'idle';
+}
+function camLeave() { camViewersClose(); camSpecStop(true); if (CAM.stream) CAM.stream.getTracks().forEach((t) => t.stop()); CAM.stream = null; CAM.on = false; CAM.starting = false; camClosePC(); camSetTab('chat'); }
+// my camera changed: tell the other side, then (if I am the caller) call again
+function camChanged() {
+  camViewersRefresh();
+  camClosePC(); CAM.failN = 0; CAM.state = 'idle'; CAM.seq++;
+  if (!camAvail()) return paintCam();
+  camSend('poke', null, { on: CAM.on, q: CAM.seq });
+  if (camOfferer()) camOffer();
+  paintCam();
+}
+function camTune(sender) {
+  try { const p = sender.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}]; Object.assign(p.encodings[0], { maxBitrate: 140000, maxFramerate: 15 }); p.degradationPreference = 'maintain-framerate'; sender.setParameters(p).catch(() => {}); } catch {}
+}
+function camMakePC(n) {
+  camClosePC();
+  const pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] });
+  CAM.pc = pc; CAM.nid = n; CAM.state = 'wait';
+  pc.onicecandidate = (e) => { if (e.candidate && CAM.pc === pc) camSend('ice', e.candidate.toJSON(), { n, tc: CAM.peerConn }); };
+  pc.ontrack = (e) => { if (CAM.pc !== pc) return; CAM.remote = e.streams[0] || new MediaStream([e.track]); paintCam(); };
+  pc.onconnectionstatechange = () => {
+    if (CAM.pc !== pc) return;
+    const st = pc.connectionState;
+    if (st === 'connected') { CAM.state = 'ok'; CAM.failN = 0; clearTimeout(CAM.retryT); paintCam(); }
+    else if (st === 'failed' || st === 'disconnected') camRetry();
+  };
+  CAM.retryT = setTimeout(() => { if (CAM.pc === pc && CAM.state === 'wait') camRetry(); }, 20000);
+  return pc;
+}
+// a connection that dropped: try again a few times (the caller calls, the other side asks), then show Disconnected
+function camRetry() {
+  camClosePC();
+  if (!camAvail() || !(CAM.on || CAM.peerOn)) return paintCam();
+  if (++CAM.failN > 4) { CAM.state = 'bad'; return paintCam(); }
+  CAM.state = 'retry'; paintCam();
+  CAM.retryT = setTimeout(() => { if (!camAvail() || CAM.pc) return; if (camOfferer()) camOffer(); else camSend('poke', null, { on: CAM.on, q: CAM.seq }); }, 1500 * CAM.failN);
+}
+async function camOffer() {
+  if (!camAvail() || !(CAM.on || CAM.peerOn)) return;
+  const n = ++CAM.oid, pc = camMakePC(n);
+  try {
+    const tr = pc.addTransceiver('video', { direction: CAM.on ? 'sendrecv' : 'recvonly' });
+    if (CAM.on) { await tr.sender.replaceTrack(CAM.stream.getVideoTracks()[0]); camTune(tr.sender); }
+    const o = await pc.createOffer(); await pc.setLocalDescription(o);
+    if (CAM.pc === pc) camSend('offer', { type: o.type, sdp: o.sdp }, { n, on: CAM.on, q: CAM.seq });
+  } catch (e) { if (CAM.pc === pc) camRetry(); }
+}
+async function camOnSignal(ev) {
+  if (view !== 'game' || !snap || ev.code !== gameCode) return;
+  if (camSpecAvail()) return camSpecSignal(ev);
+  if (camAvail() && ev.f !== camOpp()) return camViewerSignal(ev);              // a spectator asking to watch
+  if (!camAvail() || ev.f !== camOpp()) return;
+  if (ev.tc && ev.tc !== RTC.conn) return;                                    // meant for another tab of mine
+  try {
+    switch (ev.t) {
+      case 'who': camSend('here', null, { on: CAM.on, q: CAM.seq, tc: ev.fc }); if (CAM.on && camOfferer()) camOffer(); break;   // they (re)joined: say where I am; call them if my camera is on
+      case 'here': if (ev.on !== CAM.peerOn || ev.fc !== CAM.peerConn) { CAM.peerOn = ev.on; CAM.peerConn = ev.fc; paintCam(); if (camOfferer() && (CAM.on || CAM.peerOn) && !CAM.pc) camOffer(); else if (!camOfferer() && CAM.on && !CAM.pc) camSend('poke', null, { on: true, q: CAM.seq }); } break;
+      case 'poke':
+        if (ev.q <= CAM.peerSeq && ev.fc === CAM.peerConn) return;            // old news: that negotiation is already under way
+        CAM.peerSeq = ev.q; CAM.peerConn = ev.fc; CAM.peerOn = ev.on; CAM.lastN = 0; camClosePC(); CAM.failN = 0; CAM.state = 'idle'; paintCam();
+        if (camOfferer() && (CAM.on || CAM.peerOn)) camOffer();
+        break;
+      case 'offer': {
+        if (camOfferer() || ev.q < CAM.peerSeq || (ev.fc === CAM.peerConn && ev.q === CAM.peerSeq && ev.n <= CAM.lastN)) return;
+        CAM.peerSeq = ev.q; CAM.peerConn = ev.fc; CAM.peerOn = ev.on; CAM.lastN = ev.n;
+        const pc = camMakePC(ev.n);
+        await pc.setRemoteDescription(ev.d);
+        const tr = pc.getTransceivers().find((x) => x.receiver && x.receiver.track && x.receiver.track.kind === 'video');
+        if (tr) { if (CAM.on) { tr.direction = 'sendrecv'; await tr.sender.replaceTrack(CAM.stream.getVideoTracks()[0]); camTune(tr.sender); } else tr.direction = 'recvonly'; }
+        for (const c of CAM.early.filter((x) => x.n === ev.n)) await pc.addIceCandidate(c.d).catch(() => {});
+        CAM.early = [];
+        const a = await pc.createAnswer(); await pc.setLocalDescription(a);
+        if (CAM.pc === pc) camSend('answer', { type: a.type, sdp: a.sdp }, { n: ev.n, tc: ev.fc, on: CAM.on });
+        paintCam(); break;
+      }
+      case 'answer':
+        if (!CAM.pc || ev.n !== CAM.nid || CAM.pc.signalingState !== 'have-local-offer') return;
+        CAM.peerConn = ev.fc; CAM.peerOn = ev.on;
+        await CAM.pc.setRemoteDescription(ev.d); paintCam(); break;
+      case 'ice':
+        if (CAM.pc && ev.n === CAM.nid && CAM.pc.remoteDescription) await CAM.pc.addIceCandidate(ev.d).catch(() => {});
+        else if (!CAM.pc || ev.n >= CAM.lastN) CAM.early.push({ n: ev.n, d: ev.d });   // arrived before the offer: keep it for a moment
+        if (CAM.early.length > 40) CAM.early.shift();
+        break;
+    }
+  } catch (e) { camRetry(); }
+}
+// ---- players: send my video to spectators who asked (at most CAM_MAX_VIEWERS) ----
+CAM.vpc = new Map(); CAM.sv = new Map(); CAM.watchers = new Map();
+function camViewerClose(name) { const v = CAM.vpc.get(name); if (v) { v.pc.onicecandidate = v.pc.onconnectionstatechange = null; try { v.pc.close(); } catch {} CAM.vpc.delete(name); } }
+function camViewersClose() { for (const n of [...CAM.vpc.keys()]) camViewerClose(n); }
+function camViewersRefresh() {                                                  // my camera started or stopped: re-send, or tell them it is off
+  camViewersClose();
+  for (const [n, at] of [...CAM.watchers]) if (Date.now() - at > 75000) CAM.watchers.delete(n);
+  [...CAM.watchers.keys()].slice(0, CAM_MAX_VIEWERS).forEach((n) => (CAM.on ? camViewerOffer(n) : camSend('poke', null, { to: n, on: false })));
+}
+async function camViewerOffer(name) {
+  camViewerClose(name);
+  if (!CAM.on || !camAvail() || CAM.vpc.size >= CAM_MAX_VIEWERS) return;
+  const pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] }), n = ++CAM.oid;
+  CAM.vpc.set(name, { pc, n });
+  pc.onicecandidate = (e) => { const v = CAM.vpc.get(name); if (e.candidate && v && v.pc === pc) camSend('ice', e.candidate.toJSON(), { to: name, n }); };
+  pc.onconnectionstatechange = () => { if (['failed', 'closed'].includes(pc.connectionState)) { const v = CAM.vpc.get(name); if (v && v.pc === pc) camViewerClose(name); } };
+  try {
+    const tr = pc.addTransceiver('video', { direction: 'sendonly' });
+    await tr.sender.replaceTrack(CAM.stream.getVideoTracks()[0]); camTune(tr.sender);
+    const o = await pc.createOffer(); await pc.setLocalDescription(o);
+    camSend('offer', { type: o.type, sdp: o.sdp }, { to: name, n });
+  } catch (e) { camViewerClose(name); }
+}
+async function camViewerSignal(ev) {
+  try {
+    if (ev.t === 'watch') {
+      CAM.watchers.set(ev.f, Date.now());
+      for (const [k, at] of [...CAM.watchers]) if (Date.now() - at > 75000) { CAM.watchers.delete(k); camViewerClose(k); }
+      if (CAM.on && !CAM.vpc.has(ev.f)) camViewerOffer(ev.f);
+      paintCam();
+    } else if (ev.t === 'unwatch') { CAM.watchers.delete(ev.f); camViewerClose(ev.f); paintCam(); }
+    else if (ev.t === 'answer') { const v = CAM.vpc.get(ev.f); if (v && v.n === ev.n && v.pc.signalingState === 'have-local-offer') await v.pc.setRemoteDescription(ev.d); }
+    else if (ev.t === 'ice') { const v = CAM.vpc.get(ev.f); if (v && v.n === ev.n && v.pc.remoteDescription) await v.pc.addIceCandidate(ev.d).catch(() => {}); }
+  } catch (e) { camViewerClose(ev.f); }
+}
+// ---- spectators: ask both players for their video (only while the camera tab is open), receive only ----
+function camSpecWatch() {
+  clearInterval(CAM.watchT);
+  const ask = () => ['w', 'b'].forEach((c) => camSend('watch', null, { to: snap.players[c].name }));
+  ask(); CAM.watchT = setInterval(() => { if (!camSpecAvail() || CAM.tab !== 'cam') return camSpecStop(); ask(); }, 25000);
+  paintCam();
+}
+function camSpecStop(silent) {
+  clearInterval(CAM.watchT);
+  if (!silent && snap && snap.players && snap.players.w && snap.players.b && camSpecAvail()) ['w', 'b'].forEach((c) => camSend('unwatch', null, { to: snap.players[c].name }));
+  for (const v of CAM.sv.values()) { try { v.pc.close(); } catch {} }
+  CAM.sv.clear();
+}
+async function camSpecSignal(ev) {
+  const p = ['w', 'b'].map((c) => snap.players[c]).find((x) => x && x.name === ev.f);
+  if (!p || CAM.tab !== 'cam') return;
+  try {
+    if (ev.t === 'poke') { if (!ev.on) { const v = CAM.sv.get(p.name); if (v) { try { v.pc.close(); } catch {} } CAM.sv.set(p.name, { on: false, state: 'idle' }); paintCam(); } }
+    else if (ev.t === 'offer') {
+      const old = CAM.sv.get(p.name); if (old && old.pc) { try { old.pc.close(); } catch {} }
+      const pc = new RTCPeerConnection({ iceServers: RTC.ice || [{ urls: 'stun:stun.l.google.com:19302' }] }), v = { pc, on: true, state: 'wait', stream: null, n: ev.n, early: [] };
+      CAM.sv.set(p.name, v);
+      pc.onicecandidate = (e) => { if (e.candidate && CAM.sv.get(p.name) === v) camSend('ice', e.candidate.toJSON(), { to: p.name, n: ev.n }); };
+      pc.ontrack = (e) => { v.stream = e.streams[0] || new MediaStream([e.track]); paintCam(); };
+      pc.onconnectionstatechange = () => { if (CAM.sv.get(p.name) !== v) return; if (pc.connectionState === 'connected') v.state = 'ok'; else if (['failed', 'disconnected'].includes(pc.connectionState)) v.state = 'bad'; paintCam(); };
+      await pc.setRemoteDescription(ev.d);
+      for (const c of v.early) await pc.addIceCandidate(c).catch(() => {});
+      v.early = [];
+      const a = await pc.createAnswer(); await pc.setLocalDescription(a);
+      camSend('answer', { type: a.type, sdp: a.sdp }, { to: p.name, n: ev.n }); paintCam();
+    } else if (ev.t === 'ice') {
+      const v = CAM.sv.get(p.name);
+      if (v && v.pc && v.n === ev.n && v.pc.remoteDescription) await v.pc.addIceCandidate(ev.d).catch(() => {});
+      else if (v && v.early) v.early.push(ev.d);
+    }
+  } catch (e) { /* the next offer starts over */ }
+}
+// a game page that just opened (or came back after a reconnect) asks where the other camera is
+function camHello() { if (camAvail() && camOpp()) camSend('who', null, { q: CAM.seq }); else if (camSpecAvail() && CAM.tab === 'cam') camSpecWatch(); }
+$('#tabCam').onclick = () => camSetTab('cam');
+$('#tabChat').onclick = () => camSetTab('chat');
+$('#camToggle').onclick = () => (CAM.on ? camStop() : camStart());
+document.addEventListener('visibilitychange', () => { if (CAM.stream) CAM.stream.getVideoTracks().forEach((t) => { t.enabled = !document.hidden; }); });   // a hidden tab sends black frames: almost no bandwidth or CPU
 
 
 // ---------- Learn: interactive courses (content in lessons.js, checked by scripts/check-lessons.js) ----------

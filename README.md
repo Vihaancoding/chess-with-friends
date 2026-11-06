@@ -120,6 +120,10 @@ Piece images are the Cburnett set, loaded from the [lichess](https://github.com/
 
 MIT. See [LICENSE](LICENSE).
 
+## Camera / Chat tabs
+
+In a live game the two players get CAMERA and CHAT tabs beside the board. The camera is video only (never any audio or microphone), browser-to-browser WebRTC at 320x240, 15 fps and 140 kbps at most, never recorded or stored. Each player turns their own camera on (the browser asks); the server only relays the handshake (`cam_signal`), privately to the opponent, and only between the two players. Spectators can chat as before (set `GAME_CHAT_PLAYERS_ONLY=1` to keep a live game's chat to the two players) and can open the CAMERA tab to watch both players' cameras (receive only, at most 3 spectators per player at once, only while their tab is open). Test: `node scripts/test-camera-ui.js` (two real browsers with fake cameras).
+
 ## Fair-play detection
 
 Stockfish never runs in `api/index.js` (moves, chat). After a move, `api/index.js` POSTs `{ code, srv }` to `/api/fairplay` with the shared secret in `x-fair-secret` and does not wait; `api/fairplay.js` (maxDuration 60) answers 202 at once and checks the game in the background after every move, and also analyses finished games. **Set `FAIR_SECRET` in Vercel** (any long random string); without it the check is off on Vercel. Locally (`node server.js`) the check runs in the same process and needs nothing.
