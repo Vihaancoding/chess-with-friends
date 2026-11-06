@@ -1,0 +1,43 @@
+// The welcome page (product paragraph, request access, request a server) and the admin's decision. Run: node scripts/test-access-ui.js (needs Playwright)
+const { chromium } = require('playwright');
+process.env.PORT = String(4170 + Math.floor(Math.random() * 9)); process.env.SUPABASE_URL = ''; process.env.ADMIN_KEY = 'k'; process.env.CLOSED_SERVER1 = '1';
+const PORT = process.env.PORT, origLog = console.log; console.log = () => {};
+require('../server.js'); console.log = origLog;
+let failed = 0, passed = 0;
+const ok = (n, c, g) => { if (c) { passed++; console.log('  ✓', n); } else { failed++; console.log('  ✗', n, '\n      got:', JSON.stringify(g)); } };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const api = async (route, body, who) => { const r = await fetch(`http://localhost:${PORT}/api?r=${route}`, { method: 'POST', headers: { 'content-type': 'application/json', ...(who ? { 'x-name': who.name, 'x-token': who.token } : {}) }, body: JSON.stringify(body || {}) }); return { status: r.status, ...(await r.json()) }; };
+(async () => {
+  await sleep(300);
+  const o = await api('signup', { email: 'owner@x.io', password: 'password1', username: 'owner' }); const O = { name: o.name, token: o.token };
+  await api('admin_claim', { key: 'k' }, O); await api('admin_server_new', { name: 'Room 12' }, O);
+  const br = await chromium.launch(); const ctx = await br.newContext({ viewport: { width: 390, height: 800 } }); const p = await ctx.newPage();
+  p.on('pageerror', (e) => { failed++; console.log('  ✗ page error:', e.message); });
+  await p.route(/cdn\.jsdelivr\.net|fonts\.g/, (r) => r.abort());
+  await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('#welcome:not(.hidden)');
+  ok('the welcome page describes the product', /private chess club/.test(await p.textContent('.pitch')) && (await p.isVisible('.pitch')), null);
+  ok('fits a phone', await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), null);
+  await p.click('[data-req="join"]');
+  ok('request access opens a form', await p.isVisible('#reqBox') && !(await p.isVisible('#authForm')) && !(await p.isVisible('#reqSrvRow')), null);
+  await p.fill('#reqName', 'Zed'); await p.fill('#reqEmail', 'zed@x.io'); await p.fill('#reqNote', 'friend of owner'); await p.click('#reqGo');
+  await p.waitForFunction(() => /Request sent/.test(document.querySelector('#reqOk').textContent));
+  ok('the request is sent', true);
+  await p.click('#reqBack'); await p.click('[data-req="server"]');
+  ok('request a server asks for a name', await p.isVisible('#reqSrvRow'), null);
+  await p.fill('#reqName', 'Eve'); await p.fill('#reqEmail', 'eve@x.io'); await p.fill('#reqSrv', 'Chess Club 9'); await p.click('#reqGo');
+  await p.waitForFunction(() => /Request sent/.test(document.querySelector('#reqOk').textContent));
+
+  const A = await (await br.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  A.on('dialog', (d) => d.dismiss()); await A.route(/cdn\.jsdelivr\.net|fonts\.g/, (r) => r.abort());
+  await A.addInitScript((x) => localStorage.setItem('chess:user', JSON.stringify(x)), O);
+  await A.goto(`http://localhost:${PORT}/?admin`); await A.click('#navAdmin'); await A.waitForSelector('[data-areq]');
+  ok('the admin sees both requests', (await A.$$('[data-areq]')).length === 2, null);
+  const card = await A.$('[data-areq]:has-text("Zed")');
+  await (await card.$('[data-asv]')).selectOption({ label: 'Room 12' }); await (await card.$('[data-aact="approve"]')).click();
+  await A.waitForFunction(() => /approved/.test(document.querySelector('#areqList').textContent));
+  ok('approving shows the request as approved on a chosen server', /Room 12/.test(await A.textContent('#areqList')), null);
+  const z = await api('signup', { email: 'zed@x.io', password: 'password1', username: 'zed' });
+  ok('and the person can sign up without a code', z.name === 'zed' && (await api('me', {}, { name: z.name, token: z.token })).user.srv === '2', z);
+  await br.close();
+  console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });
