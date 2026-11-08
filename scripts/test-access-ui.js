@@ -17,6 +17,7 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('#welcome:not(.hidden)');
   ok('the welcome page describes the product', /private chess club/.test(await p.textContent('.pitch')) && (await p.isVisible('.pitch')), null);
   ok('fits a phone', await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), null);
+  if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT + '-welcome.png', fullPage: true });
   await p.click('[data-req="join"]');
   ok('request access opens a form', await p.isVisible('#reqBox') && !(await p.isVisible('#authForm')) && !(await p.isVisible('#reqSrvRow')), null);
   await p.fill('#reqName', 'Zed'); await p.fill('#reqEmail', 'zed@x.io'); await p.fill('#reqNote', 'friend of owner'); await p.click('#reqGo');
