@@ -101,7 +101,7 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 2961 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/app.js` | 2976 | API handler shared by local server.js and the Vercel function (api/index.js). |
 | `lib/damage.js` | 351 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
@@ -128,9 +128,9 @@ flowchart LR
 | `public/sfengine.js` | 123 | Stockfish as an alternative analysis engine (Stockfish 19 lite, single-threaded WebAssembly, in public/stockfish/; |
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 253 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
-| `public/index.html` | 7250 |  |
+| `public/index.html` | 7288 |  |
 
-## API routes (102, all in lib/app.js, called as POST /api?r=<name>)
+## API routes (103, all in lib/app.js, called as POST /api?r=<name>)
 
 - **admin** (29): `admin_access_list`, `admin_access_decide`, `admin_claim`, `admin_overview`, `admin_fair`, `admin_unban`, `admin_mute`, `admin_reset`, `admin_reset_link`, `admin_delete`, `admin_servers`, `admin_dmg_server`, `admin_server_new`, `admin_server_edit`, `admin_move`, `admin_abort`, `admin_clear_chat`, `admin_delete_msg`, `admin_fair_case`, `admin_fair_apply`, `admin_fair_decide`, `admin_fair_inv`, `admin_fair_inv_act`, `admin_fair_flag`, `admin_fair_phrases`, `admin_fair_exempt`, `admin_dmg_targets`, `admin_dmg_target`, `admin_announce`
 - **tour** (14): `tour_list`, `tour_get`, `tour_create`, `tour_join`, `tour_vote`, `tour_leave`, `tour_add`, `tour_start`, `tour_play`, `tour_remind`, `tour_length`, `tour_award`, `tour_chat_send`, `tour_delete`
@@ -139,6 +139,7 @@ flowchart LR
 - **game** (3): `game_chat`, `game_chat_send`, `game_get`
 - **draw** (3): `draw_offer`, `draw_accept`, `draw_decline`
 - **result** (3): `result_send`, `result_answer`, `result_dismiss`
+- **cam** (2): `cam_signal`, `cam_poll`
 - **pause** (2): `pause_request`, `pause_respond`
 - **damage** (2): `damage_feed`, `damage_prefs`
 - **clone** (2): `clone_played`, `clone_dismiss`
@@ -151,7 +152,6 @@ flowchart LR
 - **reset** (1): `reset_password`
 - **recovery** (1): `recovery_new`
 - **me** (1): `me`
-- **cam** (1): `cam_signal`
 - **rtc** (1): `rtc_signal`
 - **profile** (1): `profile`
 - **games** (1): `games`
@@ -176,6 +176,6 @@ flowchart LR
 - **decline** (1): `decline`
 - **cancel** (1): `cancel`
 
-## Tests (36)
+## Tests (37)
 
-`test-access-ui.js`, `test-access.js`, `test-archive-ui.js`, `test-archive.js`, `test-camera-ui.js`, `test-coach-ask.js`, `test-damage-ui.js`, `test-damage.js`, `test-damagechat.js`, `test-drag.js`, `test-engine.js`, `test-fairdetect.js`, `test-fairmodel.js`, `test-fairplay-ui.js`, `test-fairplay.js`, `test-fairworker.js`, `test-match-ui.js`, `test-match.js`, `test-mentions-ui.js`, `test-mentions.js`, `test-pass-play.js`, `test-premoves.js`, `test-presence-ui.js`, `test-rivalries-ui.js`, `test-rivalries.js`, `test-servers.js`, `test-sfserver.js`, `test-stockfish-ui.js`, `test-style-ui.js`, `test-style.js`, `test-sync-stall.js`, `test-tour-add.js`, `test-tournament-ui.js`, `test-tournament.js`, `test-tribunal-ui.js`, `test-tribunal.js`
+`test-access-ui.js`, `test-access.js`, `test-archive-ui.js`, `test-archive.js`, `test-camera-poll-ui.js`, `test-camera-ui.js`, `test-coach-ask.js`, `test-damage-ui.js`, `test-damage.js`, `test-damagechat.js`, `test-drag.js`, `test-engine.js`, `test-fairdetect.js`, `test-fairmodel.js`, `test-fairplay-ui.js`, `test-fairplay.js`, `test-fairworker.js`, `test-match-ui.js`, `test-match.js`, `test-mentions-ui.js`, `test-mentions.js`, `test-pass-play.js`, `test-premoves.js`, `test-presence-ui.js`, `test-rivalries-ui.js`, `test-rivalries.js`, `test-servers.js`, `test-sfserver.js`, `test-stockfish-ui.js`, `test-style-ui.js`, `test-style.js`, `test-sync-stall.js`, `test-tour-add.js`, `test-tournament-ui.js`, `test-tournament.js`, `test-tribunal-ui.js`, `test-tribunal.js`

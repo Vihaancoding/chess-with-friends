@@ -1739,7 +1739,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['cam_signal', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
+const QUIET = new Set(['cam_signal', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal', 'cam_poll']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 const API_TIMEOUT = { sync: 5000, ping: 5000, move: 6000 };   // heartbeats are tiny and a move is quick: retry sooner (move retries are safe)
@@ -4273,10 +4273,15 @@ function camMakePC(n) {
   pc.onconnectionstatechange = () => {
     if (CAM.pc !== pc) return;
     const st = pc.connectionState;
-    if (st === 'connected') { CAM.state = 'ok'; CAM.failN = 0; clearTimeout(CAM.retryT); paintCam(); }
+    if (st === 'connected') { CAM.state = 'ok'; CAM.failN = 0; camNote(''); clearTimeout(CAM.retryT); paintCam(); }
     else if (st === 'failed' || st === 'disconnected') camRetry();
   };
   CAM.retryT = setTimeout(() => { if (CAM.pc === pc && CAM.state === 'wait') camRetry(); }, 20000);
+  setTimeout(() => {                                                          // still not connected after 10s: say why
+    if (CAM.pc !== pc || CAM.state === 'ok') return;
+    const ice = pc.iceConnectionState;
+    camNote(!rtLobbyLive ? 'Connecting is slow: live updates are off, using the slower fallback.' : ice === 'checking' || ice === 'failed' ? 'Your network is blocking direct video. Try the same Wi-Fi, or ask the host to set up a TURN relay (TURN_URL).' : '');
+  }, 10000);
   return pc;
 }
 // a connection that dropped: try again a few times (the caller calls, the other side asks), then show Disconnected
@@ -4297,7 +4302,17 @@ async function camOffer() {
     if (CAM.pc === pc) camSend('offer', { type: o.type, sdp: o.sdp }, { n, on: CAM.on, q: CAM.seq });
   } catch (e) { if (CAM.pc === pc) camRetry(); }
 }
+// handshake messages can arrive by push and by polling: apply each once. Polling runs only while push is down.
+const CAMSEEN = new Set();
+function camPollTick() {
+  if (view !== 'game' || !snap || !(camAvail() || camSpecAvail())) return;
+  if (rtLobbyLive || document.hidden) return;
+  const from = [...new Set([camOpp(), ...CAM.watchers.keys(), ...(snap.players ? ['w', 'b'].map((c) => snap.players[c] && snap.players[c].name) : [])].filter((x) => x && x !== user.name)), ...(camAvail() ? ['_w'] : [])];
+  api('cam_poll', { from }).then(async (r) => { if (r.ok) for (const x of r.sigs) await camOnSignal(x); });
+}
+setInterval(camPollTick, 1500);
 async function camOnSignal(ev) {
+  if (ev.id) { if (CAMSEEN.has(ev.id)) return; CAMSEEN.add(ev.id); if (CAMSEEN.size > 200) CAMSEEN.delete(CAMSEEN.values().next().value); }
   if (view !== 'game' || !snap || ev.code !== gameCode) return;
   if (camSpecAvail()) return camSpecSignal(ev);
   if (camAvail() && ev.f !== camOpp()) return camViewerSignal(ev);              // a spectator asking to watch
@@ -4365,7 +4380,7 @@ async function camViewerSignal(ev) {
     if (ev.t === 'watch') {
       CAM.watchers.set(ev.f, Date.now());
       for (const [k, at] of [...CAM.watchers]) if (Date.now() - at > 75000) { CAM.watchers.delete(k); camViewerClose(k); }
-      if (CAM.on && !CAM.vpc.has(ev.f)) camViewerOffer(ev.f);
+      { const old = CAM.vpc.get(ev.f); if (CAM.on && (!old || old.pc.connectionState !== 'connected')) camViewerOffer(ev.f); }   // asking again means they have no video yet
       paintCam();
     } else if (ev.t === 'unwatch') { CAM.watchers.delete(ev.f); camViewerClose(ev.f); paintCam(); }
     else if (ev.t === 'answer') { const v = CAM.vpc.get(ev.f); if (v && v.n === ev.n && v.pc.signalingState === 'have-local-offer') await v.pc.setRemoteDescription(ev.d); }
@@ -4375,8 +4390,9 @@ async function camViewerSignal(ev) {
 // ---- spectators: ask both players for their video (only while the camera tab is open), receive only ----
 function camSpecWatch() {
   clearInterval(CAM.watchT);
-  const ask = () => ['w', 'b'].forEach((c) => camSend('watch', null, { to: snap.players[c].name }));
-  ask(); CAM.watchT = setInterval(() => { if (!camSpecAvail() || CAM.tab !== 'cam') return camSpecStop(); ask(); }, 25000);
+  let n = 0;
+  const ask = () => { n++; ['w', 'b'].forEach((c) => { const v = CAM.sv.get(snap.players[c].name); if (!(v && v.state === 'ok') || n % 3 === 0) camSend('watch', null, { to: snap.players[c].name }); }); };   // keep-alive every 30s, and again soon for anyone I have no video from
+  ask(); CAM.watchT = setInterval(() => { if (!camSpecAvail() || CAM.tab !== 'cam') return camSpecStop(); ask(); }, 10000);
   paintCam();
 }
 function camSpecStop(silent) {
