@@ -3319,6 +3319,7 @@ $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); awai
 
 // ---------- game ----------
 function enterGame(code, seed) {
+  NET.since = Date.now(); NET.fails = 0; NET.rtt = [];
   stopLobby(); stopAdmin(); botLeave(); leaveArchive(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; premoves = []; arrows = []; marks = []; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
   history.replaceState(null, '', '?game=' + code);
@@ -3394,12 +3395,33 @@ const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.prese
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
 let lastKick = 0;
+// Connection health, shown only when something is wrong: the heartbeat is slow or failing, or live push is down
+const NET = { rtt: [], fails: 0, since: 0 };
+function netNote(ok, ms) {
+  if (ok) { NET.fails = 0; NET.rtt.push(ms); if (NET.rtt.length > 5) NET.rtt.shift(); } else NET.fails++;
+  netPaint();
+}
+function netPaint() {
+  let el = $('#netPill');
+  if (!el) { el = document.createElement('div'); el.id = 'netPill'; el.setAttribute('role', 'status'); el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:60;padding:7px 12px;border-radius:999px;font:700 .8rem system-ui,sans-serif;background:#7a2a1f;color:#fff;box-shadow:0 2px 10px #0006;max-width:92vw;text-align:center'; document.body.appendChild(el); }
+  const avg = NET.rtt.length ? Math.round(NET.rtt.reduce((a, b) => a + b, 0) / NET.rtt.length) : 0;
+  const pushDown = view === 'game' && !rtRoomLive && snap && !snap.status.over && !isBot() && !isArchive() && Date.now() - NET.since > 6000;
+  let msg = '';
+  if (view !== 'game') msg = '';
+  else if (!navigator.onLine || NET.fails >= 2) msg = '⚠ Connection problem: your device can\'t reach the server. Moves may not go through.';
+  else if (avg > 1200) msg = `⚠ Slow connection (${avg} ms to the server). Moves will show up late.`;
+  else if (pushDown) msg = `⚠ Live updates are off (${RTC.mode === 'none' ? 'not set up on the server' : RTC.hint || RTC.err || 'reconnecting'}): the board refreshes slower, ${avg} ms to the server.`;
+  el.textContent = msg; el.style.display = msg ? '' : 'none';
+}
+window.addEventListener('online', netPaint); window.addEventListener('offline', netPaint);
 function kick() { if (isBot() || isArchive()) return; lastKick = Date.now(); pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
 async function pollGame(gen) {
   if (view !== 'game' || gen !== pollGen) return;
   // heartbeat: send the version we have; the server answers with ~30 bytes unless something changed
+  const t0 = performance.now();
   const r = await api('sync', { code: gameCode, v: snap && !pending ? snap.v || 0 : null });
   if (view !== 'game' || gen !== pollGen) return;
+  netNote(r.ok || (r.status && r.status < 500), Math.round(performance.now() - t0));
   let delay = 1500;
   if (r.ok) {
     if (r.full) {
