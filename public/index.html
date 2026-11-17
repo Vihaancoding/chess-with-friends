@@ -1793,6 +1793,20 @@ function rtInit() {
   })();
   return RTC.ready;
 }
+// players an admin has given several servers: a switch next to the logo
+function paintServerSwitch(opts) {
+  document.querySelectorAll('.brand').forEach((b) => {
+    let sel = b.querySelector('.srvsw');
+    if (!opts || opts.length < 2 || (user && user.admin)) { if (sel) sel.remove(); return; }
+    if (!sel) {
+      sel = document.createElement('select'); sel.className = 'srvsw small'; sel.setAttribute('aria-label', 'Switch server'); sel.style.cssText = 'margin-left:8px;width:auto;min-height:28px;font-size:.75rem';
+      sel.onclick = (e) => e.stopPropagation();
+      sel.onchange = async () => { const to = sel.value, n = (opts.find((x) => x.id === to) || {}).name; if (!confirm(`Switch to ${n}? You'll see that server's players, games and chat instead.`)) { sel.value = user.srv; return; } const r = await api('server_switch', { to }); if (!r.ok) { alert(r.error || 'Could not switch.'); sel.value = user.srv; return; } location.reload(); };
+      b.appendChild(sel);
+    }
+    sel.innerHTML = opts.map((x) => `<option value="${esc(x.id)}"${x.id === user.srv ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+  });
+}
 // for admins: which server they are on, next to the logo (only once there is more than one server)
 function paintServerName(name) {
   document.querySelectorAll('.brand').forEach((b) => {
@@ -2401,7 +2415,7 @@ async function pollLobby(full = true) {
     if (!r.ok) return;
     if (full) {
       if (r.user.srv !== user.srv) { finishAuth({ ...user, ...r.user, token: user.token }); return location.reload(); }   // moved to another server
-      paintServerName(r.user.srvName);
+      paintServerName(r.user.srvName); paintServerSwitch(r.user.srvOpts);
       $('#meName').textContent = r.user.name;
       myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
@@ -3179,16 +3193,17 @@ async function loadAdmin() {
       <td>${tcLabel(g.tc)}</td><td class="r">${Math.ceil(g.moves / 2)}</td>
       <td><div class="acts"><button class="small" data-act="watch" data-code="${g.code}">Watch</button><button class="small danger" data-act="abort" data-code="${g.code}">End game</button></div></td></tr>`).join('')
     : '<tr><td colspan="5" class="muted">No games in progress.</td></tr>';
-  paintFair(r.users); fairTick(r.users);
+  adUsers = r.users; paintFair(r.users); fairTick(r.users);
   $('#adusers').innerHTML = r.users.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.admin ? '<span class="badge gold">admin</span>' : ''}${u.muted ? '<span class="badge red">muted</span>' : ''}${u.banUntil ? `<span class="badge red" title="${u.banUntil > 8e15 ? 'permanent' : 'until ' + esc(new Date(u.banUntil).toLocaleString())}">banned</span>` : ''}</td>
       <td class="muted">${esc(u.email || '—')}</td><td class="r">${u.elo}</td><td class="r muted">${u.w}-${u.l}-${u.d}</td>
       <td>${u.name === user.name ? '' : `<select class="small" data-act="move" data-name="${esc(u.name)}" aria-label="Move ${esc(u.name)} to another server">${adServers.map((x) => `<option value="${x.id}"${x.id === user.srv ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`}</td>
       <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>${u.banUntil ? `<button class="small primary" data-act="unban" data-name="${esc(u.name)}">Unban</button>` : ''}
       <button class="small" data-act="reset" data-name="${esc(u.name)}">Reset rating</button>
       <button class="small" data-act="resetlink" data-name="${esc(u.name)}">Password link</button>
+      ${adServers.length > 1 ? `<button class="small" data-act="access" data-name="${esc(u.name)}" title="Which servers they may switch to">Servers${(u.srvAccess || []).length ? ' (' + u.srvAccess.length + ')' : ''}</button>` : ''}
       <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
 }
-let adServers = [];
+let adServers = [], adUsers = [];
 // ----- fair play -----
 let adFairBusy = false, adFairOpen = null, adFairDetail = null;
 const FAIR_LV = { 1: ['Normal', ''], 2: ['Unusual', 'gold'], 3: ['Suspicious', 'red'], 4: ['High confidence', 'red'], 5: ['Confirmed', 'red'] };
@@ -3265,6 +3280,12 @@ $('#admin').addEventListener('click', async (e) => {
     const r = await api('admin_fair', { name });
     if (!r.ok) return alert(r.error || 'Could not load it.');
     adFairDetail = r; return loadAdmin();
+  }
+  if (act === 'access') {
+    const cur = (adUsers.find((x) => x.name === name) || {}).srvAccess || [];
+    const v = prompt(`Which servers may ${name} switch to? Type the numbers, separated by commas (blank = none).\n${adServers.map((x) => `${x.id} = ${x.name}`).join('\n')}`, cur.join(','));
+    if (v === null) return;
+    const r = await api('admin_server_access', { name, servers: v.split(/[\s,]+/).filter(Boolean) }); if (!r.ok) alert(r.error || 'Could not save.');
   }
   if (act === 'unban') { if (!confirm(`Lift ${name}'s ban now?`)) return; const r = await api('admin_unban', { name }); if (!r.ok) alert(r.error || 'Could not unban.'); }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
