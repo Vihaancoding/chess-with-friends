@@ -3411,7 +3411,10 @@ function netPaint() {
   else if (!navigator.onLine || NET.fails >= 2) msg = '⚠ Connection problem: your device can\'t reach the server. Moves may not go through.';
   else if (avg > 1200) msg = `⚠ Slow connection (${avg} ms to the server). Moves will show up late.`;
   else if (pushDown) msg = `⚠ Live updates are off (${RTC.mode === 'none' ? 'not set up on the server' : RTC.hint || RTC.err || 'reconnecting'}): the board refreshes slower, ${avg} ms to the server.`;
-  el.textContent = msg; el.style.display = msg ? '' : 'none';
+  // shown when the problem starts, then tucked away after 8s (tap to dismiss); it comes back if the problem changes
+  if (msg !== NET.msg) { NET.msg = msg; NET.hideAt = msg ? Date.now() + 8000 : 0; clearTimeout(NET.hideT); if (msg) NET.hideT = setTimeout(netPaint, 8100); }
+  el.onclick = () => { NET.hideAt = 1; el.style.display = 'none'; };
+  el.textContent = msg; el.style.display = msg && Date.now() < NET.hideAt ? '' : 'none';
 }
 window.addEventListener('online', netPaint); window.addEventListener('offline', netPaint);
 function kick() { if (isBot() || isArchive()) return; lastKick = Date.now(); pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
