@@ -1739,7 +1739,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['cam_signal', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal']);   // background work or already shown instantly
+const QUIET = new Set(['cam_signal', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal', 'cam_poll']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 const API_TIMEOUT = { sync: 5000, ping: 5000, move: 6000 };   // heartbeats are tiny and a move is quick: retry sooner (move retries are safe)
@@ -3319,6 +3319,7 @@ $('#annForm').addEventListener('submit', async (e) => { e.preventDefault(); awai
 
 // ---------- game ----------
 function enterGame(code, seed) {
+  NET.since = Date.now(); NET.fails = 0; NET.rtt = [];
   stopLobby(); stopAdmin(); botLeave(); leaveArchive(); view = 'game'; gameCode = code; snap = null; sig = ''; selected = null; legal = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = code; pending = null; sending = false; premoves = []; arrows = []; marks = []; $('#over').classList.add('hidden'); document.title = 'Chess With Friends';
   history.replaceState(null, '', '?game=' + code);
@@ -3394,12 +3395,33 @@ const sigOf = (r) => [r.moves.length, r.you, r.status.over, r.present.w, r.prese
 
 // kick() starts a fresh poll right now and retires any older loop, so loops never pile up.
 let lastKick = 0;
+// Connection health, shown only when something is wrong: the heartbeat is slow or failing, or live push is down
+const NET = { rtt: [], fails: 0, since: 0 };
+function netNote(ok, ms) {
+  if (ok) { NET.fails = 0; NET.rtt.push(ms); if (NET.rtt.length > 5) NET.rtt.shift(); } else NET.fails++;
+  netPaint();
+}
+function netPaint() {
+  let el = $('#netPill');
+  if (!el) { el = document.createElement('div'); el.id = 'netPill'; el.setAttribute('role', 'status'); el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:60;padding:7px 12px;border-radius:999px;font:700 .8rem system-ui,sans-serif;background:#7a2a1f;color:#fff;box-shadow:0 2px 10px #0006;max-width:92vw;text-align:center'; document.body.appendChild(el); }
+  const avg = NET.rtt.length ? Math.round(NET.rtt.reduce((a, b) => a + b, 0) / NET.rtt.length) : 0;
+  const pushDown = view === 'game' && !rtRoomLive && snap && !snap.status.over && !isBot() && !isArchive() && Date.now() - NET.since > 6000;
+  let msg = '';
+  if (view !== 'game') msg = '';
+  else if (!navigator.onLine || NET.fails >= 2) msg = '⚠ Connection problem: your device can\'t reach the server. Moves may not go through.';
+  else if (avg > 1200) msg = `⚠ Slow connection (${avg} ms to the server). Moves will show up late.`;
+  else if (pushDown) msg = `⚠ Live updates are off (${RTC.mode === 'none' ? 'not set up on the server' : RTC.hint || RTC.err || 'reconnecting'}): the board refreshes slower, ${avg} ms to the server.`;
+  el.textContent = msg; el.style.display = msg ? '' : 'none';
+}
+window.addEventListener('online', netPaint); window.addEventListener('offline', netPaint);
 function kick() { if (isBot() || isArchive()) return; lastKick = Date.now(); pollGen++; clearTimeout(gameTimer); pollGame(pollGen); }
 async function pollGame(gen) {
   if (view !== 'game' || gen !== pollGen) return;
   // heartbeat: send the version we have; the server answers with ~30 bytes unless something changed
+  const t0 = performance.now();
   const r = await api('sync', { code: gameCode, v: snap && !pending ? snap.v || 0 : null });
   if (view !== 'game' || gen !== pollGen) return;
+  netNote(r.ok || (r.status && r.status < 500), Math.round(performance.now() - t0));
   let delay = 1500;
   if (r.ok) {
     if (r.full) {
@@ -4251,10 +4273,15 @@ function camMakePC(n) {
   pc.onconnectionstatechange = () => {
     if (CAM.pc !== pc) return;
     const st = pc.connectionState;
-    if (st === 'connected') { CAM.state = 'ok'; CAM.failN = 0; clearTimeout(CAM.retryT); paintCam(); }
+    if (st === 'connected') { CAM.state = 'ok'; CAM.failN = 0; camNote(''); clearTimeout(CAM.retryT); paintCam(); }
     else if (st === 'failed' || st === 'disconnected') camRetry();
   };
   CAM.retryT = setTimeout(() => { if (CAM.pc === pc && CAM.state === 'wait') camRetry(); }, 20000);
+  setTimeout(() => {                                                          // still not connected after 10s: say why
+    if (CAM.pc !== pc || CAM.state === 'ok') return;
+    const ice = pc.iceConnectionState;
+    camNote(!rtLobbyLive ? 'Connecting is slow: live updates are off, using the slower fallback.' : ice === 'checking' || ice === 'failed' ? 'Your network is blocking direct video. Try the same Wi-Fi, or ask the host to set up a TURN relay (TURN_URL).' : '');
+  }, 10000);
   return pc;
 }
 // a connection that dropped: try again a few times (the caller calls, the other side asks), then show Disconnected
@@ -4275,7 +4302,17 @@ async function camOffer() {
     if (CAM.pc === pc) camSend('offer', { type: o.type, sdp: o.sdp }, { n, on: CAM.on, q: CAM.seq });
   } catch (e) { if (CAM.pc === pc) camRetry(); }
 }
+// handshake messages can arrive by push and by polling: apply each once. Polling runs only while push is down.
+const CAMSEEN = new Set();
+function camPollTick() {
+  if (view !== 'game' || !snap || !(camAvail() || camSpecAvail())) return;
+  if (rtLobbyLive || document.hidden) return;
+  const from = [...new Set([camOpp(), ...CAM.watchers.keys(), ...(snap.players ? ['w', 'b'].map((c) => snap.players[c] && snap.players[c].name) : [])].filter((x) => x && x !== user.name)), ...(camAvail() ? ['_w'] : [])];
+  api('cam_poll', { from }).then(async (r) => { if (r.ok) for (const x of r.sigs) await camOnSignal(x); });
+}
+setInterval(camPollTick, 1500);
 async function camOnSignal(ev) {
+  if (ev.id) { if (CAMSEEN.has(ev.id)) return; CAMSEEN.add(ev.id); if (CAMSEEN.size > 200) CAMSEEN.delete(CAMSEEN.values().next().value); }
   if (view !== 'game' || !snap || ev.code !== gameCode) return;
   if (camSpecAvail()) return camSpecSignal(ev);
   if (camAvail() && ev.f !== camOpp()) return camViewerSignal(ev);              // a spectator asking to watch
@@ -4343,7 +4380,7 @@ async function camViewerSignal(ev) {
     if (ev.t === 'watch') {
       CAM.watchers.set(ev.f, Date.now());
       for (const [k, at] of [...CAM.watchers]) if (Date.now() - at > 75000) { CAM.watchers.delete(k); camViewerClose(k); }
-      if (CAM.on && !CAM.vpc.has(ev.f)) camViewerOffer(ev.f);
+      { const old = CAM.vpc.get(ev.f); if (CAM.on && (!old || old.pc.connectionState !== 'connected')) camViewerOffer(ev.f); }   // asking again means they have no video yet
       paintCam();
     } else if (ev.t === 'unwatch') { CAM.watchers.delete(ev.f); camViewerClose(ev.f); paintCam(); }
     else if (ev.t === 'answer') { const v = CAM.vpc.get(ev.f); if (v && v.n === ev.n && v.pc.signalingState === 'have-local-offer') await v.pc.setRemoteDescription(ev.d); }
@@ -4353,8 +4390,9 @@ async function camViewerSignal(ev) {
 // ---- spectators: ask both players for their video (only while the camera tab is open), receive only ----
 function camSpecWatch() {
   clearInterval(CAM.watchT);
-  const ask = () => ['w', 'b'].forEach((c) => camSend('watch', null, { to: snap.players[c].name }));
-  ask(); CAM.watchT = setInterval(() => { if (!camSpecAvail() || CAM.tab !== 'cam') return camSpecStop(); ask(); }, 25000);
+  let n = 0;
+  const ask = () => { n++; ['w', 'b'].forEach((c) => { const v = CAM.sv.get(snap.players[c].name); if (!(v && v.state === 'ok') || n % 3 === 0) camSend('watch', null, { to: snap.players[c].name }); }); };   // keep-alive every 30s, and again soon for anyone I have no video from
+  ask(); CAM.watchT = setInterval(() => { if (!camSpecAvail() || CAM.tab !== 'cam') return camSpecStop(); ask(); }, 10000);
   paintCam();
 }
 function camSpecStop(silent) {
@@ -6887,6 +6925,7 @@ function paintTour(t) {
     const same = cfg.kind === 'ko' ? cfg.kn : cfg.kind === 'rr' ? cfg.gn : cfg.gn === cfg.kn ? cfg.gn : 0;
     acts.push(`<label class="tlen">Match length <select data-tlen>${same ? '' : '<option value="" selected disabled>Mixed</option>'}${[1, 3, 5].map((n) => `<option value="${n}"${n === same ? ' selected' : ''}>${n === 1 ? '1 game' : 'Best of ' + n}</option>`).join('')}</select></label>`);
   }
+  if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push('<button data-tact="add" title="Add a player after the start">Add player</button>');
   if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
   acts.push('<button data-tact="link">Copy link</button>');
   setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${t.phase === 'groups' && t.cfg.kind === 'ko' ? 'Qualifying' : PHASE[t.phase]}</span></div>
@@ -6951,6 +6990,7 @@ $('#tours').addEventListener('click', async (e) => {
   }
   const a = b.dataset.tact;
   if (a === 'edit') { tourEdit = !tourEdit; return loadTours(); }
+  if (a === 'add') { const n = (prompt('Username to add to this tournament:') || '').trim(); if (!n) return; const r = await api('tour_add', { id, name: n }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return; }
   if (a === 'link') return copy(location.origin + '/?tour=' + id, '[data-tact="link"]');
   if (a === 'delete') { if (!confirm('Delete this tournament for everyone?')) return; const r = await api('tour_delete', { id }); return r.ok ? enterTours() : err(r); }
   if (a === 'start' && !confirm('Start the tournament now? Sign-ups close and the draw is made.')) return;
