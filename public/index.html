@@ -6887,6 +6887,7 @@ function paintTour(t) {
     const same = cfg.kind === 'ko' ? cfg.kn : cfg.kind === 'rr' ? cfg.gn : cfg.gn === cfg.kn ? cfg.gn : 0;
     acts.push(`<label class="tlen">Match length <select data-tlen>${same ? '' : '<option value="" selected disabled>Mixed</option>'}${[1, 3, 5].map((n) => `<option value="${n}"${n === same ? ' selected' : ''}>${n === 1 ? '1 game' : 'Best of ' + n}</option>`).join('')}</select></label>`);
   }
+  if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push('<button data-tact="add" title="Add a player after the start">Add player</button>');
   if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
   acts.push('<button data-tact="link">Copy link</button>');
   setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${t.phase === 'groups' && t.cfg.kind === 'ko' ? 'Qualifying' : PHASE[t.phase]}</span></div>
@@ -6951,6 +6952,7 @@ $('#tours').addEventListener('click', async (e) => {
   }
   const a = b.dataset.tact;
   if (a === 'edit') { tourEdit = !tourEdit; return loadTours(); }
+  if (a === 'add') { const n = (prompt('Username to add to this tournament:') || '').trim(); if (!n) return; const r = await api('tour_add', { id, name: n }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return; }
   if (a === 'link') return copy(location.origin + '/?tour=' + id, '[data-tact="link"]');
   if (a === 'delete') { if (!confirm('Delete this tournament for everyone?')) return; const r = await api('tour_delete', { id }); return r.ok ? enterTours() : err(r); }
   if (a === 'start' && !confirm('Start the tournament now? Sign-ups close and the draw is made.')) return;

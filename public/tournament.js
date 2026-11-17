@@ -63,6 +63,27 @@
     return t;
   }
 
+  // a player added after the start: into the smallest group (they play everyone in it), or, for a knockout that
+  // has not played a game yet, the whole draw is made again
+  function addLate(t, p, now) {
+    if (t.phase === 'signup') return join(t, p);
+    if (t.phase === 'done') throw new Error('The tournament is over.');
+    if (t.players.some((x) => x.name === p.name)) throw new Error(p.name + ' is already in.');
+    if (t.players.length >= t.cfg.max) throw new Error('The tournament is full.');
+    if (t.phase === 'ko') {
+      if (t.cfg.kind !== 'ko' || allFixtures(t).some((f) => f.room || (f.res && f.by !== 'bye'))) throw new Error('The knockout has started: a player can only be added during the group stage.');
+      t.players.push({ name: p.name, elo: p.elo | 0 });
+      t.phase = 'signup'; t.groups = null; t.ko = null;
+      return start(t, t.started || now);
+    }
+    t.players.push({ name: p.name, elo: p.elo | 0 });
+    const g = [...t.groups].sort((a, b) => a.players.length - b.players.length || a.fixtures.filter((f) => f.res).length - b.fixtures.filter((f) => f.res).length)[0];
+    let n = g.fixtures.reduce((m, f) => Math.max(m, +f.id.replace(/^g[A-Z]+/, '') || 0), 0), r = g.fixtures.reduce((m, f) => Math.max(m, roundOf(t, f)), 0);
+    for (const o of g.players) g.fixtures.push({ ...fx(`g${g.name}${++n}`, o, p.name, groupFmt(t)), r: ++r });
+    g.players.push(p.name);
+    return t;
+  }
+
   const fx = (id, a, b, fmt) => ({ id, a, b, fmt, room: null, res: null, score: null, by: null });
   // everyone plays everyone once, in rounds (circle method), so nobody waits for one player's games to start theirs
   function roundRobin(names) {
@@ -226,6 +247,6 @@
   // fixtures a player can play now, the one they should play next first
   const myFixtures = (t, name) => allFixtures(t).filter((f) => ready(f) && (f.a === name || f.b === name)).sort((x, y) => (x.room ? 0 : 1) - (y.room ? 0 : 1) || roundOf(t, x) - roundOf(t, y));
 
-  const api = { pow2, qualifySpots, setLength, lengthText, roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
+  const api = { pow2, qualifySpots, setLength, lengthText, roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, addLate, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tour = api;
 })(typeof self !== 'undefined' ? self : this);
