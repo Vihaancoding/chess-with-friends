@@ -24,6 +24,8 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
 
   const B = await open(P.bob); await B.waitForSelector('#navLounge.dot', { timeout: 8000 });
   ok('the invited person sees a dot on Rooms', true);
+  await B.waitForFunction(() => /invited you/.test(document.querySelector('#roomlist').textContent), null, { timeout: 8000 });
+  ok('the lobby has a Rooms card showing the invitation', await B.isVisible('#roomcard'), null);
   await B.click('#navLounge'); await B.waitForSelector('[data-lg="yes"]'); await B.click('[data-lg="yes"]'); await B.waitForSelector('#lgSend');
   ok('they join from the invitation', /Friday club/.test(await B.textContent('#lounge')), null);
   const C = await open(P.cat, '/?lounges', 390); await C.waitForSelector('[data-lg="yes"]'); await C.click('[data-lg="yes"]'); await C.waitForSelector('#lgSend');
@@ -31,6 +33,9 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   ok('the room page fits a phone', await C.evaluate(() => [...document.querySelectorAll('#lounge *')].every((e) => e.getBoundingClientRect().right <= innerWidth + 1)), null);
   if (process.env.SHOT) { await sleep(600); await C.screenshot({ path: process.env.SHOT + '-phone.png', fullPage: true }); await A.screenshot({ path: process.env.SHOT + '-desktop.png' }); }
 
+  await A.click('#navPlay'); await A.waitForFunction(() => /Friday club/.test(document.querySelector('#roomlist').textContent));
+  await A.click('#roomlist [data-rm]'); await A.waitForSelector('#lgSend');
+  ok('my room is listed on the lobby card and opens from it', /Friday club/.test(await A.textContent('#lounge')), null);
   console.log('chat');
   await A.fill('#lgIn', 'hi all'); await A.click('#lgSend button'); await B.waitForFunction(() => /hi all/.test(document.querySelector('#lgLog').textContent), null, { timeout: 8000 });
   await C.waitForFunction(() => /hi all/.test(document.querySelector('#lgLog').textContent), null, { timeout: 8000 });
