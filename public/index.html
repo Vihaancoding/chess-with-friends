@@ -4030,7 +4030,7 @@ function loadGameChat(code) {
   api('game_chat', { code }).then((r) => {
     if (gameCode !== code || view !== 'game') return;
     if (r.ok) return r.msgs.forEach(addGameMsg);
-    if (r.status === 403) { $('#gclog').innerHTML = '<div class="muted" style="font-weight:600">The chat in this game is private to the two players.</div>'; $('#gcIn').disabled = true; $('#gcForm button').disabled = true; }
+    if (r.status === 403) { $('#gclog').innerHTML = '<div class="muted" style="font-weight:600">Chat is for the two players while the game is in progress.</div>'; $('#gcIn').disabled = true; $('#gcForm button').disabled = true; }
   });
 }
 function addGameMsg(m) {
