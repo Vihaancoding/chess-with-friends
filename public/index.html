@@ -682,6 +682,12 @@
   .liverow .mtag { font-size: .75rem; font-weight: 800; color: var(--gold); }
   /* tournaments */
   #lounge { max-width: 1100px; margin: 0 auto; padding: 20px; } #lounge.hidden { display: none; }
+  .lgkind { display: grid; gap: 8px; margin-bottom: 8px; } .lgkind label { display: flex; gap: 10px; align-items: flex-start; background: #ffffff0a; border-radius: 8px; padding: 10px; cursor: pointer; } .lgkind input { width: 18px; height: 18px; min-height: 0; margin-top: 2px; } .lgkind small { display: block; color: var(--muted); font-weight: 600; }
+  .stboard { display: grid; grid-template-columns: repeat(8, 1fr); width: min(100%, 420px); aspect-ratio: 1; margin: 6px auto; border-radius: 6px; overflow: hidden; } .stsq { display: flex; } .stsq.lt { background: #ecebd2; } .stsq.dk { background: #739552; } .stsq.lm { box-shadow: inset 0 0 0 100px #f5d54766; } .stsq img { width: 100%; height: 100%; }
+  .stctl { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 6px 0; } .stmoves { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; max-height: 140px; overflow: auto; } .stnum { color: var(--muted); font-size: .8rem; font-weight: 700; margin-left: 4px; }
+  .stmv { min-height: 28px; padding: 2px 7px; font-size: .85rem; background: #ffffff10; box-shadow: none; } .stmv.on, .stmv.on.inacc, .stmv.on.mistake, .stmv.on.blunder { background: var(--accent, #81b64c); color: #fff; } .stmv.inacc { color: #f7c631; } .stmv.mistake { color: #ff8c3a; } .stmv.blunder { color: #fa412d; } .stmv sup { margin-left: 2px; color: #81b64c; font-weight: 800; }
+  .stmarks { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; } .stmk { min-width: 44px; min-height: 40px; font-weight: 800; background: #ffffff10; box-shadow: none; } .stmk.on { background: var(--accent, #81b64c); color: #fff; }
+  .stn { padding: 8px 0; border-top: 1px solid #8883; } .stmark { font-weight: 800; color: #f7c631; } .stv { font-size: .85rem; font-weight: 700; margin-top: 3px; } .stv.ok { color: #81b64c; } .stv.near { color: #f7c631; } .stv.bad { color: #fa6e5c; }
   .lgwrap { display: flex; flex-direction: column; gap: 14px; } .lgtop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
   .lggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; } .lgcol { display: flex; flex-direction: column; gap: 14px; }
   .lgrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; flex-wrap: wrap; } .lgrow + .lgrow { border-top: 1px solid #8883; }
@@ -6939,6 +6945,7 @@ function fxActions(t, f, next) {
   return '';
 }
 function fxEdit(t, f, run) {
+  if (run && tourEdit && f.res && f.by !== 'bye') return `<div class="fxedit">${f.res === 'draw' ? '' : `<button class="small" data-trev="${f.id}" data-mode="flip" title="Give the win to the other player">Reverse result</button>`}<button class="small" data-trev="${f.id}" data-mode="undo" title="Take the result back so the match can be played again">Undo result</button></div>`;
   if (!run || !tourEdit || !Tour.ready(f)) return '';
   const draw = f.id[0] === 'g' ? `<button class="small" data-taward="${f.id}" data-res="draw">Draw</button>` : '';
   return `<div class="fxedit"><button class="small" data-taward="${f.id}" data-res="a">${esc(f.a)} wins</button>${draw}<button class="small" data-taward="${f.id}" data-res="b">${esc(f.b)} wins</button></div>`;
@@ -7011,7 +7018,7 @@ function paintTour(t) {
     acts.push(`<label class="tlen">Match length <select data-tlen>${same ? '' : '<option value="" selected disabled>Mixed</option>'}${[1, 3, 5].map((n) => `<option value="${n}"${n === same ? ' selected' : ''}>${n === 1 ? '1 game' : 'Best of ' + n}</option>`).join('')}</select></label>`);
   }
   if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push('<button data-tact="add" title="Add a player after the start">Add player</button>');
-  if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
+  if (run && (t.phase === 'groups' || t.phase === 'ko' || t.phase === 'done')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
   acts.push('<button data-tact="link">Copy link</button>');
   setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${t.phase === 'groups' && t.cfg.kind === 'ko' ? 'Qualifying' : PHASE[t.phase]}</span></div>
     <div class="muted" style="font-weight:600">${tourKindLine(t)} · ${fmts} · ${t.players.length}${t.phase === 'signup' ? ' / ' + cfg.max : ''} players · organized by ${esc(t.by)}</div>
@@ -7064,11 +7071,16 @@ $('#tours').addEventListener('change', async (e) => {
 $('#tours').addEventListener('click', async (e) => {
   const v = e.target.closest('[data-tvote]');
   if (v && !v.disabled && tourId) { const r = await api('tour_vote', { id: tourId, i: +v.dataset.tvote }); if (r.ok) { paintTour(r.tour); loadTours(); } else setText($('#tvErr'), r.error || 'Could not vote.'); return; }
-  const b = e.target.closest('[data-tplay], [data-twatch], [data-taward], [data-tact]');
+  const b = e.target.closest('[data-tplay], [data-twatch], [data-taward], [data-trev], [data-tact]');
   if (!b || b.disabled || !tourId) return;
   const id = tourId, err = (r) => { if (!r.ok) setText($('#tvErr'), r.error || 'Something went wrong.'); };
   if (b.dataset.tplay) return tourPlay(id, b.dataset.tplay);
   if (b.dataset.twatch) { const r = await api('join', { code: b.dataset.twatch }); return r.ok ? enterGame(r.code, r.snap) : err(r); }
+  if (b.dataset.trev) {
+    const undo = b.dataset.mode === 'undo';
+    if (!confirm(undo ? 'Take this result back? The match goes back to "not played" and can be played or set again.' : 'Reverse this result? The other player gets the win, and everything that followed from it is redrawn.')) return;
+    const r = await api('tour_reverse', { id, fx: b.dataset.trev, mode: b.dataset.mode }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return;
+  }
   if (b.dataset.taward) {
     if (!confirm(`Set this result by hand? ${b.textContent}.`)) return;
     const r = await api('tour_award', { id, fx: b.dataset.taward, res: b.dataset.res }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return;

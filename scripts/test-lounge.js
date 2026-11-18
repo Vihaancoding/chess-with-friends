@@ -48,6 +48,24 @@ const tc = { base: 300, inc: 0 };
   const ch = await call('challenge', { to: 'cat', tc, lounge: id }, P.ann); const inb = (await call('ping', {}, P.cat));
   ok('a challenge between two members is tagged with the room', ch.ok, ch);
 
+  console.log('study room');
+  const sr = await call('lounge_create', { name: 'Study group', kind: 'study' }, P.ann); const sid = sr.id;
+  ok('a study room is marked as one, in my list and in the room', (await call('lounge_mine', {}, P.ann)).rooms.find((r) => r.id === sid).kind === 'study' && (await call('lounge_get', { id: sid }, P.ann)).room.kind === 'study', null);
+  await call('lounge_invite', { id: sid, name: 'bob' }, P.ann); await call('lounge_reply', { id: sid, accept: true }, P.bob);
+  ok('no tables in a study room', (await call('lounge_table', { id: sid, tc }, P.ann)).status === 400, null);
+  ok('notes need a game first', (await call('lounge_study_note', { id: sid, ply: 1, mark: '?' }, P.ann)).status === 404, null);
+  const gid = (await call('games', { name: 'ann' }, P.ann)).games[0];
+  ok('there is a finished game to study', gid && gid.id, gid);
+  ok('only members pick a game, and it has to exist', (await call('lounge_study_pick', { id: sid, game: gid.id }, P.eve)).status === 403 && (await call('lounge_study_pick', { id: sid, game: 'ZZZZZ-nope' }, P.ann)).status === 404, null);
+  ok('a member picks the game', (await call('lounge_study_pick', { id: sid, game: gid.id }, P.ann)).ok, null);
+  let st = (await call('lounge_get', { id: sid }, P.bob)).study;
+  ok('everyone sees the game and its moves', st && st.game.hist.length === 7 && st.notes.length === 0, st && st.game.hist.length);
+  ok('a bad move number or an empty note is refused', (await call('lounge_study_note', { id: sid, ply: 99, mark: '?' }, P.ann)).status === 400 && (await call('lounge_study_note', { id: sid, ply: 1 }, P.ann)).status === 400, null);
+  await call('lounge_study_note', { id: sid, ply: 6, mark: '??', text: 'loses to mate' }, P.ann); await call('lounge_study_note', { id: sid, ply: 6, mark: '?', text: 'a mistake' }, P.bob); await call('lounge_study_note', { id: sid, ply: 6, mark: '?!' }, P.ann);
+  st = (await call('lounge_get', { id: sid }, P.ann)).study;
+  ok('one note per person per move (a second replaces the first)', st.notes.length === 2 && st.notes.find((n) => n.by === 'ann').mark === '?!', st.notes);
+  ok('you can only remove your own notes (the owner can remove any)', (await call('lounge_study_del', { id: sid, note: st.notes.find((n) => n.by === 'ann').id }, P.bob)).status === 403 && (await call('lounge_study_del', { id: sid, note: st.notes.find((n) => n.by === 'bob').id }, P.ann)).ok && (await call('lounge_get', { id: sid }, P.ann)).study.notes.length === 1, null);
+
   console.log('leaving');
   ok('only the owner removes people', (await call('lounge_kick', { id, name: 'cat' }, P.bob)).status === 403 && (await call('lounge_kick', { id, name: 'cat' }, P.ann)).ok && !(await call('lounge_mine', {}, P.cat)).rooms.length, null);
   ok('a member can leave', (await call('lounge_leave', { id }, P.bob)).ok && (await call('lounge_get', { id }, P.bob)).status === 403, null);
