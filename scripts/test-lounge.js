@@ -45,6 +45,14 @@ const tc = { base: 300, inc: 0 };
   const row = (n) => g2.table.find((x) => x.name === n);
   ok('the game counts on the room table', row(whiteName).w === 1 && row(whiteName === 'ann' ? 'bob' : 'ann').l === 1 && g2.recent.length === 1, g2.table);
   ok('members who did not play are listed with zero', g2.table.length === 3 && row('cat').pts === 0, g2.table);
+  console.log('private games');
+  let gid0; for (let i = 0; i < 20 && !gid0; i++) { gid0 = (await call('games', { name: 'ann' }, P.ann)).games.find((x) => x.moves === 7); if (!gid0) await new Promise((r) => setTimeout(r, 150)); }
+  ok('the game is on the players\' own list', gid0 && gid0.priv === 1, gid0);
+  ok('members can watch and read it', (await call('room', { code: t.code }, P.cat)).status !== 404 && (await call('game_get', { id: gid0.id }, P.cat)).game, null);
+  ok('a stranger cannot open the live game page', (await call('room', { code: t.code }, P.eve)).status === 404 && (await call('sync', { code: t.code, v: null }, P.eve)).status === 404, null);
+  ok('a stranger cannot join as a spectator or read its chat', (await call('join', { code: t.code }, P.eve)).status === 404 && (await call('game_chat', { code: t.code }, P.eve)).status === 404, null);
+  ok('a stranger cannot open the finished game', (await call('game_get', { id: gid0.id }, P.eve)).status === 404, null);
+  ok('it does not show on the players\' public game list', !(await call('games', { name: 'ann' }, P.eve)).games.some((x) => x.id === gid0.id) && (await call('games', { name: 'ann' }, P.cat)).games.every((x) => !x.priv), null);
   const ch = await call('challenge', { to: 'cat', tc, lounge: id }, P.ann); const inb = (await call('ping', {}, P.cat));
   ok('a challenge between two members is tagged with the room', ch.ok, ch);
 
