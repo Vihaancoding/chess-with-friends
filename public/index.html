@@ -1793,18 +1793,37 @@ function rtInit() {
   })();
   return RTC.ready;
 }
-// players an admin has given several servers: a switch next to the logo
+// a small bottom sheet used for the server pickers
+function openSheet(title, body, onMount) {
+  closeSheet();
+  const o = document.createElement('div'); o.id = 'sheet'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', title);
+  o.style.cssText = 'position:fixed;inset:0;z-index:80;background:#0008;display:flex;align-items:flex-end;justify-content:center';
+  o.innerHTML = `<div class="panel" style="width:min(440px,100%);max-height:80vh;overflow:auto;margin:0;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h2 class="ph" style="margin:0">${esc(title)}</h2><button class="small" data-sx aria-label="Close">✕</button></div>${body}</div>`;
+  o.addEventListener('click', (e) => { if (e.target === o || e.target.closest('[data-sx]')) closeSheet(); });
+  document.body.appendChild(o); if (onMount) onMount(o);
+}
+function closeSheet() { const o = $('#sheet'); if (o) o.remove(); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+// the server chip next to the logo (admins, and players an admin has opened more than one server to): tap to pick a server
 function paintServerSwitch(opts) {
   document.querySelectorAll('.brand').forEach((b) => {
-    let sel = b.querySelector('.srvsw');
-    if (!opts || opts.length < 2 || (user && user.admin)) { if (sel) sel.remove(); return; }
-    if (!sel) {
-      sel = document.createElement('select'); sel.className = 'srvsw small'; sel.setAttribute('aria-label', 'Switch server'); sel.style.cssText = 'margin-left:8px;width:auto;min-height:28px;font-size:.75rem';
-      sel.onclick = (e) => e.stopPropagation();
-      sel.onchange = async () => { const to = sel.value, n = (opts.find((x) => x.id === to) || {}).name; if (!confirm(`Switch to ${n}? You'll see that server's players, games and chat instead.`)) { sel.value = user.srv; return; } const r = await api('server_switch', { to }); if (!r.ok) { alert(r.error || 'Could not switch.'); sel.value = user.srv; return; } location.reload(); };
-      b.appendChild(sel);
-    }
-    sel.innerHTML = opts.map((x) => `<option value="${esc(x.id)}"${x.id === user.srv ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+    let c = b.querySelector('.srvname');
+    if (!opts || opts.length < 2) { if (c) c.remove(); return; }
+    if (!c) { c = document.createElement('button'); c.type = 'button'; c.className = 'srvname'; c.style.cssText = 'background:none;font:inherit;font-size:.5em;font-weight:700;cursor:pointer'; b.appendChild(c); }
+    const cur = opts.find((x) => x.id === user.srv) || opts[0];
+    c.textContent = cur.name + ' ▾'; c.setAttribute('aria-label', `You are on ${cur.name}. Switch server`);
+    c.onclick = (e) => { e.preventDefault(); e.stopPropagation(); srvSheet(opts); };
+  });
+}
+function srvSheet(opts) {
+  openSheet('Switch server', `<div class="muted" style="font-weight:600;margin-bottom:8px">Each server has its own players, games and chat.</div>${opts.map((x) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--line,#8883)"><b>${esc(x.name)}</b>${x.id === user.srv ? '<span class="badge gold">you are here</span>' : `<button class="primary small" data-to="${esc(x.id)}">Switch</button>`}</div>`).join('')}<div id="sheetErr" class="muted" style="color:var(--bad,#c0392b)"></div>`, (o) => {
+    o.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-to]'); if (!b) return;
+      b.disabled = true; b.textContent = 'Switching…';
+      const r = await api(user.admin ? 'admin_move' : 'server_switch', { to: b.dataset.to });
+      if (!r.ok) { b.disabled = false; b.textContent = 'Switch'; $('#sheetErr').textContent = r.error || 'Could not switch.'; return; }
+      location.reload();
+    });
   });
 }
 // for admins: which server they are on, next to the logo (only once there is more than one server)
@@ -2415,7 +2434,7 @@ async function pollLobby(full = true) {
     if (!r.ok) return;
     if (full) {
       if (r.user.srv !== user.srv) { finishAuth({ ...user, ...r.user, token: user.token }); return location.reload(); }   // moved to another server
-      paintServerName(r.user.srvName); paintServerSwitch(r.user.srvOpts);
+      paintServerSwitch(r.user.srvOpts);
       $('#meName').textContent = r.user.name;
       myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
@@ -3282,10 +3301,17 @@ $('#admin').addEventListener('click', async (e) => {
     adFairDetail = r; return loadAdmin();
   }
   if (act === 'access') {
-    const cur = (adUsers.find((x) => x.name === name) || {}).srvAccess || [];
-    const v = prompt(`Which servers may ${name} switch to? Type the numbers, separated by commas (blank = none).\n${adServers.map((x) => `${x.id} = ${x.name}`).join('\n')}`, cur.join(','));
-    if (v === null) return;
-    const r = await api('admin_server_access', { name, servers: v.split(/[\s,]+/).filter(Boolean) }); if (!r.ok) alert(r.error || 'Could not save.');
+    const cur = new Set((adUsers.find((x) => x.name === name) || {}).srvAccess || []);
+    const mine = (adUsers.find((x) => x.name === name) || {}).srv;
+    openSheet(`${name}: servers`, `<div class="muted" style="font-weight:600;margin-bottom:8px">Tick the servers ${esc(name)} can switch to. They stay on their own server unless they switch.</div>${adServers.map((x) => `<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line,#8883);font-weight:700"><input type="checkbox" value="${esc(x.id)}" ${x.id === mine ? 'checked disabled' : cur.has(x.id) ? 'checked' : ''} style="width:20px;height:20px"> ${esc(x.name)}${x.id === mine ? ' <span class="badge gold">their server</span>' : ''}</label>`).join('')}<button class="primary" id="sheetSave" style="width:100%;margin-top:12px">Save</button><div id="sheetErr" style="color:var(--bad,#c0392b)"></div>`, (o) => {
+      o.querySelector('#sheetSave').onclick = async () => {
+        const ids = [...o.querySelectorAll('input[type=checkbox]:checked:not(:disabled)')].map((x) => x.value);
+        const r = await api('admin_server_access', { name, servers: ids });
+        if (!r.ok) { $('#sheetErr').textContent = r.error || 'Could not save.'; return; }
+        closeSheet(); loadAdmin();
+      };
+    });
+    return;
   }
   if (act === 'unban') { if (!confirm(`Lift ${name}'s ban now?`)) return; const r = await api('admin_unban', { name }); if (!r.ok) alert(r.error || 'Could not unban.'); }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
