@@ -19,6 +19,7 @@ const tc = { base: 300, inc: 0 };
   const l = await call('lounge_create', { name: 'Club' }, P.ann); await call('lounge_invite', { id: l.id, name: 'bob' }, P.ann); await call('lounge_reply', { id: l.id, accept: true }, P.bob);
   await call('lounge_invite', { id: l.id, name: 'cat' }, P.ann); await call('lounge_reply', { id: l.id, accept: true }, P.cat);
   const t = await call('lounge_table', { id: l.id, tc }, P.ann); await call('lounge_sit', { id: l.id, code: t.code }, P.bob);
+  await new Promise((r) => setTimeout(r, 800));   // the chat rate limit
   ok('the two players chat', (await call('game_chat_send', { code: t.code, text: 'room secret' }, P.ann)).ok, null);
   ok('another member of the room can watch and read it', (await call('game_chat', { code: t.code }, P.cat)).msgs.length === 1, null);
   ok('a stranger cannot read, write, join or open the game', (await call('game_chat', { code: t.code }, P.eve)).status === 404 && (await call('game_chat_send', { code: t.code, text: 'hi' }, P.eve)).status === 404 && (await call('join', { code: t.code }, P.eve)).status === 404 && (await call('room', { code: t.code }, P.eve)).status === 404, null);
