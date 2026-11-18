@@ -679,6 +679,15 @@
   .omcount { margin-top: 8px; font-weight: 700; font-size: .9rem; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
   .liverow .mtag { font-size: .75rem; font-weight: 800; color: var(--gold); }
   /* tournaments */
+  #lounge { max-width: 1100px; margin: 0 auto; padding: 20px; } #lounge.hidden { display: none; }
+  .lgwrap { display: flex; flex-direction: column; gap: 14px; } .lgtop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+  .lggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; } .lgcol { display: flex; flex-direction: column; gap: 14px; }
+  .lgrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; flex-wrap: wrap; } .lgrow + .lgrow { border-top: 1px solid #8883; }
+  .lgchat { display: flex; flex-direction: column; gap: 8px; } .lglog { height: 360px; overflow: auto; display: flex; flex-direction: column; gap: 4px; overscroll-behavior: contain; } .lgmsg { word-break: break-word; }
+  .lgdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #8886; margin-right: 8px; } .lgdot.on { background: #5cb85c; }
+  .lgtbl { width: 100%; border-collapse: collapse; } .lgtbl td, .lgtbl th { padding: 5px 4px; text-align: left; } .lgtbl .r { text-align: right; }
+  .nav button.dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #e5534b; margin-left: auto; }
+  @media (max-width: 800px) { .lggrid { grid-template-columns: 1fr; } #lounge { padding: 12px; } .lglog { height: 240px; } }
   #tours { max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
   #tours.hidden { display: none; }
   #tourHome, #tourView { display: flex; flex-direction: column; gap: 14px; } #tourHome.hidden, #tourView.hidden { display: none; }
@@ -1151,6 +1160,7 @@
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
     <button id="navCoach" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
     <button id="navTour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg> Tournaments</button>
+    <button id="navLounge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg> Rooms</button>
     <button id="navRivals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3"/></svg> Rivalries</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
@@ -1389,6 +1399,7 @@
   <div id="rvDetail" class="hidden"></div>
 </div>
 
+<div id="lounge" class="hidden"></div>
 <div id="tours" class="hidden">
   <div id="tourHome">
     <h1 class="ptitle">Tournaments</h1>
@@ -1724,7 +1735,7 @@ function pieceHTML(p) {
 }
 // The Coach is archived: hidden from the menu, and ?coach links open the main page. Set to false to bring it back.
 const COACH_ARCHIVED = true;
-const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -1851,7 +1862,7 @@ function sseEnsure() {
     for (const t of SSE.topics.values()) t.onState && t.onState(false);
     if (es.readyState === 2) setTimeout(sseEnsure, 1000);               // closed for good: reopen
   };
-  for (const ev of ['m', 's', 'c', 'r', 'ping', 'chat', 'chatdel']) es.addEventListener(ev, (e) => {
+  for (const ev of ['m', 's', 'c', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem']) es.addEventListener(ev, (e) => {
     let d; try { d = JSON.parse(e.data); } catch { return; }
     for (const t of SSE.topics.values()) if (t.handlers[ev]) t.handlers[ev](d);
   });
@@ -1904,6 +1915,7 @@ function paintRtDot() {
 }
 // session-wide subscriptions: made once after sign-in, kept while navigating
 function ensureSessionSubs() {
+  if (!rtSession) loungeBadge();
   rtInit().then(paintRtDot);
   startMentions(); startPresence();
   if (rtSession || !user || !user.topic) return;
@@ -1914,6 +1926,8 @@ function ensureSessionSubs() {
 function onUserPing(d) {
   if (d.why === 'm' && d.ev && d.code === gameCode && roomH.m) return roomH.m(d.ev);                // a move for my own game, sent privately
   if (d.why === 'cam') return camOnSignal(d);                         // the opponent's video handshake, sent privately
+  if (d.why === 'loungeinv') { sfx('challenge'); showToast('🏠', `${esc(d.from)} invited you to ${esc(d.name)}`, 'See it under Rooms'); loungeBadge(); if (view === 'lounge' && window.Lounge && !Lounge.id) Lounge.loadHome(); return; }
+  if (d.why === 'loungegone') { if (view === 'lounge' && window.Lounge && Lounge.id === d.id) Lounge.enter(null); return; }
   if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'mention' && d.m) return onMention([d.m]);
@@ -2105,6 +2119,8 @@ async function start() {
   if (!COACH_ARCHIVED && params.has('coach')) return enterCoach();
   if (params.has('tour')) return enterTours(params.get('tour'));
   if (params.has('tours')) return enterTours();
+  if (params.has('lounge')) return enterLounge(params.get('lounge'));
+  if (params.has('lounges')) return enterLounge();
   if (params.has('rival')) return enterRivals(params.get('rival'));
   if (params.has('rivalry')) { const [a, b] = String(params.get('rivalry')).split('~'); if (a && b) return enterRivals(null, { a, b }); }
   if (params.has('rivals')) return enterRivals();
@@ -6856,6 +6872,11 @@ function paintTourList(list) {
 $('#tourList').addEventListener('click', (e) => { const b = e.target.closest('[data-topen]'); if (b) enterTours(b.dataset.topen); });
 $('#tvBack').onclick = () => enterTours();
 $('#navTour').onclick = () => enterTours();
+let loungeP = null;
+const loadLounge = () => loungeP || (loungeP = loadScript('/lounge.js').catch((e) => { loungeP = null; throw e; }));
+async function enterLounge(id) { await loadLounge(); return Lounge.enter(id); }
+$('#navLounge').onclick = () => enterLounge();
+async function loungeBadge() { const r = await api('lounge_mine'); if (r.ok) $('#navLounge').classList.toggle('dot', r.rooms.some((x) => x.st === 'invited')); }
 
 // create form
 function paintTourForm() {
