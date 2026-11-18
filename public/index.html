@@ -2709,7 +2709,7 @@ function rvActions(s, mode) {
     const busy = !!(out && out.status === 'pending');
     return `<div class="rvact">${msg}<button class="small primary" data-rva="run" ${busy ? `disabled title="You already have a challenge waiting for ${esc(out.to)}"` : ''}>${rvLabel(s)}</button></div>`;
   }
-  if (!s.available) return `<div class="rvact"><span class="rvwhen">This account is no longer available</span></div>`;
+  if (!s.available) return `<div class="rvact"><span class="rvwhen">${s.away ? 'This player is on another server right now' : 'This account is no longer available'}</span></div>`;
   if (inc) return `<div class="rvact"><span class="rvstate">${esc(s.name)} challenged you${inc.match ? ` · ${esc(Match.label(inc.match))}` : ''} · ${tcLabel(inc.tc)}</span><button class="small" data-rva="decline" data-id="${esc(inc.id)}">Decline</button><button class="small primary" data-rva="accept" data-id="${esc(inc.id)}">Accept</button></div>`;
   if (RV.sending === k) return `<div class="rvact"><span class="rvstate"><i class="spin"></i>Sending…</span></div>`;
   if (out && out.status === 'pending' && rvKey(out.to) === k) {
@@ -2735,7 +2735,7 @@ function rvLeadText(s) {
 }
 function rvMatchup(s, me, big) {
   const cat = CAT_NAME[s.cat] || '';
-  const theirs = s.available ? `${rvRating(s.rating)}${s.rating && cat ? ' · ' + cat : ''}` : 'account unavailable';
+  const theirs = s.available ? `${rvRating(s.rating)}${s.rating && cat ? ' · ' + cat : ''}` : (s.away ? 'on another server' : 'account unavailable');
   return `<div class="rvm">
     <div class="rvp me">${rvAvatar(me.name, 'me')}<span class="rpn"><b>You</b><span>${rvRating(s.myRating)}${s.myRating && cat ? ' · ' + cat : ''}</span></span></div>
     <div class="rvscore" aria-label="Head to head: you ${s.w}, ${esc(s.name)} ${s.l}, ${s.d} drawn"><span class="n"><span class="${s.w > s.l ? 'lead' : s.w === s.l ? 'lead' : ''}">${s.w}</span><i>–</i><span class="${s.l > s.w ? 'lead' : s.w === s.l ? 'lead' : ''}">${s.l}</span></span><small>${s.d ? `${s.d} draw${s.d > 1 ? 's' : ''}` : big ? 'no draws' : '&nbsp;'}</small></div>
@@ -2789,7 +2789,7 @@ function rvFeatMini(s, f) {
 function rvRow(s) {
   return `<div class="rvr" role="link" tabindex="0" data-rvgo="${esc(s.name)}" data-rv="${esc(s.name)}" aria-label="Rivalry with ${esc(s.name)}">
     ${rvAvatar(s.name, s.available ? '' : 'gone', s.available ? s.online : null)}
-    <div class="rvrn"><b>${esc(s.name)}</b><span>${s.available ? rvRating(s.rating) : 'account removed'} · ${rvAgo(s.last.at)}</span></div>
+    <div class="rvrn"><b>${esc(s.name)}</b><span>${s.available ? rvRating(s.rating) : s.away ? 'on another server' : 'account removed'} · ${rvAgo(s.last.at)}</span></div>
     <div class="rvrs"><span class="n">${rvScoreSpans(s.w, s.l)}</span>${s.d ? `<small>${s.d}D</small>` : ''}</div>
     <div class="rvrf">${rvForm(s.strip, 5)}</div>
     <div class="rvra" data-actfor="${esc(rvKey(s.name))}" data-mode="row">${rvActions(s, 'row')}</div>
