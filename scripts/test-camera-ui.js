@@ -1,5 +1,6 @@
 // Camera / Chat tabs: two real browsers with fake cameras connect over WebRTC. Run: node scripts/test-camera-ui.js (needs Playwright)
 const { chromium } = require('playwright');
+process.env.GAME_CHAT_SPECTATORS = '1';   // these tests are about the camera; spectator chat is switched on for the old checks
 process.env.PORT = String(4150 + Math.floor(Math.random() * 9)); process.env.SUPABASE_URL = ''; process.env.ADMIN_KEY = 'k';
 const PORT = process.env.PORT, origLog = console.log; console.log = () => {};
 require('../server.js'); console.log = origLog;

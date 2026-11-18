@@ -1,5 +1,6 @@
 // Camera works with live push blocked: signals arrive by polling. Run: node scripts/test-camera-poll-ui.js (needs Playwright)
 const { chromium } = require('playwright');
+process.env.GAME_CHAT_SPECTATORS = '1';
 process.env.PORT = String(4160 + Math.floor(Math.random() * 9)); process.env.SUPABASE_URL = ''; process.env.ADMIN_KEY = 'k';
 const PORT = process.env.PORT, origLog = console.log; console.log = () => {};
 require('../server.js'); console.log = origLog;

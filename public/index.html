@@ -1934,6 +1934,7 @@ function ensureSessionSubs() {
   rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
 }
 function onUserPing(d) {
+  if (d.why === 'c' && d.ev && d.code === gameCode && roomH.c) return roomH.c(d.ev);               // a game chat message, sent privately to the players
   if (d.why === 'm' && d.ev && d.code === gameCode && roomH.m) return roomH.m(d.ev);                // a move for my own game, sent privately
   if (d.why === 'cam') return camOnSignal(d);                         // the opponent's video handshake, sent privately
   if (d.why === 'loungeinv') { sfx('challenge'); showToast('🏠', `${esc(d.from)} invited you to ${esc(d.name)}`, 'See it under Rooms'); loungeBadge(); if (view === 'lounge' && window.Lounge && !Lounge.id) Lounge.loadHome(); return; }
@@ -4018,7 +4019,7 @@ const gchatMissing = (c) => { for (let k = c; k > 0 && k > c - 30; k--) if (!gch
 function openGameChat(code) {
   camLeave(); camReset(); paintCamTab();
   gchatIds = new Set(); gchatKs = new Set(); VC.roster.clear(); VC.early.clear();
-  $('#gclog').innerHTML = '';
+  $('#gclog').innerHTML = ''; $('#gcIn').disabled = false; $('#gcForm button').disabled = false;
   $('#gchat').classList.remove('hidden');
   paintCall();
   loadGameChat(code);
@@ -4026,7 +4027,11 @@ function openGameChat(code) {
 // fetch the saved messages; also used to catch up when live updates are off or just came back
 function loadGameChat(code) {
   gchatLoad = Date.now();
-  api('game_chat', { code }).then((r) => { if (r.ok && gameCode === code && view === 'game') r.msgs.forEach(addGameMsg); });
+  api('game_chat', { code }).then((r) => {
+    if (gameCode !== code || view !== 'game') return;
+    if (r.ok) return r.msgs.forEach(addGameMsg);
+    if (r.status === 403) { $('#gclog').innerHTML = '<div class="muted" style="font-weight:600">The chat in this game is private to the two players.</div>'; $('#gcIn').disabled = true; $('#gcForm button').disabled = true; }
+  });
 }
 function addGameMsg(m) {
   if (!m || !m.id || gchatIds.has(m.id)) return false;
