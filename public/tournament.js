@@ -237,6 +237,31 @@
     return true;
   }
 
+  // take a decided match back to "not played": its room is forgotten, the winner leaves the next round, and a finished
+  // tournament (or a drawn knockout bracket) is open again. Refused when something later already depends on it.
+  function reopen(t, id) {
+    const f = find(t, id);
+    if (!f) throw new Error('No such match.');
+    if (!f.res) throw new Error('That match has no result yet.');
+    if (f.by === 'bye') throw new Error('A bye cannot be reversed.');
+    if (f.id[0] === 'g') {
+      if (t.ko) {
+        if (t.ko.rounds.flat().some((x) => x.room || (x.res && x.by !== 'bye'))) throw new Error('The knockout has started. Reverse its results first.');
+        t.ko = null; t.phase = 'groups';
+      }
+    } else {
+      const [r, n] = f.id.slice(1).split('-').map(Number), nx = t.ko.rounds[r] && t.ko.rounds[r][(n - 1) >> 1];
+      if (nx) {
+        if (nx.room || nx.res) throw new Error('The next round match has been played. Reverse that one first.');
+        nx[(n - 1) % 2 ? 'b' : 'a'] = null;
+      }
+    }
+    if (t.phase === 'done') t.phase = t.ko ? 'ko' : 'groups';
+    t.champion = null; t.ended = null;
+    f.res = null; f.score = null; f.by = null; f.room = null;
+    return f;
+  }
+
   // fixtures a player can play now
   // a group fixture's round (older tournaments didn't store it: each round has floor(players / 2) games, in order)
   const roundOf = (t, f) => {
@@ -247,6 +272,6 @@
   // fixtures a player can play now, the one they should play next first
   const myFixtures = (t, name) => allFixtures(t).filter((f) => ready(f) && (f.a === name || f.b === name)).sort((x, y) => (x.room ? 0 : 1) - (y.room ? 0 : 1) || roundOf(t, x) - roundOf(t, y));
 
-  const api = { pow2, qualifySpots, setLength, lengthText, roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, addLate, leave, start, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
+  const api = { pow2, qualifySpots, setLength, lengthText, roundOf, vote, pollCounts, resolvePoll, KINDS, MIN, MAX_PLAYERS, ROUND_NAMES, clean, create, join, addLate, leave, start, reopen, standings, record, allFixtures, find, ready, stageOf, myFixtures, winnerOf, groupFmt, koFmt, seedOrder, roundRobin };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tour = api;
 })(typeof self !== 'undefined' ? self : this);

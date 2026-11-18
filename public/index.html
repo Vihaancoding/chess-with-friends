@@ -6945,6 +6945,7 @@ function fxActions(t, f, next) {
   return '';
 }
 function fxEdit(t, f, run) {
+  if (run && tourEdit && f.res && f.by !== 'bye') return `<div class="fxedit">${f.res === 'draw' ? '' : `<button class="small" data-trev="${f.id}" data-mode="flip" title="Give the win to the other player">Reverse result</button>`}<button class="small" data-trev="${f.id}" data-mode="undo" title="Take the result back so the match can be played again">Undo result</button></div>`;
   if (!run || !tourEdit || !Tour.ready(f)) return '';
   const draw = f.id[0] === 'g' ? `<button class="small" data-taward="${f.id}" data-res="draw">Draw</button>` : '';
   return `<div class="fxedit"><button class="small" data-taward="${f.id}" data-res="a">${esc(f.a)} wins</button>${draw}<button class="small" data-taward="${f.id}" data-res="b">${esc(f.b)} wins</button></div>`;
@@ -7017,7 +7018,7 @@ function paintTour(t) {
     acts.push(`<label class="tlen">Match length <select data-tlen>${same ? '' : '<option value="" selected disabled>Mixed</option>'}${[1, 3, 5].map((n) => `<option value="${n}"${n === same ? ' selected' : ''}>${n === 1 ? '1 game' : 'Best of ' + n}</option>`).join('')}</select></label>`);
   }
   if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push('<button data-tact="add" title="Add a player after the start">Add player</button>');
-  if (run && (t.phase === 'groups' || t.phase === 'ko')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
+  if (run && (t.phase === 'groups' || t.phase === 'ko' || t.phase === 'done')) acts.push(`<button data-tact="edit" class="${tourEdit ? 'on' : ''}" title="Set results by hand, for no-shows">${tourEdit ? 'Done editing' : 'Edit results'}</button>`);
   acts.push('<button data-tact="link">Copy link</button>');
   setHTML($('#tvHead'), `<div class="tvtop"><h1 class="ptitle">${esc(t.name)}</h1><span class="tbadge ${t.phase}">${t.phase === 'groups' && t.cfg.kind === 'ko' ? 'Qualifying' : PHASE[t.phase]}</span></div>
     <div class="muted" style="font-weight:600">${tourKindLine(t)} · ${fmts} · ${t.players.length}${t.phase === 'signup' ? ' / ' + cfg.max : ''} players · organized by ${esc(t.by)}</div>
@@ -7070,11 +7071,16 @@ $('#tours').addEventListener('change', async (e) => {
 $('#tours').addEventListener('click', async (e) => {
   const v = e.target.closest('[data-tvote]');
   if (v && !v.disabled && tourId) { const r = await api('tour_vote', { id: tourId, i: +v.dataset.tvote }); if (r.ok) { paintTour(r.tour); loadTours(); } else setText($('#tvErr'), r.error || 'Could not vote.'); return; }
-  const b = e.target.closest('[data-tplay], [data-twatch], [data-taward], [data-tact]');
+  const b = e.target.closest('[data-tplay], [data-twatch], [data-taward], [data-trev], [data-tact]');
   if (!b || b.disabled || !tourId) return;
   const id = tourId, err = (r) => { if (!r.ok) setText($('#tvErr'), r.error || 'Something went wrong.'); };
   if (b.dataset.tplay) return tourPlay(id, b.dataset.tplay);
   if (b.dataset.twatch) { const r = await api('join', { code: b.dataset.twatch }); return r.ok ? enterGame(r.code, r.snap) : err(r); }
+  if (b.dataset.trev) {
+    const undo = b.dataset.mode === 'undo';
+    if (!confirm(undo ? 'Take this result back? The match goes back to "not played" and can be played or set again.' : 'Reverse this result? The other player gets the win, and everything that followed from it is redrawn.')) return;
+    const r = await api('tour_reverse', { id, fx: b.dataset.trev, mode: b.dataset.mode }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return;
+  }
   if (b.dataset.taward) {
     if (!confirm(`Set this result by hand? ${b.textContent}.`)) return;
     const r = await api('tour_award', { id, fx: b.dataset.taward, res: b.dataset.res }); err(r); if (r.ok) { paintTour(r.tour); loadTours(); } return;
