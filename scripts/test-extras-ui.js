@@ -92,5 +92,13 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   await pb.evaluate(() => { const real = Date.now.bind(Date); Date.now = () => real() + 40000; avRefresh(); });
   await pb.waitForFunction(() => !document.querySelector('.avatar[data-avn="ann"] img.avi'), null, { timeout: 8000 });
   ok('and when they remove it, it goes back to the old letter avatar', /^A/.test(await pb.textContent('.avatar[data-avn="ann"]')), null);
+  console.log('draw offer');
+  await api('move', { code: g.code, from: 52, to: 36 }, A); await api('move', { code: g.code, from: 12, to: 28 }, B);
+  await api('draw_offer', { code: g.code }, A);
+  await pb.waitForFunction(() => /ann offers a draw/.test((document.querySelector('#drawtxt') || {}).textContent || ''), null, { timeout: 10000 });
+  ok('the opponent\'s draw offer says who offered it', !(await pb.isHidden('#drawbox')), await pb.textContent('#drawbox'));
+  console.log('stats show totals');
+  await pb.goto(`http://localhost:${PORT}/`); await pb.waitForSelector('#statsBody table'); await pb.click('[data-st="blunder"]');
+  ok('the stats leaderboard shows how many in total, not per 100 moves', !/\/100/.test(await pb.textContent('#statsBody')), await pb.textContent('#statsBody'));
   await br.close(); console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

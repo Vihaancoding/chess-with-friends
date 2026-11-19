@@ -699,6 +699,14 @@
   .idea { padding: 12px 0; border-top: 1px solid #8883; display: flex; gap: 12px; } .idea .vt { flex: none; min-width: 46px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 4px; background: #ffffff0d; box-shadow: none; border-radius: 10px; font-weight: 800; line-height: 1.15; } .idea .vt.on { background: var(--accent, #81b64c); color: #fff; }
   .idea h3 { margin: 0 0 2px; font-size: 1rem; } .idea .by { color: var(--muted); font-size: .8rem; font-weight: 600; } .idea p { margin: 4px 0 0; font-size: .92rem; overflow-wrap: anywhere; white-space: pre-line; }
   .idea .note { margin-top: 5px; font-size: .85rem; font-weight: 700; color: var(--gold, #f7c631); } .stbadge { font-size: .65rem; font-weight: 800; text-transform: uppercase; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; background: #ffffff1a; } .stbadge.planned { background: #3b5fa8; color: #fff; } .stbadge.done { background: #3f7d2c; color: #fff; } .stbadge.no { background: #6b2d2a; color: #fff; }
+  /* selects match the theme everywhere (they were the browser's own grey) */
+  select { -webkit-appearance: none; appearance: none; background: #1f1e1b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a8a7a4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center / 12px 8px; color: inherit; border: 2px solid transparent; border-radius: 8px; padding: 8px 34px 8px 12px; font: inherit; font-weight: 700; min-height: 40px; cursor: pointer; transition: border-color .15s; }
+  select:hover { border-color: #ffffff1f; } select:focus-visible { outline: none; border-color: var(--accent, #81b64c); } select option { background: #262522; color: #f2f1ec; }
+  .lgkind input[type=radio] { flex: none; width: 18px; min-width: 18px; padding: 0; accent-color: var(--accent, #81b64c); }
+  .lgtop .acts { display: flex; gap: 8px; align-items: center; } .lgtop h1 { flex: 1; text-align: center; min-width: 0; overflow-wrap: anywhere; }
+  .who .badge { margin-left: 6px; } .who .muted { margin-left: 6px; }
+  .idea { align-items: flex-start; } .idea .vt { align-self: flex-start; } .idea .acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } .idea .acts select { min-height: 36px; padding-top: 4px; padding-bottom: 4px; } .idea .acts input { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+  #statscard { margin-top: 16px; }
   .avi[hidden] { display: none; } .avi.s20 { margin-right: 7px; } .avi.s28 { margin-right: 10px; }
   #lb td, #statsBody td, #onlinelist .orow { vertical-align: middle; } #lb td, #statsBody td { height: 46px; }   /* same row height with or without a picture, text centred on the circle */
   td > .who { display: flex; }   /* a block flex box in a cell has no text-baseline gap, so the row centres properly */
@@ -1959,7 +1967,7 @@ function paintRtDot() {
   d.classList.toggle('on', rtLobbyLive);
   const why = RTC.mode === 'none' ? 'not configured on the server' : RTC.err ? (RTC.hint || RTC.err) + ' · polling instead' : RTC.status && RTC.status !== 'SUBSCRIBED' ? RTC.status.toLowerCase().replace(/_/g, ' ') : 'connecting…';
   d.title = rtLobbyLive ? 'Live updates on' : 'Live updates off: ' + why;
-  n.textContent = rtLobbyLive ? '' : 'live updates off · ' + why;
+  n.textContent = '';   // no red "live updates off" text; the dot's tooltip still says why
 }
 // session-wide subscriptions: made once after sign-in, kept while navigating
 function ensureSessionSubs() {
@@ -3523,6 +3531,8 @@ function netNote(ok, ms) {
   netPaint();
 }
 function netPaint() {
+  const quiet = $('#netPill'); if (quiet) quiet.style.display = 'none';   // the red connection badge is switched off (the numbers are still tracked)
+  return;
   let el = $('#netPill');
   if (!el) { el = document.createElement('div'); el.id = 'netPill'; el.setAttribute('role', 'status'); el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:60;padding:7px 12px;border-radius:999px;font:700 .8rem system-ui,sans-serif;background:#7a2a1f;color:#fff;box-shadow:0 2px 10px #0006;max-width:92vw;text-align:center'; document.body.appendChild(el); }
   const avg = NET.rtt.length ? Math.round(NET.rtt.reduce((a, b) => a + b, 0) / NET.rtt.length) : 0;
@@ -3710,6 +3720,7 @@ function render() {
   $('#anBtn').classList.toggle('hidden', !status.over || !(snap.hist || []).length);
   const incoming = canDraw && snap.drawOffer && snap.drawOffer !== you;
   $('#drawbox').classList.toggle('hidden', !incoming);
+  if (incoming) { const o = snap.players[you === 'w' ? 'b' : 'w']; setText($('#drawtxt'), `${o ? o.name : 'Your opponent'} offers a draw.`); }
   updateOver();
   paintMatch();
 
@@ -7013,7 +7024,7 @@ function paintStats() {
     .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
   const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
   setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
-  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r"><b>${fmt(v)}</b>${['acc', 'clean'].includes(statsTab) ? '' : ` <span class="muted">· ${rate(r, statsTab).toFixed(1)}/100</span>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r"><b>${fmt(v)}</b></td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
     : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Stats come from finished, decisive games the engine has checked.</div>`);
 }
 async function loadStats(force) {
