@@ -13,14 +13,14 @@ const get = (url) => new Promise((resolve) => handler({ method: 'GET', url, head
   console.log('profile pictures');
   const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   const d = await get('/api?r=avatar&n=ann');
-  ok('without a picture there is a coloured initial', d.status === 200 && /svg/.test(d.h['Content-Type']) && />A</.test(d.body), d.h);
+  ok('without a picture there is nothing to show (the page keeps its letter avatar)', d.status === 404, d.status);
   ok('bad pictures are refused', (await call('avatar_set', { img: 'http://evil/x.png' }, A)).status === 400 && (await call('avatar_set', { img: 'data:image/svg+xml;base64,AAAA' }, A)).status === 400 && (await call('avatar_set', { img: 'data:image/png;base64,' + 'A'.repeat(80000) }, A)).status === 400, null);
   const up = await call('avatar_set', { img: png }, A);
   ok('a small picture is accepted and noted on my account', up.ok && (await call('me', {}, A)).user.avAt === up.at, up);
   const g = await get('/api?r=avatar&n=ann');
   ok('and served as the image itself', g.status === 200 && g.h['Content-Type'] === 'image/png' && Buffer.isBuffer(g.body) && g.body.length > 20, g.h);
-  ok('people without one still get their initial', /svg/.test((await get('/api?r=avatar&n=bob')).h['Content-Type']), null);
-  ok('only admins can clear someone else\'s', (await call('admin_avatar_clear', { name: 'ann' }, B)).status >= 400 && (await call('admin_avatar_clear', { name: 'ann' }, O)).ok && /svg/.test((await get('/api?r=avatar&n=ann')).h['Content-Type']), null);
+  ok('people without one get nothing', (await get('/api?r=avatar&n=bob')).status === 404, null);
+  ok('only admins can clear someone else\'s', (await call('admin_avatar_clear', { name: 'ann' }, B)).status >= 400 && (await call('admin_avatar_clear', { name: 'ann' }, O)).ok && (await get('/api?r=avatar&n=ann')).status === 404, null);
 
   console.log('gifs');
   const gs = await call('gif_search', { q: 'cat' }, A);
