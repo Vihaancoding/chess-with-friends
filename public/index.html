@@ -683,7 +683,7 @@
   /* tournaments */
   #lounge { max-width: 1100px; margin: 0 auto; padding: 20px; } #lounge.hidden { display: none; }
   .avi { border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: #3b3a37; flex: none; }
-  .rav .avi { width: 100%; height: 100%; margin: 0; } .rav.gone .avi { filter: grayscale(1) opacity(.6); } .phead .avatar .avi { width: 100%; height: 100%; margin: 0; border-radius: inherit; }
+  .rav { position: relative; } .rav .avi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; } .rav.gone .avi { filter: grayscale(1) opacity(.6); } .phead .avatar .avi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: inherit; }
   .userbox .avi { margin-right: 8px; } .userbox { gap: 8px; } .userbox > .avwrap { display: flex; align-items: center; min-width: 0; }
   .chatgif { display: block; max-width: min(220px, 100%); max-height: 180px; border-radius: 8px; margin-top: 4px; background: #0003; }
   .gifbtn { min-height: 34px; padding: 4px 9px; font-weight: 800; } .gifgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; } .gifgrid button { padding: 0; min-height: 0; background: #0004; border-radius: 6px; overflow: hidden; box-shadow: none; } .gifgrid img { width: 100%; height: 84px; object-fit: cover; display: block; }
@@ -1182,7 +1182,7 @@
     <button id="navAdmin" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg> Admin</button>
   </div>
   <div class="userbox">
-    <div class="avwrap"><img id="meAv" class="avi" width="36" height="36" alt="" hidden><div><div class="nm" id="meName" title="Your profile"><span class="sk" style="width:90px"></span></div><div><span class="elo" id="meElo"><span class="sk" style="width:70px;height:.9em"></span></span> <span class="rec" id="meRec"></span></div></div></div>
+    <div class="avwrap"><img id="meAv" class="avi" width="36" height="36" alt="" hidden onerror="this.hidden=true" onload="this.hidden=false"><div><div class="nm" id="meName" title="Your profile"><span class="sk" style="width:90px"></span></div><div><span class="elo" id="meElo"><span class="sk" style="width:70px;height:.9em"></span></span> <span class="rec" id="meRec"></span></div></div></div>
     <button class="small" id="signout">Sign out</button>
   </div>
 </nav>
@@ -2475,7 +2475,7 @@ async function pollLobby(full = true) {
     if (full) {
       if (r.user.srv !== user.srv) { finishAuth({ ...user, ...r.user, token: user.token }); return location.reload(); }   // moved to another server
       paintServerSwitch(r.user.srvOpts);
-      $('#meName').textContent = r.user.name; user.avAt = r.user.avAt || 0; { const a = $('#meAv'); a.src = avSrc(user.name); a.hidden = false; }
+      $('#meName').textContent = r.user.name; user.avAt = r.user.avAt || 0; { $('#meAv').src = avSrc(user.name); }
       myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
       $('#navAdmin').classList.toggle('hidden', !r.user.admin);
@@ -2740,11 +2740,12 @@ function rvRepaintActions() {
   document.querySelectorAll('#rivals [data-actfor]').forEach((el) => { const s = rvFind(el.dataset.actfor); if (s) setHTML(el, rvActions(s, el.dataset.big === '1' ? true : el.dataset.mode)); });
 }
 const avSrc = (name) => `/api?r=avatar&n=${encodeURIComponent(name)}${user && name === user.name && user.avAt ? '&v=' + user.avAt : ''}`;
-const avImg = (name, px = 20) => `<img class="avi" src="${avSrc(name)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async">`;
+// a picture, or nothing when the player has none (the 404 removes it, leaving whatever was there before)
+const avImg = (name, px = 20) => `<img class="avi" src="${avSrc(name)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async" onerror="this.remove()">`;
 // a chat message body: a GIF link from a known GIF site shows as the picture, anything else is text with @mentions
 const GIF_RE = /^https:\/\/(?:media\d*\.giphy\.com|i\.giphy\.com|media\.tenor\.com|c\.tenor\.com|media\d\.tenor\.com|i\.imgur\.com)\/[\w\-.\/%@~]+\.(?:gif|webp)$/i;
 const chatBody = (text) => (GIF_RE.test(String(text).trim()) ? `<img class="chatgif" src="${esc(String(text).trim())}" alt="GIF" loading="lazy" referrerpolicy="no-referrer">` : mentionify(esc(text)));
-function rvAvatar(name, cls, online) { return `<span class="rav ${cls || ''}">${avImg(name, 40)}${online != null ? `<span class="dot ${online ? 'on' : ''}" title="${online ? 'online' : 'offline'}"></span>` : ''}</span>`; }
+function rvAvatar(name, cls, online) { return `<span class="rav ${cls || ''}">${esc((name || '?')[0].toUpperCase())}${avImg(name, 40)}${online != null ? `<span class="dot ${online ? 'on' : ''}" title="${online ? 'online' : 'offline'}"></span>` : ''}</span>`; }
 const rvStrip = (strip) => `<span class="rstrip" aria-label="Recent results, oldest first: ${strip.map((x) => RES[{ w: 'win', l: 'loss', d: 'draw' }[x]][2]).join(', ')}">${strip.map((x) => `<i class="${x}" title="${{ w: 'You won', l: 'You lost', d: 'Draw' }[x]}">${x.toUpperCase()}</i>`).join('')}</span>`;
 function rvLeadText(s) {
   const chg = s.leadChange === 'them' ? `<span class="chg">${esc(s.name)} just took the lead</span>` : s.leadChange === 'me' ? '<span class="chg">You just took the lead</span>' : '';
@@ -6641,7 +6642,7 @@ function enterProfile(name, opts = {}) {
   pfData = null;
   const id = ++pfReq;
   // skeleton that matches the final layout
-  $('#pfAvatar').innerHTML = avImg(name, 64);
+  $('#pfAvatar').innerHTML = esc((name[0] || '?').toUpperCase()) + avImg(name, 64);
   $('#pfName').textContent = name;
   $('#pfSub').innerHTML = '<span class="sk" style="width:160px;height:.85em"></span>';
   $('#pfChallenge').classList.toggle('hidden', name === user.name);
@@ -6919,10 +6920,10 @@ $('#pfPhotoIn').addEventListener('change', async (e) => {
   try {
     const img = await squarePhoto(f); if (!img) { msg.textContent = 'That picture is too detailed. Try another one.'; return; }
     const r = await api('avatar_set', { img }); if (!r.ok) { msg.textContent = r.error || 'Could not save it.'; return; }
-    user.avAt = r.at; msg.textContent = 'Saved.'; setHTML($('#pfPhotoPrev'), ''); setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = avImg(user.name, 64); $('#meAv').src = avSrc(user.name);
+    user.avAt = r.at; msg.textContent = 'Saved.'; setHTML($('#pfPhotoPrev'), ''); setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = esc((user.name[0] || '?').toUpperCase()) + avImg(user.name, 64); $('#meAv').src = avSrc(user.name);
   } catch { msg.textContent = 'That file could not be read as a picture.'; }
 });
-$('#pfPhotoDel').onclick = async () => { const r = await api('avatar_clear'); if (r.ok) { user.avAt = 0; $('#pfPhotoMsg').textContent = 'Removed.'; setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = avImg(user.name, 64); $('#meAv').src = avSrc(user.name) + '&r=' + Date.now(); } };
+$('#pfPhotoDel').onclick = async () => { const r = await api('avatar_clear'); if (r.ok) { user.avAt = 0; $('#pfPhotoMsg').textContent = 'Removed.'; setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = esc((user.name[0] || '?').toUpperCase()) + avImg(user.name, 64); $('#meAv').src = avSrc(user.name) + '&r=' + Date.now(); } };
 
 // ----- GIFs in chat: search (when the server has a Giphy key) or paste a link; the message is just the GIF's address -----
 function gifFromLink(t) {
