@@ -9,11 +9,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 (async () => {
   await sleep(300);
   const r = await fetch(`http://localhost:${PORT}/api?r=signup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'a@x.io', password: 'password1', username: 'ann' }) }).then((x) => x.json());
+  const room = await fetch(`http://localhost:${PORT}/api?r=lounge_create`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-name': r.name, 'x-token': r.token }, body: JSON.stringify({ name: 'Sand', kind: 'board' }) }).then((x) => x.json());
   const br = await chromium.launch(); const ctx = await br.newContext({ viewport: { width: 1280, height: 900 } }); const p = await ctx.newPage();
   p.on('pageerror', (e) => { failed++; console.log('  ✗ page error:', e.message); });
   await p.route(/cdn\.jsdelivr\.net|fonts\.g/, (x) => x.abort());
   await ctx.addInitScript((x) => localStorage.setItem('chess:user', JSON.stringify(x)), { name: r.name, token: r.token });
-  await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('#navSandbox'); await p.click('#navSandbox'); await p.waitForSelector('.sbboard');
+  await p.goto(`http://localhost:${PORT}/?lounge=${room.id}`); await p.waitForSelector('[data-lg="sbopen"]'); await p.click('[data-lg="sbopen"]'); await p.waitForSelector('.sbboard');
+  const click = p.click.bind(p); p.click = async (sel) => { await click(sel); await sleep(150); };   // the room board is saved on the server, so give each action a moment
   const sq = (s) => `.sbsq[data-sq="${'abcdefgh'.indexOf(s[0]) + (8 - +s[1]) * 8}"]`;
   const pieces = () => p.$$eval('.sbsq img', (a) => a.length);
   const put = async (piece, ...squares) => { await p.click(`[data-pick="${piece}"]`); for (const s of squares) await p.click(sq(s)); };
