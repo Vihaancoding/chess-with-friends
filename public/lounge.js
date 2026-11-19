@@ -14,7 +14,7 @@
     view = 'lounge'; gameCode = null; L.id = id || null; L.data = null;
     history.replaceState(null, '', id ? '/?lounge=' + id : '/?lounges');
     show('lounge');
-    el().innerHTML = '<div class="muted" style="padding:20px">Loading…</div>';
+    el().innerHTML = '<div class="muted" style="padding:20px">Loading…</div>'; el()._h = null;
     if (id) await L.loadRoom(); else await L.loadHome();
     L.timer = setInterval(() => { if (!document.hidden && view === 'lounge') (L.id ? L.loadRoom(true) : L.loadHome()); }, L.id ? 8000 : 15000);
     if (id && L.data && L.data.room) {
@@ -31,9 +31,9 @@
     setHTML(el(), `<div class="lgwrap"><h1 class="ptitle">Rooms</h1>
       <div class="muted" style="font-weight:600">Private rooms for you and your friends: chat, and play each other back and forth. Anyone in a room can invite people, and every game played from the room counts on its table.</div>
       ${inv.length ? `<div class="panel"><h2 class="ph">Invitations</h2>${inv.map((x) => `<div class="lgrow"><b>${esc(x.name)}</b><span class="acts"><button class="primary small" data-lg="yes" data-id="${esc(x.id)}">Join</button><button class="small" data-lg="no" data-id="${esc(x.id)}">No thanks</button></span></div>`).join('')}</div>` : ''}
-      <div class="panel"><h2 class="ph">Your rooms</h2>${mine.length ? mine.map((x) => `<div class="lgrow"><span><b>${esc(x.name)}</b>${x.kind === 'study' ? ' <span class="badge">study</span>' : ''}</span><button class="small" data-lg="open" data-id="${esc(x.id)}">Open</button></div>`).join('') : '<div class="muted">You are not in any room yet. Make one and invite your friends.</div>'}</div>
+      <div class="panel"><h2 class="ph">Your rooms</h2>${mine.length ? mine.map((x) => `<div class="lgrow"><span><b>${esc(x.name)}</b>${x.kind === 'study' ? ' <span class="badge">study</span>' : x.kind === 'board' ? ' <span class="badge">board</span>' : ''}</span><button class="small" data-lg="open" data-id="${esc(x.id)}">Open</button></div>`).join('') : '<div class="muted">You are not in any room yet. Make one and invite your friends.</div>'}</div>
       <form class="panel" id="lgNew"><h2 class="ph">Make a room</h2>
-        <div class="lgkind" role="radiogroup" aria-label="Room type"><label><input type="radio" name="lgkind" value="play" checked><span><b>Play room</b><small>Chat, open tables and challenges, with a results table</small></span></label><label><input type="radio" name="lgkind" value="study"><span><b>Study room</b><small>Annotate a game together; Stockfish checks your verdicts</small></span></label></div>
+        <div class="lgkind" role="radiogroup" aria-label="Room type"><label><input type="radio" name="lgkind" value="play" checked><span><b>Play room</b><small>Chat, open tables and challenges, with a results table</small></span></label><label><input type="radio" name="lgkind" value="board"><span><b>Board room</b><small>One shared blank board: place any pieces, play, and leave notes</small></span></label><label><input type="radio" name="lgkind" value="study"><span><b>Study room</b><small>Annotate a game together; Stockfish checks your verdicts</small></span></label></div>
         <div class="lgrow"><input id="lgName" maxlength="30" placeholder="Room name, e.g. Friday club" aria-label="Room name" style="flex:1"><button class="primary" type="submit">Create</button></div><div id="lgErr" class="muted" style="color:var(--bad,#c0392b)"></div></form></div>`);
   };
 
@@ -65,14 +65,14 @@
       <div class="lgtop"><button class="small" data-lg="back">← Rooms</button><h1 class="ptitle" style="margin:0">${esc(rm.name)}</h1><span class="acts"><button class="small" data-lg="link">Copy link</button>${owner ? '<button class="small danger" data-lg="del">Delete</button>' : ''}<button class="small" data-lg="leave">Leave</button></span></div>
       <div class="lggrid">
         <div class="lgcol">
-          ${study ? '<div class="panel" id="lgStudyP"><h2 class="ph"><span>Study</span><button class="small" data-lg="pick">Choose a game</button></h2><div id="stPick"></div><div id="stChoose"></div></div>' : `<div class="panel"><h2 class="ph">Play</h2>
+          ${rm.kind === 'board' ? '<div class="panel"><h2 class="ph">Board</h2><button class="primary" data-lg="sbopen" style="width:100%;min-height:48px">Open the shared board</button></div>' : study ? '<div class="panel" id="lgStudyP"><h2 class="ph"><span>Study</span><button class="small" data-lg="pick">Choose a game</button></h2><div id="stPick"></div><div id="stChoose"></div></div>' : `<div class="panel"><h2 class="ph">Play</h2>
             <div class="lgrow"><select id="lgTc" aria-label="Time control">${TCS.map(([v, n]) => `<option value="${v}"${v === (L.tcSel || '300,0') ? ' selected' : ''}>${n}</option>`).join('')}</select><button class="primary" data-lg="table">Open a table</button></div>
             <div class="muted" style="font-size:.85rem;margin:6px 0">An open table lets anyone in this room sit down against you. Or challenge a member below.</div>
             ${tabs || '<div class="muted">No open tables right now.</div>'}</div>`}
           <div class="panel"><h2 class="ph">Members · ${rm.members.length}</h2>${mem}
             <form id="lgInv" class="lgrow" style="margin-top:8px"><input id="lgInvName" maxlength="16" placeholder="Invite by username" aria-label="Invite by username" style="flex:1"><button type="submit">Invite</button></form>
             ${rm.invited.length ? `<div class="muted" style="font-size:.85rem;margin-top:6px">Waiting for: ${rm.invited.map(esc).join(', ')}</div>` : ''}</div>
-          ${study ? '' : `<div class="panel"><h2 class="ph">Table</h2>${tbl ? `<table class="lgtbl"><thead><tr><th></th><th>Player</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r">Pts</th></tr></thead><tbody>${tbl}</tbody></table>` : ''}
+          ${study || rm.kind === 'board' ? '' : `<div class="panel"><h2 class="ph">Table</h2>${tbl ? `<table class="lgtbl"><thead><tr><th></th><th>Player</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r">Pts</th></tr></thead><tbody>${tbl}</tbody></table>` : ''}
             ${d.recent.length ? `<div class="muted" style="font-size:.85rem;margin-top:8px">Latest: ${d.recent.map((g) => `${esc(g.w)} ${g.res === 'draw' ? 'drew with' : g.res === 'w' ? 'beat' : 'lost to'} ${esc(g.b)}`).join(' · ')}</div>` : '<div class="muted" style="font-size:.85rem;margin-top:8px">Games played from this room show up here.</div>'}</div>`}
         </div>
         <div class="panel lgchat"><h2 class="ph">Chat</h2><div id="lgLog" class="lglog">${chat || '<div class="muted">Say hello.</div>'}</div>
@@ -226,6 +226,7 @@
     const b = e.target.closest('#lounge [data-lg]'); if (!b || b.disabled) return;
     const a = b.dataset.lg, id = b.dataset.id || L.id;
     if (a === 'board') return L.studyBoard();
+    if (a === 'sbopen') return loadScript('/sandbox.js').then(() => Sandbox.enterRoom(L.id));
     if (a === 'pick') return L.pickGame();
     if (a === 'use') { if (L.data.study && L.data.study.notes.length && !confirm('Switching the game clears the notes. Continue?')) return; const r = await api('lounge_study_pick', { id: L.id, game: b.dataset.game }); if (!r.ok) return err(r.error); $('#stChoose').innerHTML = ''; return L.loadRoom(true); }
     if (a === 'gif') return openGifPicker((u) => { $('#lgIn').value = u; $('#lgSend').requestSubmit(); });

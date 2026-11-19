@@ -21,7 +21,7 @@ const MOVES = ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'];
   const open = async (u, url = '/', w = 1280) => { const c = await br.newContext({ viewport: { width: w, height: 1000 } }); const p = await c.newPage(); p.on('pageerror', (e) => { failed++; console.log('  ✗ page error:', e.message); }); p.on('dialog', (d) => d.accept()); await p.route(/cdn\.jsdelivr\.net|fonts\.g/, (r) => r.abort()); await c.addInitScript((x) => localStorage.setItem('chess:user', JSON.stringify(x)), u); await p.goto(`http://localhost:${PORT}${url}`); return p; };
 
   const A = await open(P.ann, '/?lounges'); await A.waitForSelector('#lgNew');
-  ok('creating a room offers a choice: play room or study room', (await A.$$('input[name=lgkind]')).length === 2, null);
+  ok('creating a room offers a choice: play, board or study room', (await A.$$('input[name=lgkind]')).length === 3, null);
   await A.check('input[name=lgkind][value=study]'); await A.fill('#lgName', 'Study group'); await A.click('#lgNew button[type=submit]'); await A.waitForSelector('#lgStudyP');
   ok('a study room shows a study panel, not tables', !(await A.$('[data-lg="table"]')) && /Choose a game/.test(await A.textContent('#lgStudyP')), null);
   await A.fill('#lgInvName', 'bob'); await A.click('#lgInv button'); await A.waitForFunction(() => /Waiting for: bob/.test(document.querySelector('#lounge').textContent));
