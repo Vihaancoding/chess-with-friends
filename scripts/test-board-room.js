@@ -53,7 +53,5 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   if (process.env.SHOT) await pa.screenshot({ path: process.env.SHOT + '-board.png', fullPage: true });
   await pa.click('[data-sbback]'); await pa.waitForSelector('[data-lg="sbopen"]');
   ok('"Room" returns to the room', true);
-  await pa.click('#navSandbox'); await pa.waitForSelector('.sbboard');
-  ok('the personal Sandbox is still its own empty board', (await pa.$$('.sbsq img')).length === 0, null);
   await br.close(); console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -52,7 +52,7 @@
   S.paint = function (full) {
     const p = pos(), play = S.mode === 'play';
     const moves = play && S.sel != null ? Chess.legalMoves(S.st).filter((m) => m.from === S.sel) : [], to = new Set(moves.map((m) => m.to));
-    const sq = p.board.map((c, i) => `<button class="sbsq stsq ${((i >> 3) + (i & 7)) % 2 ? 'dk' : 'lt'}${S.last && (i === S.last.from || i === S.last.to) ? ' lm' : ''}${S.sel === i ? ' sel' : ''}${to.has(i) ? ' tgt' : ''}" data-sq="${i}" aria-label="${esc(Chess.sqName(i))}${c ? ' ' + (c[0] === 'w' ? 'white ' : 'black ') + NAME[c[1]] : ''}">${c ? img(c) : ''}</button>`).join('');
+    const sq = p.board.map((c, i) => `<div class="sq sbsq ${((i >> 3) + (i & 7)) % 2 ? 'd' : 'l'}${S.last && (i === S.last.from || i === S.last.to) ? ' last' : ''}${S.sel === i ? ' sel' : ''}${to.has(i) ? ' tgt hint' + (c ? ' cap' : '') : ''}" data-sq="${i}" role="button" aria-label="${esc(Chess.sqName(i))}${c ? ' ' + (c[0] === 'w' ? 'white ' : 'black ') + NAME[c[1]] : ''}">${c ? pieceHTML(c) : ''}${i % 8 === 0 ? `<span class="coord r">${8 - (i >> 3)}</span>` : ''}${i >= 56 ? `<span class="coord f">${'abcdefgh'[i & 7]}</span>` : ''}</div>`).join('');
     let status = '';
     if (play) {
       const s = over(S.st), side = S.st.turn === 'w' ? 'White' : 'Black';
@@ -64,7 +64,7 @@
     const nt = !rm ? '' : `<div class="panel sbnotes" style="margin-top:12px"><h2 class="ph">Notes</h2><div id="sbNoteList">${(S.notes || []).slice().reverse().map((n) => `<div class="lgrow"><span><b>${esc(n.by)}</b> <span class="muted">${n.ply ? 'after move ' + n.ply : 'setup'}</span><br>${esc(n.text)}</span>${n.by === me || rm.owner === me ? `<button class="delx" data-sbnd="${esc(n.id)}" aria-label="Delete note" title="Delete note">×</button>` : ''}</div>`).join('') || '<div class="muted">No notes yet.</div>'}</div>
         <form id="sbNoteForm" class="lgrow"><input id="sbNoteIn" maxlength="240" autocomplete="off" placeholder="${play ? 'Note on this position (after move ' + S.hist.length + ')' : 'Note on this setup'}" aria-label="Note" style="flex:1"><button class="primary" type="submit">Add</button></form></div>`;
     const html = `<div class="lgwrap"><div class="lgtop">${rm ? '<button class="small" data-sbback>← Room</button>' : ''}<h1 class="ptitle" style="margin:0">${rm ? esc(rm.name) : 'Sandbox'}</h1><span class="muted" style="font-weight:600">${rm ? 'Shared board: everyone in the room sees the same pieces and moves.' : 'A blank board. Place any pieces anywhere, then play from that position.'}</span></div>${S.err ? `<div class="err" role="alert">${esc(S.err)}</div>` : ''}
-      <div class="sbgrid"><div><div class="stboard sbboard">${sq}</div></div>
+      <div class="sbgrid"><div><div class="sbboard">${sq}</div></div>
       <div><div class="panel sbside">
         <div class="authtabs" role="tablist"><button data-sbmode="setup" class="${play ? '' : 'on'}" role="tab" aria-selected="${!play}">Place pieces</button><button data-sbmode="play" class="${play ? 'on' : ''}" role="tab" aria-selected="${play}">Play</button></div>
         ${play ? `<div class="sbstatus" role="status">${esc(status)}</div><div class="acts"><button data-sbundo ${S.hist.length ? '' : 'disabled'}>Undo</button></div><div class="muted" style="font-size:.85rem;font-weight:600;margin-top:8px">Move by clicking a piece, then where it goes. Pawns that reach the last row become queens. Go back to Place pieces to change the position.</div>`
