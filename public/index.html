@@ -693,6 +693,11 @@
   .avi { border-radius: 50%; object-fit: cover; aspect-ratio: 1; display: inline-block; vertical-align: middle; margin-right: 8px; background: #3b3a37; flex: none; outline: 1px solid #ffffff24; outline-offset: -1px; }
   .delx { background: none; box-shadow: none; color: var(--muted); min-height: 20px; padding: 0 6px; font-size: .95rem; line-height: 1; margin-left: 4px; opacity: 0; transition: opacity .12s; } .delx:hover { color: var(--bad); }
   .gm:hover .delx, .tcm:hover .delx, .lgmsg:hover .delx, .delx:focus-visible { opacity: 1; } @media (hover: none) { .delx { opacity: .55; } }
+  #ideaForm textarea { padding: 10px 14px; border-radius: 8px; border: 2px solid transparent; background: #1f1e1b; color: inherit; font: inherit; font-weight: 600; resize: vertical; min-height: 72px; transition: border-color .15s; } #ideaForm textarea:focus { outline: none; border-color: var(--accent, #81b64c); }
+  #ideasErr.ok { color: var(--accent, #81b64c) !important; }
+  .idea { padding: 12px 0; border-top: 1px solid #8883; display: flex; gap: 12px; } .idea .vt { flex: none; min-width: 46px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 4px; background: #ffffff0d; box-shadow: none; border-radius: 10px; font-weight: 800; line-height: 1.15; } .idea .vt.on { background: var(--accent, #81b64c); color: #fff; }
+  .idea h3 { margin: 0 0 2px; font-size: 1rem; } .idea .by { color: var(--muted); font-size: .8rem; font-weight: 600; } .idea p { margin: 4px 0 0; font-size: .92rem; overflow-wrap: anywhere; white-space: pre-line; }
+  .idea .note { margin-top: 5px; font-size: .85rem; font-weight: 700; color: var(--gold, #f7c631); } .stbadge { font-size: .65rem; font-weight: 800; text-transform: uppercase; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; background: #ffffff1a; } .stbadge.planned { background: #3b5fa8; color: #fff; } .stbadge.done { background: #3f7d2c; color: #fff; } .stbadge.no { background: #6b2d2a; color: #fff; }
   .avi[hidden] { display: none; } .avi.s20 { margin-right: 7px; } .avi.s28 { margin-right: 10px; }
   #lb td, #statsBody td, #onlinelist .orow { vertical-align: middle; } #lb td, #statsBody td { height: 46px; }   /* same row height with or without a picture, text centred on the circle */
   td > .who { display: flex; }   /* a block flex box in a cell has no text-baseline gap, so the row centres properly */
@@ -1189,6 +1194,7 @@
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
     <button id="navCoach" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
     <button id="navTour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg> Tournaments</button>
+    <button id="navIdeas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg> Ideas</button>
     <button id="navLounge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg> Rooms</button>
     <button id="navRivals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3"/></svg> Rivalries</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
@@ -7036,6 +7042,36 @@ function showWhatsNew() {
   $('#splashPfp').onclick = () => { done(); if (user) enterProfile(user.name); };
 }
 $('#whatsNew').onclick = showWhatsNew;
+
+// ----- feature requests: ask for something, vote on other people's ideas; admins set the status -----
+const IDEA_ST = { open: 'Open', planned: 'Planned', done: 'Done', no: 'Not now' };
+let ideasAdmin = false;
+function paintIdeas(feats) {
+  const box = $('#ideasBody'); if (!box) return;
+  setHTML(box, feats.length ? feats.map((f) => `<div class="idea" data-id="${esc(f.id)}"><button class="vt${f.mine ? ' on' : ''}" data-ivote="${esc(f.id)}" aria-label="${f.mine ? 'Remove your vote' : 'Vote for this idea'}" aria-pressed="${f.mine}"><span>▲</span><span>${f.votes}</span></button>
+    <div style="min-width:0;flex:1"><h3>${esc(f.t)}${f.st !== 'open' ? `<span class="stbadge ${f.st}">${IDEA_ST[f.st]}</span>` : ''}</h3><div class="by">${esc(f.by)} · ${new Date(f.at).toLocaleDateString()}</div>${f.d ? `<p>${esc(f.d)}</p>` : ''}${f.note ? `<div class="note">${esc(f.note)}</div>` : ''}
+    ${ideasAdmin ? `<div class="acts" style="margin-top:8px"><select data-ist="${esc(f.id)}" aria-label="Status">${Object.entries(IDEA_ST).map(([k, v]) => `<option value="${k}"${k === f.st ? ' selected' : ''}>${v}</option>`).join('')}</select><input data-inote="${esc(f.id)}" value="${esc(f.note)}" maxlength="200" placeholder="Note for everyone (optional)" style="flex:1;min-width:120px"><button class="small" data-isave="${esc(f.id)}">Save</button><button class="small danger" data-idel="${esc(f.id)}">Delete</button></div>` : f.by === user.name ? `<div style="margin-top:6px"><button class="small" data-idel="${esc(f.id)}">Remove my idea</button></div>` : ''}</div></div>`).join('') : '<div class="muted" style="padding:8px 0">No ideas yet. Be the first.</div>');
+}
+async function ideasLoad() { const r = await api('feat_list'); if (!r.ok) return setText($('#ideasErr'), r.error || 'Could not load the ideas.'); ideasAdmin = r.admin; paintIdeas(r.feats); }
+function openIdeas() {
+  openSheet('Request a feature', `<div class="muted" style="font-weight:600;margin-bottom:8px">Tell us what to build next, and vote for ideas you like. The ones with the most votes get looked at first.</div>
+    <form id="ideaForm"><input id="ideaT" maxlength="80" placeholder="Your idea, in a few words" autocomplete="off" aria-label="Your idea"><textarea id="ideaD" maxlength="600" rows="3" placeholder="Details (optional): what should it do?" aria-label="Details" style="margin-top:6px;width:100%"></textarea><button class="primary" type="submit" style="width:100%;margin-top:6px">Send idea</button></form>
+    <div id="ideasErr" class="muted" style="color:var(--bad,#c0392b);min-height:1.1em"></div><div id="ideasBody" style="margin-top:6px"><div class="muted">Loading…</div></div>`, (o) => {
+    ideasLoad();
+    $('#ideaForm').addEventListener('submit', async (e) => {
+      e.preventDefault(); $('#ideasErr').classList.remove('ok'); const r = await api('feat_add', { t: $('#ideaT').value, d: $('#ideaD').value });
+      if (!r.ok) return setText($('#ideasErr'), r.error || 'Could not send it.');
+      $('#ideaT').value = ''; $('#ideaD').value = ''; setText($('#ideasErr'), 'Thanks! Your idea is on the list.'); $('#ideasErr').classList.add('ok'); ideasLoad();
+    });
+    o.addEventListener('click', async (e) => {
+      const v = e.target.closest('[data-ivote]'), sv = e.target.closest('[data-isave]'), dl = e.target.closest('[data-idel]');
+      if (v) { const r = await api('feat_vote', { id: v.dataset.ivote }); return r.ok ? ideasLoad() : setText($('#ideasErr'), r.error); }
+      if (sv) { const id = sv.dataset.isave, r = await api('admin_feat_set', { id, st: o.querySelector(`[data-ist="${id}"]`).value, note: o.querySelector(`[data-inote="${id}"]`).value }); return r.ok ? ideasLoad() : setText($('#ideasErr'), r.error); }
+      if (dl) { if (!confirm('Remove this idea?')) return; const r = await api('feat_delete', { id: dl.dataset.idel }); return r.ok ? ideasLoad() : setText($('#ideasErr'), r.error); }
+    });
+  });
+}
+$('#navIdeas').onclick = openIdeas;
 // pictures on the game screen are re-asked every 30 seconds (a missing one stays the letter avatar)
 function avRefresh() { document.querySelectorAll('.avatar[data-avn]').forEach((el) => { const i = el.querySelector('img.avi'); if (i) i.remove(); el.insertAdjacentHTML('beforeend', avImg(el.dataset.avn, +el.dataset.avp || 40, true)); }); }
 setInterval(() => { if (!document.hidden && view === 'game') avRefresh(); }, 30000);
