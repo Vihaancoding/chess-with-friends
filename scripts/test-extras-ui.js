@@ -56,6 +56,14 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT + '-profile.png' });
   await p.click('#navPlay'); await p.click('[data-st="brilliant"]'); await p.waitForSelector('#statsBody table');
   if (process.env.SHOT) { await p.evaluate(() => document.querySelector('#statscard').scrollIntoView()); await sleep(400); await p.screenshot({ path: process.env.SHOT + '-stats.png' }); }
+  console.log('deleting my own messages');
+  await p.click('#navPlay'); await p.waitForSelector('#chatlog');
+  await api('chat_send', { text: 'bob says hi' }, B); await sleep(900);
+  await p.waitForFunction(() => /bob says hi/.test(document.querySelector('#chatlog').textContent), null, { timeout: 15000 });
+  ok('my messages have a delete cross, other people\'s do not', (await p.$$('#chatlog .msg [data-del]')).length >= 1 && !(await p.$('#chatlog .msg:has-text("bob says hi") [data-del]')), null);
+  await p.click('#chatlog .msg:has-text("hello") [data-del]');
+  await p.waitForFunction(() => !/hello/.test(document.querySelector('#chatlog').textContent), null, { timeout: 8000 });
+  ok('deleting it removes it from the chat', true);
   console.log('pictures during a game');
   await api('avatar_clear', {}, A);   // ann starts without a picture
   const g = await api('create', { color: 'w', tc: { base: 300, inc: 0 } }, A); await api('join', { code: g.code }, B);

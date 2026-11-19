@@ -19,7 +19,7 @@
     L.timer = setInterval(() => { if (!document.hidden && view === 'lounge') (L.id ? L.loadRoom(true) : L.loadHome()); }, L.id ? 8000 : 15000);
     if (id && L.data && L.data.room) {
       const re = () => L.loadRoom(true);
-      L.off = rtSubscribe(L.data.room.topic, { chat: (m) => L.onChat(m), tbl: re, mem: re }, (ok) => { L.live = ok; });
+      L.off = rtSubscribe(L.data.room.topic, { chat: (m) => L.onChat(m), cd: re, tbl: re, mem: re }, (ok) => { L.live = ok; });
     }
   };
 
@@ -61,7 +61,7 @@
     const mem = rm.members.map((n) => `<div class="lgrow"><span class="who"><span class="lgdot${L.online.has(n) ? ' on' : ''}"></span>${avImg(n, 28)}<span class="plink" data-name="${esc(n)}">${esc(n)}</span>${n === rm.owner ? ' <span class="badge gold">owner</span>' : ''}${n === me ? ' <span class="muted">(you)</span>' : ''}</span><span class="acts">${n !== me ? `<button class="small" data-lg="chal" data-n="${esc(n)}">Challenge</button>` : ''}${owner && n !== me ? `<button class="small danger" data-lg="kick" data-n="${esc(n)}" aria-label="Remove ${esc(n)}">✕</button>` : ''}</span></div>`).join('');
     const tbl = d.table.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.name)}</td><td class="r">${x.w}</td><td class="r">${x.d}</td><td class="r">${x.l}</td><td class="r"><b>${x.pts % 1 ? (Math.floor(x.pts) || '') + '½' : x.pts}</b></td></tr>`).join('');
     const tabs = d.tables.map((t) => `<div class="lgrow"><span><b>${esc(t.by)}</b> <span class="muted">${esc(tcName(t.tc))}</span></span>${t.by === me ? '<button class="small" data-lg="sit" data-code="' + esc(t.code) + '">Go to my table</button>' : `<button class="primary small" data-lg="sit" data-code="${esc(t.code)}">Sit down</button>`}</div>`).join('');
-    const chat = d.chat.map((m) => `<div class="lgmsg">${avImg(m.n, 20)}<b>${esc(m.n)}</b> ${chatBody(m.t)}</div>`).join('');
+    const chat = d.chat.map((m) => `<div class="lgmsg">${avImg(m.n, 20)}<b>${esc(m.n)}</b> ${chatBody(m.t)}${m.n === me ? ` <button class="delx" data-lg="mdel" data-id="${esc(m.id)}" title="Delete your message" aria-label="Delete your message">×</button>` : ''}</div>`).join('');
     const body = `<div class="lgwrap">
       <div class="lgtop"><button class="small" data-lg="back">← Rooms</button><h1 class="ptitle" style="margin:0">${esc(rm.name)}</h1><span class="acts"><button class="small" data-lg="link">Copy link</button>${owner ? '<button class="small danger" data-lg="del">Delete</button>' : ''}<button class="small" data-lg="leave">Leave</button></span></div>
       <div class="lggrid">
@@ -202,6 +202,7 @@
     if (a === 'pick') return L.pickGame();
     if (a === 'use') { if (L.data.study && L.data.study.notes.length && !confirm('Switching the game clears the notes. Continue?')) return; const r = await api('lounge_study_pick', { id: L.id, game: b.dataset.game }); if (!r.ok) return err(r.error); L.ply = 0; L.formPly = -1; return L.loadRoom(true); }
     if (a === 'gif') return openGifPicker((u) => { $('#lgIn').value = u; $('#lgSend').requestSubmit(); });
+    if (a === 'mdel') { const r = await api('lounge_chat_delete', { id: L.id, mid: b.dataset.id }); return r.ok ? L.loadRoom(true) : err(r.error); }
     if (a === 'open') return L.enter(id);
     if (a === 'back') return L.enter(null);
     if (a === 'yes' || a === 'no') { const r = await api('lounge_reply', { id, accept: a === 'yes' }); if (!r.ok) return err(r.error); return a === 'yes' ? L.enter(id) : L.enter(null); }

@@ -23,5 +23,22 @@ const tc = { base: 300, inc: 0 };
   ok('the two players chat', (await call('game_chat_send', { code: t.code, text: 'room secret' }, P.ann)).ok, null);
   ok('another member of the room can watch and read it', (await call('game_chat', { code: t.code }, P.cat)).msgs.length === 1, null);
   ok('a stranger cannot read, write, join or open the game', (await call('game_chat', { code: t.code }, P.eve)).status === 404 && (await call('game_chat_send', { code: t.code, text: 'hi' }, P.eve)).status === 404 && (await call('join', { code: t.code }, P.eve)).status === 404 && (await call('room', { code: t.code }, P.eve)).status === 404, null);
+
+  console.log('deleting your own messages');
+  const wait = () => new Promise((r) => setTimeout(r, 800));
+  // lobby
+  await call('admin_claim', { key: 'k' }, P.eve);
+  const lm = (await call('chat_send', { text: 'oops wrong chat' }, P.ann)).msg; await wait();
+  ok('lobby: someone else cannot delete it', (await call('chat_delete', { id: lm.id }, P.bob)).status === 403, null);
+  ok('lobby: the author deletes it', (await call('chat_delete', { id: lm.id }, P.ann)).ok && !(await call('me', {}, P.bob)).chat.some((m) => m.id === lm.id), null);
+  ok('lobby: deleting it twice is fine', (await call('chat_delete', { id: lm.id }, P.ann)).ok, null);
+  // game chat
+  const gm = (await call('game_chat_send', { code: g.code, text: 'gg ez' }, P.bob)).msg;
+  ok('game: not yours, not allowed', (await call('game_chat_delete', { code: g.code, id: gm.id }, P.ann)).status === 403, null);
+  ok('game: yours, gone for everyone', (await call('game_chat_delete', { code: g.code, id: gm.id }, P.bob)).ok && !(await call('game_chat', { code: g.code }, P.ann)).msgs.some((m) => m.id === gm.id), null);
+  // room chat
+  const rm = (await call('lounge_chat', { id: l.id, text: 'private oops' }, P.ann)).msg;
+  ok('room: a member cannot delete another member\'s message', (await call('lounge_chat_delete', { id: l.id, mid: rm.id }, P.bob)).status === 403, null);
+  ok('room: the author can', (await call('lounge_chat_delete', { id: l.id, mid: rm.id }, P.ann)).ok && !(await call('lounge_msgs', { id: l.id }, P.bob)).chat.some((m) => m.id === rm.id), null);
   console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
