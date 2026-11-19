@@ -1,0 +1,66 @@
+// Sandbox room: one blank board. Put any pieces anywhere, then play from that position. Nothing is saved or shared.
+// Loaded the first time someone opens "Sandbox". Uses the page's globals: $, esc, setHTML, show, view, stopLobby, stopGame, stopAdmin, Chess.
+(function () {
+  const S = window.Sandbox = { board: new Array(64).fill(null), turn: 'w', mode: 'setup', pick: 'wQ', st: null, hist: [], sel: null, last: null };
+  const KINDS = ['K', 'Q', 'R', 'B', 'N', 'P'], NAME = { K: 'King', Q: 'Queen', R: 'Rook', B: 'Bishop', N: 'Knight', P: 'Pawn' };
+  const img = (p) => `<img src="/piece/cburnett/${p}.svg" alt="" draggable="false">`;
+  const el = () => $('#sandbox');
+
+  S.enter = function () {
+    stopLobby(); stopGame(); stopAdmin(); if (window.Lounge) Lounge.stop();
+    view = 'sandbox'; gameCode = null; history.replaceState(null, '', '/?sandbox'); show('sandbox');
+    S.paint(true);
+  };
+
+  // the position being played (or set up)
+  // in the sandbox only "no legal move" ends play (a hand-made position can have any pieces, so no draw rules get in the way)
+  const over = (st) => { const none = !Chess.legalMoves(st).length, check = Chess.inCheck(st, st.turn); return { over: none, mate: none && check, check }; };
+  const pos = () => (S.mode === 'play' ? S.st : { board: S.board, turn: S.turn });
+  const state = () => ({ board: S.board.slice(), turn: S.turn, castle: { wK: false, wQ: false, bK: false, bQ: false }, ep: null, half: 0, full: 1 });   // no castling in a hand-made position
+
+  S.paint = function (full) {
+    const p = pos(), play = S.mode === 'play';
+    const moves = play && S.sel != null ? Chess.legalMoves(S.st).filter((m) => m.from === S.sel) : [], to = new Set(moves.map((m) => m.to));
+    const sq = p.board.map((c, i) => `<button class="sbsq stsq ${((i >> 3) + (i & 7)) % 2 ? 'dk' : 'lt'}${S.last && (i === S.last.from || i === S.last.to) ? ' lm' : ''}${S.sel === i ? ' sel' : ''}${to.has(i) ? ' tgt' : ''}" data-sq="${i}" aria-label="${esc(Chess.sqName(i))}${c ? ' ' + (c[0] === 'w' ? 'white ' : 'black ') + NAME[c[1]] : ''}">${c ? img(c) : ''}</button>`).join('');
+    let status = '';
+    if (play) {
+      const s = over(S.st), side = S.st.turn === 'w' ? 'White' : 'Black';
+      status = s.over ? (s.mate ? `Checkmate: ${S.st.turn === 'w' ? 'Black' : 'White'} wins` : 'Stalemate: no legal move') : `${side} to move${s.check ? ' (check)' : ''}`;
+    }
+    const pal = ['w', 'b'].map((c) => `<div class="sbpal">${KINDS.map((k) => `<button class="sbp${S.pick === c + k ? ' on' : ''}" data-pick="${c}${k}" aria-label="${c === 'w' ? 'White' : 'Black'} ${NAME[k]}" aria-pressed="${S.pick === c + k}">${img(c + k)}</button>`).join('')}</div>`).join('') +
+      `<div class="sbpal"><button class="sbp wide${S.pick === 'x' ? ' on' : ''}" data-pick="x" aria-pressed="${S.pick === 'x'}">Remove a piece</button></div>`;
+    const html = `<div class="lgwrap"><div class="lgtop"><h1 class="ptitle" style="margin:0">Sandbox</h1><span class="muted" style="font-weight:600">A blank board. Place any pieces anywhere, then play from that position.</span></div>
+      <div class="sbgrid"><div><div class="stboard sbboard">${sq}</div></div>
+      <div class="panel sbside">
+        <div class="authtabs" role="tablist"><button data-sbmode="setup" class="${play ? '' : 'on'}" role="tab" aria-selected="${!play}">Place pieces</button><button data-sbmode="play" class="${play ? 'on' : ''}" role="tab" aria-selected="${play}">Play</button></div>
+        ${play ? `<div class="sbstatus" role="status">${esc(status)}</div><div class="acts"><button data-sbundo ${S.hist.length ? '' : 'disabled'}>Undo</button></div><div class="muted" style="font-size:.85rem;font-weight:600;margin-top:8px">Move by clicking a piece, then where it goes. Pawns that reach the last row become queens. Go back to Place pieces to change the position.</div>`
+        : `<div class="label" style="margin-top:10px">Pick a piece, then click squares</div>${pal}<div class="label" style="margin-top:10px">Who moves first</div><div class="authtabs"><button data-sbturn="w" class="${S.turn === 'w' ? 'on' : ''}">White</button><button data-sbturn="b" class="${S.turn === 'b' ? 'on' : ''}">Black</button></div><div class="acts" style="margin-top:12px"><button data-sbclear>Clear the board</button></div>`}
+      </div></div></div>`;
+    setHTML(el(), html);
+  };
+
+  S.start = function () {
+    S.st = state(); S.hist = []; S.sel = null; S.last = null; S.mode = 'play'; S.paint();
+  };
+
+  document.addEventListener('click', (e) => {
+    if (view !== 'sandbox') return;
+    const t = e.target, q = (s) => t.closest(s);
+    let b;
+    if ((b = q('[data-pick]'))) { S.pick = b.dataset.pick; return S.paint(); }
+    if ((b = q('[data-sbturn]'))) { S.turn = b.dataset.sbturn; return S.paint(); }
+    if (q('[data-sbclear]')) { S.board = new Array(64).fill(null); return S.paint(); }
+    if ((b = q('[data-sbmode]'))) { if (b.dataset.sbmode === 'play') return S.start(); S.mode = 'setup'; S.sel = null; return S.paint(); }
+    if (q('[data-sbundo]')) { if (S.hist.length) { const h = S.hist.pop(); S.st = h.st; S.last = h.last; S.sel = null; S.paint(); } return; }
+    if ((b = q('[data-sq]'))) {
+      const i = +b.dataset.sq;
+      if (S.mode === 'setup') { S.board[i] = S.pick === 'x' || S.board[i] === S.pick ? null : S.pick; return S.paint(); }
+      // play: pick up a piece of the side to move, or put it down on a square it can reach
+      if (S.sel != null) {
+        const ms = Chess.legalMoves(S.st).filter((m) => m.from === S.sel && m.to === i);
+        if (ms.length) { const m = ms.find((x) => x.promo === 'Q') || ms[0]; S.hist.push({ st: S.st, last: S.last }); S.st = Chess.apply(S.st, m); S.last = { from: m.from, to: m.to }; S.sel = null; return S.paint(); }
+      }
+      const c = S.st.board[i]; S.sel = c && c[0] === S.st.turn && !over(S.st).over ? i : null; S.paint();
+    }
+  });
+})();
