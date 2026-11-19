@@ -691,6 +691,8 @@
   .splash .item b { display: block; font-size: 1.05rem; margin-bottom: 2px; } .splash .item span { color: var(--muted); font-weight: 600; font-size: .92rem; line-height: 1.35; }
   .splash .acts { display: flex; gap: 8px; margin-top: 14px; } .splash .acts button { flex: 1; min-height: 46px; }
   .avi { border-radius: 50%; object-fit: cover; aspect-ratio: 1; display: inline-block; vertical-align: middle; margin-right: 8px; background: #3b3a37; flex: none; outline: 1px solid #ffffff24; outline-offset: -1px; }
+  .delx { background: none; box-shadow: none; color: var(--muted); min-height: 20px; padding: 0 6px; font-size: .95rem; line-height: 1; margin-left: 4px; opacity: 0; transition: opacity .12s; } .delx:hover { color: var(--bad); }
+  .gm:hover .delx, .tcm:hover .delx, .lgmsg:hover .delx, .delx:focus-visible { opacity: 1; } @media (hover: none) { .delx { opacity: .55; } }
   .avi[hidden] { display: none; } .avi.s20 { margin-right: 7px; } .avi.s28 { margin-right: 10px; }
   #lb td, #statsBody td, #onlinelist .orow { vertical-align: middle; } #lb td, #statsBody td { height: 46px; }   /* same row height with or without a picture, text centred on the circle */
   td > .who { display: flex; }   /* a block flex box in a cell has no text-baseline gap, so the row centres properly */
@@ -1900,7 +1902,7 @@ function sseEnsure() {
     for (const t of SSE.topics.values()) t.onState && t.onState(false);
     if (es.readyState === 2) setTimeout(sseEnsure, 1000);               // closed for good: reopen
   };
-  for (const ev of ['m', 's', 'c', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem']) es.addEventListener(ev, (e) => {
+  for (const ev of ['m', 's', 'c', 'cd', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem']) es.addEventListener(ev, (e) => {
     let d; try { d = JSON.parse(e.data); } catch { return; }
     for (const t of SSE.topics.values()) if (t.handlers[ev]) t.handlers[ev](d);
   });
@@ -1961,6 +1963,7 @@ function ensureSessionSubs() {
   rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
 }
 function onUserPing(d) {
+  if (d.why === 'cd' && d.ev && d.code === gameCode) return onGameChatDel(d.ev);
   if (d.why === 'c' && d.ev && d.code === gameCode && roomH.c) return roomH.c(d.ev);               // a game chat message, sent privately to the players
   if (d.why === 'm' && d.ev && d.code === gameCode && roomH.m) return roomH.m(d.ev);                // a move for my own game, sent privately
   if (d.why === 'cam') return camOnSignal(d);                         // the opponent's video handshake, sent privately
@@ -2619,7 +2622,7 @@ function drawChat() {
   const log = $('#chatlog');
   const near = !chatDrawn || log.scrollHeight - log.scrollTop - log.clientHeight < 50;
   const all = curChat.concat(chatPending.filter((p) => !curChat.some((m) => m.id === p.realId)));
-  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span>${avImg(m.name, 20)}<b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${chatBody(m.text)}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
+  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span>${avImg(m.name, 20)}<b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${chatBody(m.text)}</span>${(curAdmin || m.name === user.name) && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
   // reuse the rows already on screen so nothing flickers; only new rows are built
   const old = new Map();
   for (const el of log.children) if (el.dataset.id) old.set(el.dataset.id, el);
@@ -2649,7 +2652,7 @@ $('#chatlog').addEventListener('click', async (e) => {
   const id = b.dataset.del;
   chatGone.add(id);
   curChat = curChat.filter((m) => m.id !== id); drawChat();
-  const r = await api('admin_delete_msg', { id });
+  const r = await api('chat_delete', { id });
   if (!r.ok) $('#chatErr').textContent = r.error || 'Could not delete.';
   pollLobby(true);
 });
@@ -3441,7 +3444,7 @@ function enterGame(code, seed) {
   awayGame = null; hideChatToast();
   rtRoomLive = false;
   const st = (ok) => { const was = rtRoomLive; rtRoomLive = ok; if (ok && !was) { vcSend('who'); camHello(); if (Date.now() - lastKick > 400) kick(); if (Date.now() - gchatLoad > 1500) loadGameChat(code); } };
-  roomH = { m: onRtMove, s: () => kick(), c: onGameChat, r: onSignal, st };
+  roomH = { m: onRtMove, s: () => kick(), c: onGameChat, cd: onGameChatDel, r: onSignal, st };
   if (!roomSubscribe(code) && roomConn) st(true);           // came back to a game we kept listening to while away
   kick();
   clockTimer = setInterval(drawClocks, 200);
@@ -4081,8 +4084,8 @@ function addGameMsg(m) {
   if (CAM.tab === 'cam' && m.n !== user.name) $('#chatDot').classList.remove('hidden');
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const el = document.createElement('div');
-  el.className = 'gm'; el.dataset.ts = m.ts || 0;
-  el.innerHTML = `${avImg(m.n, 20)}<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${chatBody(m.t)}`;
+  el.className = 'gm'; el.dataset.ts = m.ts || 0; el.dataset.id = m.id;
+  el.innerHTML = `${avImg(m.n, 20)}<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${chatBody(m.t)}${m.n === user.name ? ` <button class="delx" data-gdel="${esc(m.id)}" title="Delete your message" aria-label="Delete your message">×</button>` : ''}`;
   knownName(m.n);
   // keep time order even when the saved history arrives after a live message
   const after = [...log.children].find((x) => x.dataset.ts && +x.dataset.ts > +el.dataset.ts);   // notices have no time: never reordered
@@ -4095,6 +4098,12 @@ function sysGameMsg(text) {
   el.className = 'gm sys'; el.textContent = text;
   log.appendChild(el); log.scrollTop = log.scrollHeight;
 }
+function onGameChatDel(d) { if (d && d.id) { gchatIds.delete(d.id); const el = document.querySelector(`#gclog .gm[data-id="${CSS.escape(String(d.id))}"]`); if (el) el.remove(); } }
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-gdel]'); if (!b) return;
+  const id = b.dataset.gdel, row = b.closest('.gm'); if (row) row.remove(); onGameChatDel({ id });
+  const r = await api('game_chat_delete', { code: gameCode, id }); if (!r.ok) loadGameChat(gameCode);
+});
 function onGameChat(m) {
   if (view !== 'game' || isBot()) return;
   if (addGameMsg(m) && snap && m.n !== user.name) { sfx('move'); chatToast(m); }
@@ -6890,7 +6899,7 @@ function paintTourChat(msgs) {
   const log = $('#tcLog'), atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const when = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   log.innerHTML = msgs.length ? msgs.map((m) => m.sys ? `<div class="tcm sys">${esc(m.t)}</div>`
-    : `<div class="tcm">${avImg(m.n, 20)}<b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${chatBody(m.t)}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
+    : `<div class="tcm">${avImg(m.n, 20)}<b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${chatBody(m.t)}<time>${when(m.ts)}</time>${m.n === user.name ? `<button class="delx" data-tcdel="${esc(m.id)}" title="Delete your message" aria-label="Delete your message">×</button>` : ''}</div>`).join('') : '<div class="muted">No messages yet.</div>';
   if (atEnd || !log.dataset.seen) log.scrollTop = log.scrollHeight;
   log.dataset.seen = '1';
 }
@@ -7027,6 +7036,11 @@ function avRefresh() { document.querySelectorAll('.avatar[data-avn]').forEach((e
 setInterval(() => { if (!document.hidden && view === 'game') avRefresh(); }, 30000);
 // after an update, once per browser, on the main page (not for automated browsers, unless asked with ?whatsnew)
 function maybeWhatsNew() { if (!user || whatsNewSeen() || (navigator.webdriver && !FORCE_WN)) return; setTimeout(() => { if (view === 'lobby' && !whatsNewSeen()) showWhatsNew(); }, 700); }
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-tcdel]'); if (!b || !tourId) return;
+  b.closest('.tcm').remove();
+  const r = await api('tour_chat_delete', { id: tourId, mid: b.dataset.tcdel }); if (!r.ok) setText($('#tcErr'), r.error || 'Could not delete.'); loadTours();
+});
 $('#navTour').onclick = () => enterTours();
 let loungeP = null;
 const loadLounge = () => loungeP || (loungeP = loadScript('/lounge.js').catch((e) => { loungeP = null; throw e; }));
