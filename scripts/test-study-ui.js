@@ -52,6 +52,10 @@ const MOVES = ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'];
   ok('Stockfish agrees with the blunder mark', /ann[\s\S]*Stockfish agrees/.test(t), t);
   ok('and disagrees with calling it good', /bob[\s\S]*Stockfish disagrees: it rates this as a blunder/.test(t), t);
   ok('the agreement table ranks the members', /100%/.test(await A.textContent('#sgScore')), await A.textContent('#sgScore'));
+  ok('the panel explains how it works and names each mark', /How this works/.test(await A.textContent('#studypanel')) && /Blunder/.test(await A.textContent('#sgForm')), null);
+  ok('there is an overview of every noted move that jumps to it', (await A.$$('#sgAll [data-sg="goto"]')).length === 1, null);
+  await A.click('#moves .mv[data-ply="2"]:not(.ph)'); await A.click('[data-sg="nextn"]'); await A.waitForFunction(() => /3\.\.\. Nf6/.test(document.querySelector('#sgForm').textContent), null, { timeout: 8000 });
+  ok('"Next note" jumps to the next move that has a note', true);
 
   console.log('chat and leaving');
   await A.fill('#sgIn', 'nice catch'); await A.click('#sgSend button[type=submit]');

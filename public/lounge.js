@@ -132,6 +132,7 @@
   const BUCKET = { brilliant: 'good', great: 'good', best: 'good', excellent: 'good', good: 'good', forced: 'good', inaccuracy: 'inacc', mistake: 'mistake', blunder: 'blunder' };
   const MARKB = { '!!': 'good', '!': 'good', '?!': 'inacc', '?': 'mistake', '??': 'blunder' };
   const ORDER = ['good', 'inacc', 'mistake', 'blunder'], BNAME = { good: 'a good move', inacc: 'an inaccuracy', mistake: 'a mistake', blunder: 'a blunder' };
+  const MARKD = { '!!': 'a brilliant, surprising move', '!': 'a good, solid move', '!?': 'interesting, worth a look', '?!': 'dubious, probably not best', '?': 'a mistake that costs something', '??': 'a blunder that throws the game away' };
   L.mark = ''; L.sPly = -1; L.sDone = -1; L.sFormPly = -2; L.sMarks = '';
 
   // the room page: the chosen game and a button into the full board
@@ -163,7 +164,10 @@
     const box = $('#studypanel'); if (!box) return;
     box.classList.remove('hidden');
     box.innerHTML = `<div class="anhead"><b id="sgTitle">Study</b><span class="muted" id="sgMem"></span></div>
-      <div id="sgForm"></div><div id="sgList"></div><div id="sgScore"></div>
+      <details class="sghelp" open><summary>How this works</summary><ol><li>Step through the game with the arrow keys, the buttons under the board, or by clicking a move.</li><li>On any move, pick a mark and say why. Everyone in the room sees your note.</li><li>When the review above says Done, Stockfish checks each mark: ✓ agrees, ~ close, ✗ disagrees.</li><li>The table at the bottom scores each member against Stockfish.</li></ol></details>
+      <div id="sgSf" class="muted" style="font-size:.82rem;font-weight:700;margin:6px 0"></div>
+      <div id="sgNav"></div>
+      <div id="sgForm"></div><div id="sgList"></div><div id="sgAll"></div><div id="sgScore"></div>
       <h2 class="ph" style="margin-top:14px"><span>Room chat</span></h2><div id="sgLog" class="lglog" style="height:160px"></div>
       <form id="sgSend" class="lgrow"><input id="sgIn" maxlength="300" autocomplete="off" placeholder="Message the room" aria-label="Message" style="flex:1"><button type="button" class="small gifbtn" data-sg="gif" title="Send a GIF">GIF</button><button class="primary" type="submit">Send</button></form><div id="sgErr" class="muted" style="color:var(--bad,#c0392b)"></div>`;
     await L.sFetch();
@@ -193,9 +197,14 @@
     if (force || L.sFormPly !== p) {                                          // the note form only changes with the move on screen
       L.sFormPly = p;
       const mine = at.find((x) => x.by === me); L.mark = mine ? mine.mark : '';
-      setHTML($('#sgForm'), p ? `<div class="label">Your note on ${esc(mvName(p))}</div><div class="stmarks">${MARKS.map(([m, t]) => `<button type="button" class="stmk${m === L.mark ? ' on' : ''}" data-sg="mark" data-m="${m}" title="${t}">${m}</button>`).join('')}</div><div class="lgrow"><input id="sgText" maxlength="240" autocomplete="off" placeholder="What do you see here?" value="${esc(mine ? mine.text : '')}" style="flex:1"><button class="primary" data-sg="note">Save</button></div>` : '<div class="muted" style="font-weight:600">Step to a move (arrow keys or click one), then mark it (!! ! !? ?! ? ??) and say why. Stockfish checks the marks.</div>');
+      setHTML($('#sgForm'), p ? `<div class="label">Your note on ${esc(mvName(p))}</div><div class="stmarks">${MARKS.map(([m, t]) => `<button type="button" class="stmk${m === L.mark ? ' on' : ''}" data-sg="mark" data-m="${m}" title="${m} ${t}: ${MARKD[m]}" aria-label="${t} (${m})"><b>${m}</b><small>${t}</small></button>`).join('')}</div><div class="muted" id="sgMarkDesc" style="font-size:.82rem;font-weight:600;min-height:1.2em">${L.mark ? esc(MARKD[L.mark]) : 'Optional: pick a mark, or just write a comment.'}</div><div class="lgrow"><input id="sgText" maxlength="240" autocomplete="off" placeholder="What do you see here? (Enter saves)" value="${esc(mine ? mine.text : '')}" style="flex:1"><button class="primary" data-sg="note">Save</button></div><div class="lgrow" style="justify-content:space-between"><span class="muted" style="font-size:.8rem">One note per member per move. Saving again replaces yours.</span><span id="sgSaved" style="color:#81b64c;font-weight:800;font-size:.85rem" role="status"></span></div>` : '<div class="muted" style="font-weight:600">Step to a move (arrow keys or click one), then mark it (!! ! !? ?! ? ??) and say why. Stockfish checks the marks.</div>');
     }
     setHTML($('#sgList'), p ? (at.length ? at : []).map((x) => { const v = verdict(x); return `<div class="stn"><div>${avImg(x.by, 20)}<b>${esc(x.by)}</b> ${x.mark ? `<span class="stmark">${esc(x.mark)}</span>` : ''} ${esc(x.text)}${x.by === me || d.room.owner === me ? ` <button class="delx" data-sg="ndel" data-id="${esc(x.id)}" style="opacity:1" aria-label="Remove note">×</button>` : ''}</div>${v ? `<div class="stv ${v.ok ? 'ok' : v.near ? 'near' : 'bad'}">${v.ok ? '✓ Stockfish agrees' : (v.near ? '~ Close: ' : '✗ Stockfish disagrees: ') + 'it rates this as ' + v.name}${v.best ? `. Better was <b>${esc(v.best)}</b>` : ''}</div>` : x.mark && !AN.done ? '<div class="stv muted">Stockfish is still checking this move…</div>' : ''}</div>`; }).join('') || '<div class="muted" style="margin-top:6px">No notes on this move yet.</div>' : '');
+    const nps = [...new Set(notes.map((x) => x.ply))].sort((a, b) => a - b), prev = nps.filter((x) => x < p).pop(), next = nps.find((x) => x > p);
+    const done = AN.res.filter(Boolean).length, total = (AN.hist || []).length;
+    setText($('#sgSf'), AN.done || (total && done >= total) ? 'Stockfish review finished: marks are being checked.' : total ? `Stockfish is reviewing the game (${done} of ${total} moves). Marks are checked as it goes.` : 'Waiting for the Stockfish review to start…');
+    setHTML($('#sgNav'), `<div class="lgrow sgnav"><button type="button" class="small" data-sg="prevn" ${prev == null ? 'disabled' : ''} title="Jump to the previous move with a note">◀ Previous note</button><span class="muted" style="font-size:.8rem;font-weight:700">${nps.length ? `${nps.length} move${nps.length === 1 ? '' : 's'} with notes` : 'No notes yet'}</span><button type="button" class="small" data-sg="nextn" ${next == null ? 'disabled' : ''} title="Jump to the next move with a note">Next note ▶</button></div>`);
+    setHTML($('#sgAll'), nps.length ? `<h2 class="ph" style="margin-top:14px"><span>All notes</span><span class="muted" style="font-size:.8rem">tap a move to jump</span></h2>${nps.map((pl) => { const ns = notes.filter((x) => x.ply === pl); return `<button type="button" class="sgrow${pl === p ? ' on' : ''}" data-sg="goto" data-ply="${pl}"><b>${esc(mvName(pl))}</b><span class="sgchips">${ns.map((x) => `<span class="sgchip">${avImg(x.by, 16)}${x.mark ? `<span class="stmark">${esc(x.mark)}</span>` : ''}</span>`).join('')}</span><span class="muted sgtxt">${esc(ns.map((x) => x.text).filter(Boolean)[0] || '')}</span></button>`; }).join('')}` : '');
     const sc = {}; for (const x of notes) { const v = verdict(x); if (!v) continue; const r = (sc[x.by] = sc[x.by] || { n: 0, pts: 0 }); r.n++; r.pts += v.ok ? 1 : v.near ? 0.5 : 0; }
     const rows = Object.entries(sc).sort((a, b) => b[1].pts / b[1].n - a[1].pts / a[1].n);
     setHTML($('#sgScore'), rows.length ? `<h2 class="ph" style="margin-top:14px"><span>Agreement with Stockfish</span></h2>${rows.map(([nm, r]) => `<div class="lgrow"><span>${avImg(nm, 20)}${esc(nm)} <span class="muted">${r.n} mark${r.n === 1 ? '' : 's'}</span></span><b>${Math.round((100 * r.pts) / r.n)}%</b></div>`).join('')}` : '');
@@ -209,6 +218,7 @@
       document.querySelectorAll('#moves .mv:not(.ph)').forEach((c) => { const k = +c.dataset.ply; if (cnt[k]) c.dataset.notes = cnt[k]; else c.removeAttribute('data-notes'); });
     }
   };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'sgText') { e.preventDefault(); const b = document.querySelector('#sgForm [data-sg=note]'); if (b) b.click(); } });
   // the panel's own buttons (it lives next to the game board, outside the Rooms page)
   document.addEventListener('submit', async (e) => {
     if (!e.target.closest('#sgSend')) return; e.preventDefault();
@@ -219,8 +229,10 @@
   document.addEventListener('click', async (e) => {
     const b = e.target.closest('#studypanel [data-sg]'); if (!b || b.disabled) return;
     const a = b.dataset.sg;
-    if (a === 'mark') { L.mark = L.mark === b.dataset.m ? '' : b.dataset.m; document.querySelectorAll('#sgForm .stmk').forEach((x) => x.classList.toggle('on', x.dataset.m === L.mark)); return; }
-    if (a === 'note') { const r = await api('lounge_study_note', { id: L.id, ply: curPly(), mark: L.mark, text: $('#sgText').value }); return r.ok ? L.sFetch() : setText($('#sgErr'), r.error); }
+    if (a === 'mark') { L.mark = L.mark === b.dataset.m ? '' : b.dataset.m; document.querySelectorAll('#sgForm .stmk').forEach((x) => x.classList.toggle('on', x.dataset.m === L.mark)); setText($('#sgMarkDesc'), L.mark ? MARKD[L.mark] : 'Optional: pick a mark, or just write a comment.'); return; }
+    if (a === 'note') { const r = await api('lounge_study_note', { id: L.id, ply: curPly(), mark: L.mark, text: $('#sgText').value }); if (!r.ok) return setText($('#sgErr'), r.error); setText($('#sgErr'), ''); L.sFlash = Date.now(); await L.sFetch(); setText($('#sgSaved'), 'Saved ✓'); setTimeout(() => setText($('#sgSaved'), ''), 2500); return; }
+    if (a === 'goto') return navTo(+b.dataset.ply);
+    if (a === 'prevn' || a === 'nextn') { const ps = [...new Set(((L.data.study || {}).notes || []).map((x) => x.ply))].sort((x, y) => x - y), p = curPly(), t = a === 'prevn' ? ps.filter((x) => x < p).pop() : ps.find((x) => x > p); if (t != null) navTo(t); return; }
     if (a === 'ndel') { const r = await api('lounge_study_del', { id: L.id, note: b.dataset.id }); return r.ok ? L.sFetch() : setText($('#sgErr'), r.error); }
     if (a === 'gif') return openGifPicker((u) => { $('#sgIn').value = u; $('#sgSend').requestSubmit(); });
   });

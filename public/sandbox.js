@@ -1,7 +1,7 @@
 // Sandbox room: one blank board shared by a room. Put any pieces anywhere, then play from that position; notes and the
 // room chat sit beside it. Loaded the first time someone opens a sandbox room's board. Uses the page's globals: $, esc, setHTML, show, view, stopLobby, stopGame, stopAdmin, Chess.
 (function () {
-  const S = window.Sandbox = { board: new Array(64).fill(null), turn: 'w', mode: 'setup', pick: 'wQ', st: null, hist: [], sel: null, last: null };
+  const S = window.Sandbox = { flip: false, board: new Array(64).fill(null), turn: 'w', mode: 'setup', pick: 'wQ', st: null, hist: [], sel: null, last: null };
   const KINDS = ['K', 'Q', 'R', 'B', 'N', 'P'], NAME = { K: 'King', Q: 'Queen', R: 'Rook', B: 'Bishop', N: 'Knight', P: 'Pawn' };
   const img = (p) => `<img src="/piece/cburnett/${p}.svg" alt="" draggable="false">`;
   const el = () => $('#sandbox');
@@ -53,7 +53,15 @@
   S.paint = function (full) {
     const p = pos(), play = S.mode === 'play';
     const moves = play && S.sel != null ? Chess.legalMoves(S.st).filter((m) => m.from === S.sel) : [], to = new Set(moves.map((m) => m.to));
-    const sq = p.board.map((c, i) => `<div class="sq sbsq ${((i >> 3) + (i & 7)) % 2 ? 'd' : 'l'}${S.last && (i === S.last.from || i === S.last.to) ? ' last' : ''}${S.sel === i ? ' sel' : ''}${to.has(i) ? ' tgt hint' + (c ? ' cap' : '') : ''}" data-sq="${i}" role="button" tabindex="0" aria-label="${esc(Chess.sqName(i))}${c ? ' ' + (c[0] === 'w' ? 'white ' : 'black ') + NAME[c[1]] : ''}">${c ? pieceHTML(c) : ''}${i % 8 === 0 ? `<span class="coord r">${8 - (i >> 3)}</span>` : ''}${i >= 56 ? `<span class="coord f">${'abcdefgh'[i & 7]}</span>` : ''}</div>`).join('');
+    const order = [...Array(64).keys()]; if (S.flip) order.reverse();
+    const sq = order.map((i, k) => { const c = p.board[i]; return `<div class="sq sbsq ${((i >> 3) + (i & 7)) % 2 ? 'd' : 'l'}${S.last && (i === S.last.from || i === S.last.to) ? ' last' : ''}${S.sel === i ? ' sel' : ''}${to.has(i) ? ' tgt hint' + (c ? ' cap' : '') : ''}" data-sq="${i}" role="button" tabindex="0" aria-label="${esc(Chess.sqName(i))}${c ? ' ' + (c[0] === 'w' ? 'white ' : 'black ') + NAME[c[1]] : ''}">${c ? pieceHTML(c) : ''}${k % 8 === 0 ? `<span class="coord r">${8 - (i >> 3)}</span>` : ''}${k >= 56 ? `<span class="coord f">${'abcdefgh'[i & 7]}</span>` : ''}</div>`; }).join('');
+    let ml = '';
+    if (play) {
+      let st = state(); const cells = S.turn === 'b' ? ['…'] : [];
+      for (const m of S.hist) { const mv = Chess.legalMoves(st).find((x) => x.from === m.from && x.to === m.to && (x.promo || undefined) === (m.promo || undefined)); cells.push(mv ? Chess.notate(st, mv) : '?'); st = Chess.apply(st, m); }
+      const rows = []; for (let i = 0; i < cells.length; i += 2) rows.push([cells[i], cells[i + 1] || '']);
+      ml = rows.length ? `<div class="sbmoves" role="list" aria-label="Moves">${rows.map((r, i) => `<span class="n">${i + 1}.</span><span class="m${i * 2 === cells.length - 1 ? ' cur' : ''}">${esc(r[0])}</span><span class="m${i * 2 + 1 === cells.length - 1 ? ' cur' : ''}">${esc(r[1])}</span>`).join('')}</div>` : '<div class="muted" style="margin-top:8px">No moves yet.</div>';
+    }
     let status = '';
     if (play) {
       const s = over(S.st), side = S.st.turn === 'w' ? 'White' : 'Black';
@@ -71,8 +79,8 @@
       <div class="sbgrid"><div><div class="sbboard">${sq}</div></div>
       <div><div class="panel sbside">
         <div class="authtabs" role="tablist"><button data-sbmode="setup" class="${play ? '' : 'on'}" role="tab" aria-selected="${!play}">Place pieces</button><button data-sbmode="play" class="${play ? 'on' : ''}" role="tab" aria-selected="${play}">Play</button></div>
-        ${play ? `<div class="sbstatus" role="status">${esc(status)}</div><div class="acts"><button data-sbundo ${S.hist.length ? '' : 'disabled'}>Undo</button></div><div class="muted" style="font-size:.85rem;font-weight:600;margin-top:8px">Move by clicking a piece, then where it goes. Pawns that reach the last row become queens. Go back to Place pieces to change the position.</div>`
-        : `<div class="label" style="margin-top:10px">Pick a piece, then click squares</div>${pal}<div class="label" style="margin-top:10px">Who moves first</div><div class="authtabs"><button data-sbturn="w" class="${S.turn === 'w' ? 'on' : ''}">White</button><button data-sbturn="b" class="${S.turn === 'b' ? 'on' : ''}">Black</button></div><div class="acts" style="margin-top:12px"><button data-sbclear>Clear the board</button></div>`}
+        ${play ? `<div class="sbstatus" role="status">${esc(status)}</div><div class="acts"><button data-sbundo ${S.hist.length ? '' : 'disabled'}>Undo</button><button data-sbflip>Flip board</button></div>${ml}<div class="muted" style="font-size:.85rem;font-weight:600;margin-top:8px">Move by clicking a piece, then where it goes. Pawns that reach the last row become queens. Go back to Place pieces to change the position.</div>`
+        : `<div class="label" style="margin-top:10px">Pick a piece, then click squares</div>${pal}<div class="label" style="margin-top:10px">Who moves first</div><div class="authtabs"><button data-sbturn="w" class="${S.turn === 'w' ? 'on' : ''}">White</button><button data-sbturn="b" class="${S.turn === 'b' ? 'on' : ''}">Black</button></div><div class="acts" style="margin-top:12px"><button data-sbstd>Starting position</button><button data-sbclear>Clear the board</button><button data-sbflip>Flip board</button></div><div class="muted" style="font-size:.82rem;font-weight:600;margin-top:8px">Drag a piece to move it, or drag it off the board to remove it. Right-click a square to empty it.</div>`}
       </div>${nt}</div></div></div>`;
     // a repaint (someone else's move, a message) keeps what I was typing, where the keyboard was and the chat scroll
     const keep = $('#sbNoteIn') ? $('#sbNoteIn').value : '', keepC = $('#sbIn') ? $('#sbIn').value : '', a = document.activeElement, fid = a && el().contains(a) ? a.id || (a.dataset.sq != null ? 'sq' + a.dataset.sq : '') : '';
@@ -93,13 +101,39 @@
     if (e.target.id !== 'sbNoteForm') return; e.preventDefault();
     const t = $('#sbNoteIn').value.trim(); if (!t) return; $('#sbNoteIn').value = ''; act('note', { text: t });
   });
+  // drag and drop: in play a piece of the side to move goes to a legal square; in setup any piece moves, or leaves the board to be removed
+  let drag = null;
+  const sqAt = (x, y) => { const n = document.elementFromPoint(x, y), q = n && n.closest ? n.closest('#sandbox .sbsq') : null; return q ? +q.dataset.sq : -1; };
+  document.addEventListener('pointerdown', (e) => {
+    if (view !== 'sandbox' || !S.room || e.button !== 0) return;
+    const q = e.target.closest('.sbsq'); if (!q) return; const i = +q.dataset.sq, c = (S.mode === 'play' ? S.st : S).board[i];
+    if (!c || (S.mode === 'play' && (c[0] !== S.st.turn || over(S.st).over))) return;
+    drag = { from: i, x: e.clientX, y: e.clientY, on: false, c };
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    if (!drag.on) { if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return; drag.on = true; const g = document.createElement('div'); g.className = 'sbghost'; g.innerHTML = img(drag.c); document.body.appendChild(g); drag.g = g; if (S.mode === 'play') { S.sel = drag.from; S.paint(); } }
+    drag.g.style.left = e.clientX + 'px'; drag.g.style.top = e.clientY + 'px';
+  });
+  const endDrag = async (e) => {
+    const d = drag; drag = null; if (!d || !d.on) return; d.g.remove(); S.noClick = Date.now();
+    const to = sqAt(e.clientX, e.clientY), inBoard = !!document.elementFromPoint(e.clientX, e.clientY).closest('.sbboard');
+    if (S.mode === 'setup') { if (to === d.from) return; return act('shift', { from: d.from, to: inBoard ? to : -1 }); }
+    if (to >= 0 && Chess.legalMoves(S.st).some((m) => m.from === d.from && m.to === to)) { S.sel = null; return act('move', { from: d.from, to }); }
+    S.sel = null; S.paint();
+  };
+  document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', () => { if (drag && drag.g) drag.g.remove(); drag = null; });
+  document.addEventListener('contextmenu', (e) => { const q = view === 'sandbox' && S.room && S.mode === 'setup' ? e.target.closest('.sbsq') : null; if (q) { e.preventDefault(); if (S.board[+q.dataset.sq]) act('put', { sq: +q.dataset.sq, piece: null }); } });
   document.addEventListener('click', (e) => {
     if (view !== 'sandbox') return;
+    if (S.noClick && Date.now() - S.noClick < 300) return;
     const t = e.target, q = (s) => t.closest(s);
     let b;
     if (S.room) {
       if (q('[data-sbback]')) { const id = S.room; S.leaveRoom(); return Lounge.enter(id); }
       if ((b = q('[data-sbnd]'))) return act('ndel', { note: b.dataset.sbnd });
+      if (q('[data-sbflip]')) { S.flip = !S.flip; return S.paint(); }
+      if (q('[data-sbstd]')) return act('standard');
       if (q('[data-sbclear]')) return act('clear');
       if ((b = q('[data-sbturn]'))) return act('turn', { turn: b.dataset.sbturn });
       if ((b = q('[data-sbmode]'))) return act('mode', { mode: b.dataset.sbmode });
@@ -111,6 +145,7 @@
         const c = S.st.board[i]; S.sel = c && c[0] === S.st.turn && !over(S.st).over ? i : null; return S.paint();
       }
     }
+    if (q('[data-sbflip]')) { S.flip = !S.flip; return S.paint(); }
     if ((b = q('[data-pick]'))) { S.pick = b.dataset.pick; return S.paint(); }
     if ((b = q('[data-sbturn]'))) { S.turn = b.dataset.sbturn; return S.paint(); }
     if (q('[data-sbclear]')) { S.board = new Array(64).fill(null); return S.paint(); }
