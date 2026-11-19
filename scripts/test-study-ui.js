@@ -30,8 +30,9 @@ const MOVES = ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'];
   await A.click('[data-lg="pick"]'); await A.waitForSelector('[data-lg="use"]'); await A.click('[data-lg="use"]'); await A.waitForSelector('[data-lg="board"]');
   ok('picking a game offers the full study board', /ann vs bob/.test(await A.textContent('#stPick')), null);
   await A.click('[data-lg="board"]'); await A.waitForSelector('#studypanel:not(.hidden)'); await A.waitForSelector('#moves .mv[data-ply="6"]');
-  ok('it opens in the usual game viewer: the board, the move list, the review', (await A.isVisible('#board, #boardwrap')) && (await A.$$('#moves .mv:not(.ph)')).length === 7 && !(await A.isHidden('#anpanel')), null);
+  ok('it opens in the usual game viewer: the board and the move list', (await A.isVisible('#board, #boardwrap')) && (await A.$$('#moves .mv:not(.ph)')).length === 7, null);
   ok('the panel beside it names the room', /Study · Study group/.test(await A.textContent('#sgTitle')), null);
+  ok('the engine review stays out of the way until asked for', await A.isHidden('#anpanel') && (await A.click('[data-sg="review"]'), !(await A.isHidden('#anpanel'))) && (await A.click('[data-sg="review"]'), await A.isHidden('#anpanel')), null);
   await B.waitForSelector('[data-lg="board"]', { timeout: 10000 }); await B.click('[data-lg="board"]'); await B.waitForSelector('#studypanel:not(.hidden)'); await B.waitForSelector('#moves .mv[data-ply="6"]');
 
   console.log('notes');
