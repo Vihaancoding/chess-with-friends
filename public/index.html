@@ -683,8 +683,15 @@
   /* tournaments */
   #lounge { max-width: 1100px; margin: 0 auto; padding: 20px; } #lounge.hidden { display: none; }
   /* profile pictures: always a 1:1 circle, cropped to fill (object-fit), a hairline ring so dark photos don't melt into the background, one size scale (20 chat, 28 lists, 36 sidebar, 64 profile) */
+  .splash { position: fixed; inset: 0; z-index: 90; background: #000a; display: grid; place-items: center; padding: 16px; overflow: auto; animation: splashIn .25s ease-out; }
+  @keyframes splashIn { from { opacity: 0; } to { opacity: 1; } }
+  .splash .box { width: min(520px, 100%); background: var(--panel); border-radius: 16px; padding: 22px 20px 18px; box-shadow: 0 20px 60px #0009; }
+  .splash h2 { margin: 0 0 4px; font-size: 1.5rem; } .splash .sub { color: var(--muted); font-weight: 600; margin-bottom: 14px; }
+  .splash .item { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid #8883; } .splash .item svg { flex: none; width: 72px; height: 72px; border-radius: 12px; background: #ffffff0d; }
+  .splash .item b { display: block; font-size: 1.05rem; margin-bottom: 2px; } .splash .item span { color: var(--muted); font-weight: 600; font-size: .92rem; line-height: 1.35; }
+  .splash .acts { display: flex; gap: 8px; margin-top: 14px; } .splash .acts button { flex: 1; min-height: 46px; }
   .avi { border-radius: 50%; object-fit: cover; aspect-ratio: 1; display: inline-block; vertical-align: middle; margin-right: 8px; background: #3b3a37; flex: none; outline: 1px solid #ffffff24; outline-offset: -1px; }
-  .avi.s20 { margin-right: 7px; } .avi.s28 { margin-right: 10px; }
+  .avi[hidden] { display: none; } .avi.s20 { margin-right: 7px; } .avi.s28 { margin-right: 10px; }
   #lb td, #statsBody td, #onlinelist .orow { vertical-align: middle; } #lb td, #statsBody td { height: 46px; }   /* same row height with or without a picture, text centred on the circle */
   td > .who { display: flex; }   /* a block flex box in a cell has no text-baseline gap, so the row centres properly */
   .who { display: inline-flex; align-items: center; min-width: 0; } .onm { display: flex; align-items: center; min-width: 0; }
@@ -1188,6 +1195,7 @@
   </div>
   <div class="userbox">
     <div class="avwrap"><img id="meAv" class="avi" width="36" height="36" alt="" hidden onerror="this.hidden=true" onload="this.hidden=false"><div><div class="nm" id="meName" title="Your profile"><span class="sk" style="width:90px"></span></div><div><span class="elo" id="meElo"><span class="sk" style="width:70px;height:.9em"></span></span> <span class="rec" id="meRec"></span></div></div></div>
+    <button class="small" id="whatsNew" title="What's new">What's new</button>
     <button class="small" id="signout">Sign out</button>
   </div>
 </nav>
@@ -2383,7 +2391,7 @@ function enterLobby() {
   stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
   show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume(); paintLocalResume(); paintNotify(); resendResults();
-  lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot(); loungeBadge(); loadStats();
+  lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot(); loungeBadge(); loadStats(); maybeWhatsNew();
   // with live updates on, polling is only a safety net
   lobbyTimer = setInterval(() => {
     if (document.hidden) return;
@@ -3938,11 +3946,17 @@ document.addEventListener('keydown', (e) => {
 // ----- planning arrows (right-click drag) and square marks (right-click) -----
 const ARROW = { green: '#15781b', red: '#b02020', blue: '#1e56c8', yellow: '#d98a00' };
 function sqXY(sq) { const i = snap && (snap.pov || snap.you) === 'b' ? 63 - sq : sq; return [(i & 7) + 0.5, (i >> 3) + 0.5]; }
+// An arrow between two squares. A knight's jump (one square across, two along) is drawn L-shaped, bending the way the knight moves:
+// two squares along the long side, then one across, with the head on the last bit.
 function arrowSVG(from, to, color, op) {
-  const [x1, y1] = sqXY(from), [x2, y2] = sqXY(to);
-  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+  const [x1, y1] = sqXY(from), [x2, y2] = sqXY(to), dx = x2 - x1, dy = y2 - y1, a = Math.abs(dx), b = Math.abs(dy);
+  const knight = (Math.abs(a - 1) < 0.01 && Math.abs(b - 2) < 0.01) || (Math.abs(a - 2) < 0.01 && Math.abs(b - 1) < 0.01);
+  const [cx, cy] = knight ? (b > a ? [x1, y2] : [x2, y1]) : [x1, y1];            // where the L bends
+  const sx = knight ? cx : x1, sy = knight ? cy : y1, len = Math.hypot(x2 - sx, y2 - sy), ux = (x2 - sx) / len, uy = (y2 - sy) / len;
   const tx = x2 - ux * 0.12, ty = y2 - uy * 0.12, bx = tx - ux * 0.36, by = ty - uy * 0.36, hw = 0.22;
-  return `<g opacity="${op}"><line x1="${x1 + ux * 0.15}" y1="${y1 + uy * 0.15}" x2="${bx}" y2="${by}" stroke="${color}" stroke-width=".17" stroke-linecap="round"/><polygon points="${tx},${ty} ${bx - uy * hw},${by + ux * hw} ${bx + uy * hw},${by - ux * hw}" fill="${color}"/></g>`;
+  const l0 = Math.hypot((knight ? cx : x2) - x1, (knight ? cy : y2) - y1), fx = ((knight ? cx : x2) - x1) / l0, fy = ((knight ? cy : y2) - y1) / l0;   // direction of the first leg
+  const pts = [`${x1 + fx * 0.15},${y1 + fy * 0.15}`, ...(knight ? [`${cx},${cy}`] : []), `${bx},${by}`].join(' ');
+  return `<g opacity="${op}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width=".17" stroke-linecap="round" stroke-linejoin="round"/><polygon points="${tx},${ty} ${bx - uy * hw},${by + ux * hw} ${bx + uy * hw},${by - ux * hw}" fill="${color}"/></g>`;
 }
 function circleSVG(sq, color, op) { const [x, y] = sqXY(sq); return `<circle cx="${x}" cy="${y}" r=".44" fill="none" stroke="${color}" stroke-width=".07" opacity="${op}"/>`; }
 function drawOverlay() {
@@ -6983,6 +6997,31 @@ async function loadStats(force) {
   const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; paintStats(); }
 }
 $('#statscard').addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); } });
+// ----- "What's new": shown once after an update (and from the sidebar), remembered per browser -----
+const WHATS_NEW = { id: '2026-11-b', items: [
+  { t: 'GIFs in chat', d: 'Tap GIF next to any chat box. Search for one, or paste a link from Giphy, Tenor or Imgur. It works in the lobby, in games, in tournaments and in rooms.',
+    svg: '<rect x="14" y="20" width="44" height="32" rx="7" fill="#81b64c"/><text x="36" y="43" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" font-weight="800" fill="#fff">GIF</text>' },
+  { t: 'Profile pictures', d: 'Open your profile and choose a picture. It shows next to your name in the player list, leaderboard and chats. Without one, nothing changes.',
+    svg: '<circle cx="36" cy="36" r="24" fill="#4b4845"/><circle cx="36" cy="30" r="9" fill="#ebecd0"/><path d="M19 54c3-10 11-13 17-13s14 3 17 13" fill="#ebecd0"/><circle cx="36" cy="36" r="24" fill="none" stroke="#ffffff3a" stroke-width="2"/>' },
+  { t: 'L-shaped knight arrows', d: 'Right-click and drag from a knight to where it jumps (or from any square to another): knight arrows now bend like the knight moves, so they are easy to read.',
+    svg: '<g fill="#ffffff12"><rect x="8" y="8" width="18" height="18"/><rect x="44" y="8" width="18" height="18"/><rect x="26" y="26" width="18" height="18"/><rect x="8" y="44" width="18" height="18"/><rect x="44" y="44" width="18" height="18"/></g><polyline points="17,58 17,17 47,17" fill="none" stroke="#e8a33d" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><polygon points="62,17 46,7 46,27" fill="#e8a33d"/>' }] };
+const FORCE_WN = /whatsnew/.test(location.search);
+function whatsNewSeen() { try { return localStorage.getItem('chess:whatsnew') === WHATS_NEW.id; } catch { return false; } }
+function showWhatsNew() {
+  if ($('#splash')) return;
+  const o = document.createElement('div'); o.id = 'splash'; o.className = 'splash'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true'); o.setAttribute('aria-label', "What's new");
+  o.innerHTML = `<div class="box"><h2>What's new</h2><div class="sub">Three things you asked for.</div>${WHATS_NEW.items.map((x) => `<div class="item"><svg viewBox="0 0 72 72" aria-hidden="true">${x.svg}</svg><div><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></div>`).join('')}<div class="acts"><button id="splashPfp">Set my picture</button><button class="primary" id="splashOk">Got it</button></div></div>`;
+  const done = () => { try { localStorage.setItem('chess:whatsnew', WHATS_NEW.id); } catch {} o.remove(); document.removeEventListener('keydown', esc2); };
+  const esc2 = (e) => { if (e.key === 'Escape') done(); };
+  o.addEventListener('click', (e) => { if (e.target === o) done(); });
+  document.addEventListener('keydown', esc2);
+  document.body.appendChild(o);
+  $('#splashOk').onclick = done; $('#splashOk').focus();
+  $('#splashPfp').onclick = () => { done(); if (user) enterProfile(user.name); };
+}
+$('#whatsNew').onclick = showWhatsNew;
+// after an update, once per browser, on the main page (not for automated browsers, unless asked with ?whatsnew)
+function maybeWhatsNew() { if (!user || whatsNewSeen() || (navigator.webdriver && !FORCE_WN)) return; setTimeout(() => { if (view === 'lobby' && !whatsNewSeen()) showWhatsNew(); }, 700); }
 $('#navTour').onclick = () => enterTours();
 let loungeP = null;
 const loadLounge = () => loungeP || (loungeP = loadScript('/lounge.js').catch((e) => { loungeP = null; throw e; }));
