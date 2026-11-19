@@ -105,3 +105,7 @@ Why the old rule flagged nothing: it needs 94% or more engine moves, but an assi
 - **Depth 12 with three lines** is cheap enough for live use but is a weaker reference than a deep analysis; baselines are tied to this depth (changing `FAIR_AN_DEPTH` needs a recalibration).
 - **Re-calibration.** When there are reviewed cases and enough genuine games, add them to the dataset format in `scripts/fixtures/fair-shards` and run `node scripts/fair-calibrate.js`.
 - The old single-number check remains as a test hook (`fairDeps.scan`) and is not used in production.
+
+## Cursor to the extension area
+
+Engine extensions sit in the browser toolbar, top right, outside the page. During their own turn in a live online game the page counts each time the cursor leaves the window through the top edge on the right 40% of the width. Once that has happened on at least 5 of their turns and on 35% or more of the turns so far (at least 8), it is sent once per game as a browser trace (`fair_report`), like the other extension findings: admins see it, and the engine check counts it as a trace for that game.

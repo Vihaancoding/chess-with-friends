@@ -5157,6 +5157,27 @@ function fpCheck() {
   }
 }
 setInterval(fpCheck, 3000);
+// Engine extensions sit in the browser toolbar, top right, outside the page. The page can't see the cursor there, but it
+// can see it leave through the top-right edge. Doing that on many of your own turns is reported like the other traces,
+// once per game, for the fair-play check and the admins. Only during your turn in a live online game.
+const FPC = { game: null, turns: new Set(), mine: new Set() };
+const FPC_MIN = 5, FPC_SHARE = 0.35, FPC_MIN_TURNS = 8;
+function fpcLive() {
+  return view === 'game' && snap && gameCode && gameCode !== 'BOT' && gameCode !== 'ARCHIVE' && (snap.you === 'w' || snap.you === 'b') && !snap.status.over;
+}
+function fpcPly() { if (FPC.game !== gameCode) { FPC.game = gameCode; FPC.turns.clear(); FPC.mine.clear(); } return (snap.hist || snap.moves || []).length; }
+document.addEventListener('mouseout', (e) => {
+  if (e.relatedTarget || !fpcLive() || snap.state.turn !== snap.you) return;          // only leaving the window, on my turn
+  if (e.clientY > 8 || e.clientX < window.innerWidth * 0.6) return;                  // through the top edge, right side
+  FPC.turns.add(fpcPly());
+  const n = FPC.turns.size, of = FPC.mine.size;
+  if (n >= FPC_MIN && of >= FPC_MIN_TURNS && n / of >= FPC_SHARE) {
+    const what = 'cursor went to the browser toolbar (top right, where extensions are) on many of their turns';
+    const k = gameCode + '|' + what;
+    if (!FP.sent.has(k)) { FP.sent.add(k); api('fair_report', { code: gameCode, what: `${what}: ${n} of ${of}` }); }
+  }
+});
+setInterval(() => { if (fpcLive() && snap.state.turn === snap.you) FPC.mine.add(fpcPly()); }, 1000);   // which of my turns there were
 
 // ---------- sound ----------
 // Sound packs are synthesized in the browser, so there are no audio files to load.
