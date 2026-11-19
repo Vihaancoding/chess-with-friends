@@ -22,8 +22,9 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   await A.waitForFunction(() => /Waiting for: bob, cat/.test(document.querySelector('#lounge').textContent));
   ok('inviting shows who we are waiting for', true);
 
-  const B = await open(P.bob); await B.waitForSelector('#navLounge.dot', { timeout: 8000 });
+  const B = await open(P.bob); await B.waitForSelector('#navLounge.navdot', { timeout: 8000 });
   ok('the invited person sees a dot on Rooms', true);
+  ok('the dot keeps Rooms in the menu (it used to pull the button out of the sidebar)', await B.evaluate(() => { const b = document.querySelector('#navLounge'), n = b.parentElement.getBoundingClientRect(), r = b.getBoundingClientRect(); return getComputedStyle(b).position !== 'absolute' && r.width > 60 && r.left >= n.left && r.right <= n.right + 1; }), null);
   await B.waitForFunction(() => /invited you/.test(document.querySelector('#roomlist').textContent), null, { timeout: 8000 });
   ok('the lobby has a Rooms card showing the invitation', await B.isVisible('#roomcard'), null);
   await B.click('#navLounge'); await B.waitForSelector('[data-lg="yes"]'); await B.click('[data-lg="yes"]'); await B.waitForSelector('#lgSend');
@@ -31,6 +32,12 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   const C = await open(P.cat, '/?lounges', 390); await C.waitForSelector('[data-lg="yes"]'); await C.click('[data-lg="yes"]'); await C.waitForSelector('#lgSend');
   await sleep(1200);
   ok('the room page fits a phone', await C.evaluate(() => [...document.querySelectorAll('#lounge *')].every((e) => e.getBoundingClientRect().right <= innerWidth + 1)), null);
+  ok('on a phone the room name gets a full line (not one letter per line) and the chat comes before the member list', await C.evaluate(() => document.querySelector('.lgtop h1').getBoundingClientRect().height < 80 && document.querySelector('.lgchat').getBoundingClientRect().top < document.querySelector('#lgInv').getBoundingClientRect().top), null);
+  await C.fill('#lgInvName', 'da'); await C.focus('#lgInvName'); await C.evaluate(() => { Lounge.online = new Set(['ann', 'bob', 'cat']); Lounge.paintRoom(false); });
+  ok('a refresh keeps a half-typed invite and the keyboard focus', await C.evaluate(() => document.querySelector('#lgInvName').value === 'da' && document.activeElement.id === 'lgInvName'), null);
+  await C.fill('#lgInvName', 'nobody'); await C.press('#lgInvName', 'Enter'); await C.waitForFunction(() => /No player/.test(document.querySelector('#lgInvErr').textContent));
+  ok('an invite error shows right under the invite box', true);
+  await C.fill('#lgInvName', '');
   if (process.env.SHOT) { await sleep(600); await C.screenshot({ path: process.env.SHOT + '-phone.png', fullPage: true }); await A.screenshot({ path: process.env.SHOT + '-desktop.png' }); }
 
   await A.click('#navPlay'); await A.waitForFunction(() => /Friday club/.test(document.querySelector('#roomlist').textContent));
@@ -40,6 +47,13 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   await A.fill('#lgIn', 'hi all'); await A.click('#lgSend button[type=submit]'); await B.waitForFunction(() => /hi all/.test(document.querySelector('#lgLog').textContent), null, { timeout: 8000 });
   await C.waitForFunction(() => /hi all/.test(document.querySelector('#lgLog').textContent), null, { timeout: 8000 });
   ok('a message reaches everyone in the room', true);
+  await C.goto(`http://localhost:${PORT}/`); await C.waitForFunction(() => /Friday club/.test(document.querySelector('#roomlist').textContent));
+  ok('a room I have read has no "new" mark', !(await C.$('#roomlist .lgnew')), null);
+  await api('lounge_chat', { id: await A.evaluate(() => Lounge.id), text: 'are you there?' }, P.bob);
+  await C.goto(`http://localhost:${PORT}/`); await C.waitForSelector('#roomlist .lgnew', { timeout: 8000 });
+  ok('a new message from someone else marks the room on the lobby card and puts a dot on Rooms', await C.$('#navLounge.navdot') !== null, null);
+  await C.click('#roomlist [data-rm]'); await C.waitForSelector('#lgSend'); await C.goto(`http://localhost:${PORT}/`); await C.waitForFunction(() => /Friday club/.test(document.querySelector('#roomlist').textContent)); await sleep(500);
+  ok('opening the room clears the mark', !(await C.$('#roomlist .lgnew')) && !(await C.$('#navLounge.navdot')), null);
 
   console.log('playing');
   await B.click('[data-lg="table"]'); await B.waitForSelector('#board, #boardwrap', { timeout: 10000 });

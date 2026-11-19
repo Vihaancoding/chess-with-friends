@@ -62,7 +62,11 @@ const tc = { base: 300, inc: 0 };
   await call('lounge_invite', { id: sid, name: 'bob' }, P.ann); await call('lounge_reply', { id: sid, accept: true }, P.bob);
   ok('no tables in a study room', (await call('lounge_table', { id: sid, tc }, P.ann)).status === 400, null);
   ok('notes need a game first', (await call('lounge_study_note', { id: sid, ply: 1, mark: '?' }, P.ann)).status === 404, null);
-  const gid = (await call('games', { name: 'ann' }, P.ann)).games[0];
+  const priv = (await call('games', { name: 'ann' }, P.ann)).games.find((x) => x.priv);
+  ok('a game from another private room cannot be studied here (its moves would reach this room)', priv && (await call('lounge_study_pick', { id: sid, game: priv.id }, P.ann)).status === 400, null);
+  { const c = await call('create', { tc, color: 'w' }, P.ann); await call('join', { code: c.code }, P.bob);   // an ordinary game to study
+    for (let i = 0; i < MATE.length; i++) { const m = MATE[i]; await call('move', { code: c.code, from: sq(m.slice(0, 2)), to: sq(m.slice(2, 4)) }, i % 2 ? P.bob : P.ann); } }
+  let gid; for (let i = 0; i < 20 && !gid; i++) { gid = (await call('games', { name: 'ann' }, P.ann)).games.find((x) => !x.priv && x.moves === 7); if (!gid) await new Promise((r) => setTimeout(r, 150)); }
   ok('there is a finished game to study', gid && gid.id, gid);
   ok('only members pick a game, and it has to exist', (await call('lounge_study_pick', { id: sid, game: gid.id }, P.eve)).status === 403 && (await call('lounge_study_pick', { id: sid, game: 'ZZZZZ-nope' }, P.ann)).status === 404, null);
   ok('a member picks the game', (await call('lounge_study_pick', { id: sid, game: gid.id }, P.ann)).ok, null);
@@ -78,5 +82,21 @@ const tc = { base: 300, inc: 0 };
   ok('only the owner removes people', (await call('lounge_kick', { id, name: 'cat' }, P.bob)).status === 403 && (await call('lounge_kick', { id, name: 'cat' }, P.ann)).ok && !(await call('lounge_mine', {}, P.cat)).rooms.length, null);
   ok('a member can leave', (await call('lounge_leave', { id }, P.bob)).ok && (await call('lounge_get', { id }, P.bob)).status === 403, null);
   ok('only the owner deletes', (await call('lounge_delete', { id }, P.bob)).status === 403 && (await call('lounge_delete', { id }, P.ann)).ok && (await call('lounge_get', { id }, P.ann)).status === 404, null);
+
+  console.log('owner controls, invites and unread');
+  const o = (await call('lounge_create', { name: 'Owners', kind: 'play' }, P.dan)).id;
+  await call('lounge_invite', { id: o, name: 'eve' }, P.dan); await call('lounge_reply', { id: o, accept: true }, P.eve);
+  await call('lounge_invite', { id: o, name: 'cat' }, P.eve);
+  ok('the invitation says who sent it (not just the owner)', (await call('lounge_get', { id: o }, P.cat)).invite.by === 'eve' && (await call('lounge_mine', {}, P.cat)).rooms.find((r) => r.id === o).by === 'eve', null);
+  ok('only the owner renames; everyone\'s list follows', (await call('lounge_rename', { id: o, name: 'Renamed' }, P.eve)).status === 403 && (await call('lounge_rename', { id: o, name: ' ' }, P.dan)).status === 400 && (await call('lounge_rename', { id: o, name: 'Renamed' }, P.dan)).ok
+    && (await call('lounge_get', { id: o }, P.eve)).room.name === 'Renamed' && (await call('lounge_mine', {}, P.eve)).rooms.find((r) => r.id === o).name === 'Renamed' && (await call('lounge_mine', {}, P.cat)).rooms.find((r) => r.id === o).name === 'Renamed', null);
+  await call('lounge_chat', { id: o, text: 'anyone?' }, P.eve);
+  ok('my room list carries the time of the latest message from someone else (for "new messages")', (await call('lounge_mine', {}, P.dan)).rooms.find((r) => r.id === o).last > 0 && !(await call('lounge_mine', {}, P.eve)).rooms.find((r) => r.id === o).last, null);
+  const ot = await call('lounge_table', { id: o, tc }, P.eve);
+  ok('the owner can cancel an invite', (await call('lounge_kick', { id: o, name: 'cat' }, P.dan)).ok && !(await call('lounge_mine', {}, P.cat)).rooms.some((r) => r.id === o), null);
+  await call('lounge_leave', { id: o }, P.eve);
+  ok('the open table of someone who left is gone', ot.code && !(await call('lounge_get', { id: o }, P.dan)).tables.length, null);
+  await call('lounge_invite', { id: o, name: 'bob' }, P.dan); await call('lounge_leave', { id: o }, P.dan);
+  ok('when the last member leaves, the room and its pending invites go', (await call('lounge_get', { id: o }, P.dan)).status === 404 && !(await call('lounge_mine', {}, P.bob)).rooms.some((r) => r.id === o), null);
   console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
