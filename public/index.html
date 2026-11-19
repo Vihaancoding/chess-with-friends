@@ -695,6 +695,7 @@
   .gm:hover .delx, .tcm:hover .delx, .lgmsg:hover .delx, .delx:focus-visible { opacity: 1; } @media (hover: none) { .delx { opacity: .55; } }
   #ideaForm textarea { padding: 10px 14px; border-radius: 8px; border: 2px solid transparent; background: #1f1e1b; color: inherit; font: inherit; font-weight: 600; resize: vertical; min-height: 72px; transition: border-color .15s; } #ideaForm textarea:focus { outline: none; border-color: var(--accent, #81b64c); }
   #ideasErr.ok { color: var(--accent, #81b64c) !important; }
+  #moves .mv[data-notes]::before { content: '●'; color: #e8a33d; font-size: .5em; margin-right: 3px; vertical-align: 3px; }
   .idea { padding: 12px 0; border-top: 1px solid #8883; display: flex; gap: 12px; } .idea .vt { flex: none; min-width: 46px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 4px; background: #ffffff0d; box-shadow: none; border-radius: 10px; font-weight: 800; line-height: 1.15; } .idea .vt.on { background: var(--accent, #81b64c); color: #fff; }
   .idea h3 { margin: 0 0 2px; font-size: 1rem; } .idea .by { color: var(--muted); font-size: .8rem; font-weight: 600; } .idea p { margin: 4px 0 0; font-size: .92rem; overflow-wrap: anywhere; white-space: pre-line; }
   .idea .note { margin-top: 5px; font-size: .85rem; font-weight: 700; color: var(--gold, #f7c631); } .stbadge { font-size: .65rem; font-weight: 800; text-transform: uppercase; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; background: #ffffff1a; } .stbadge.planned { background: #3b5fa8; color: #fff; } .stbadge.done { background: #3f7d2c; color: #fff; } .stbadge.no { background: #6b2d2a; color: #fff; }
@@ -1664,6 +1665,7 @@
       <div id="anComment"></div>
       <div class="muted annote">Reviewed by the built-in engine, which looks a few moves deep. Treat it as a guide, not gospel.</div>
     </div>
+    <div class="panel hidden" id="studypanel" role="region" aria-label="Study notes"></div>
     <div class="panel hidden" id="gchat">
       <div class="gchead"><div class="gctabs" role="tablist" aria-label="Camera or chat"><button type="button" role="tab" id="tabCam" class="hidden" aria-selected="false" aria-controls="camPane">CAMERA</button><button type="button" role="tab" id="tabChat" aria-selected="true" aria-controls="chatPane">CHAT<i id="chatDot" class="hidden" aria-label="New messages"></i></button></div><span id="callctl"></span></div>
       <div id="camPane" class="hidden" role="tabpanel" aria-labelledby="tabCam">
@@ -3500,7 +3502,7 @@ async function checkAway(code) {
   if (!awayGame || awayGame.code !== code || view === 'game') return;
   if (r.status === 404 || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();   // a network blip keeps watching
 }
-$('#leave').onclick = () => (isArchive() && archive.back && archive.back.startsWith('rivalry:') ? enterRivals(null, { a: archive.back.slice(8).split('~')[0], b: archive.back.slice(8).split('~')[1] }) : isArchive() && archive.back && archive.back.startsWith('rival:') ? enterRivals(archive.back.slice(6) || null) : isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
+$('#leave').onclick = () => (isArchive() && archive.back && archive.back.startsWith('lounge:') ? enterLounge(archive.back.slice(7)) : isArchive() && archive.back && archive.back.startsWith('rivalry:') ? enterRivals(null, { a: archive.back.slice(8).split('~')[0], b: archive.back.slice(8).split('~')[1] }) : isArchive() && archive.back && archive.back.startsWith('rival:') ? enterRivals(archive.back.slice(6) || null) : isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
@@ -3732,7 +3734,7 @@ function render() {
   if (AN.key && AN.n) paintAnalysis();
   paintBadge(false); paintEval(state, flip);
   if (!isBot() && !isArchive()) paintCall();
-  setText($('#leave').lastChild, isArchive() ? ' Back to games' : ' Lobby');
+  setText($('#leave').lastChild, isArchive() ? (archive.study ? ' Back to room' : ' Back to games') : ' Lobby');
   paintReplay();
 }
 function paintPendingMove() {
@@ -6168,16 +6170,16 @@ function archiveSnap(g) {
     cat: g.cat, ratings: g.ratings, unrated: !g.rated, startedAt: g.startedAt, endedAt: g.endedAt, v: 0, paused: false, pauseReq: null, resumeReady: [],
   };
 }
-async function enterArchive(id, { analyze = false, back = null, at = 0, note = '' } = {}) {
-  stopLobby(); stopAdmin(); stopGame();
-  archive = { id, back, game: null, note, noteAt: note ? at : null }; view = 'game'; gameCode = 'ARCHIVE';
+async function enterArchive(id, { analyze = false, back = null, at = 0, note = '', study = null } = {}) {
+  stopLobby(); stopAdmin(); stopGame(); if (window.Lounge) { Lounge.stop(); if (!study) Lounge.studyEnd(); }
+  archive = { id, back, game: null, note, noteAt: note ? at : null, study }; view = 'game'; gameCode = 'ARCHIVE';
   snap = null; sig = ''; selected = null; legal = []; premoves = []; arrows = []; marks = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = 'ARCHIVE'; pending = null; sending = false;
   $('#over').classList.add('hidden'); document.title = 'Game replay · Chess';
   history.replaceState(null, '', '?archive=' + encodeURIComponent(id));
   document.body.classList.add('archive');
   show('game'); hideGameChat(); gameSkeleton();
-  $('#leave').lastChild.textContent = ' Back to games';
+  $('#leave').lastChild.textContent = study ? ' Back to room' : ' Back to games';
   const r = await gaFetch(id);
   if (!isArchive() || archive.id !== id) return;          // the player moved on while it loaded
   if (!r.ok) { setText($('#status'), r.status === 404 ? 'Game not found' : 'Could not load the game'); setText($('#sub'), r.error || ''); return; }
@@ -6185,6 +6187,7 @@ async function enterArchive(id, { analyze = false, back = null, at = 0, note = '
   applySnapshot(archiveSnap(r.game));
   goPly(at == null ? null : Math.min(at, r.game.hist.length));
   if (analyze) startAnalysis(false);
+  if (study && window.Lounge) Lounge.studyStart(study);
 }
 
 // ---------- replay: play through a finished game (archived or just ended) at a chosen speed ----------
