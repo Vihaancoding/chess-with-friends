@@ -682,6 +682,12 @@
   .liverow .mtag { font-size: .75rem; font-weight: 800; color: var(--gold); }
   /* tournaments */
   #lounge { max-width: 1100px; margin: 0 auto; padding: 20px; } #lounge.hidden { display: none; }
+  .avi { border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: #3b3a37; flex: none; }
+  .rav .avi { width: 100%; height: 100%; margin: 0; } .rav.gone .avi { filter: grayscale(1) opacity(.6); } .phead .avatar .avi { width: 100%; height: 100%; margin: 0; border-radius: inherit; }
+  .userbox .avi { margin-right: 8px; } .userbox { gap: 8px; } .userbox > .avwrap { display: flex; align-items: center; min-width: 0; }
+  .chatgif { display: block; max-width: min(220px, 100%); max-height: 180px; border-radius: 8px; margin-top: 4px; background: #0003; }
+  .gifbtn { min-height: 34px; padding: 4px 9px; font-weight: 800; } .gifgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; } .gifgrid button { padding: 0; min-height: 0; background: #0004; border-radius: 6px; overflow: hidden; box-shadow: none; } .gifgrid img { width: 100%; height: 84px; object-fit: cover; display: block; }
+  .stcard table { width: 100%; } .stcard .r { text-align: right; } .stcard .sttabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   .lgkind { display: grid; gap: 8px; margin-bottom: 8px; } .lgkind label { display: flex; gap: 10px; align-items: flex-start; background: #ffffff0a; border-radius: 8px; padding: 10px; cursor: pointer; } .lgkind input { width: 18px; height: 18px; min-height: 0; margin-top: 2px; } .lgkind small { display: block; color: var(--muted); font-weight: 600; }
   .stboard { display: grid; grid-template-columns: repeat(8, 1fr); width: min(100%, 420px); aspect-ratio: 1; margin: 6px auto; border-radius: 6px; overflow: hidden; } .stsq { display: flex; } .stsq.lt { background: #ecebd2; } .stsq.dk { background: #739552; } .stsq.lm { box-shadow: inset 0 0 0 100px #f5d54766; } .stsq img { width: 100%; height: 100%; }
   .stctl { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 6px 0; } .stmoves { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; max-height: 140px; overflow: auto; } .stnum { color: var(--muted); font-size: .8rem; font-weight: 700; margin-left: 4px; }
@@ -1176,7 +1182,7 @@
     <button id="navAdmin" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg> Admin</button>
   </div>
   <div class="userbox">
-    <div><div class="nm" id="meName" title="Your profile"><span class="sk" style="width:90px"></span></div><div><span class="elo" id="meElo"><span class="sk" style="width:70px;height:.9em"></span></span> <span class="rec" id="meRec"></span></div></div>
+    <div class="avwrap"><img id="meAv" class="avi" width="36" height="36" alt="" hidden><div><div class="nm" id="meName" title="Your profile"><span class="sk" style="width:90px"></span></div><div><span class="elo" id="meElo"><span class="sk" style="width:70px;height:.9em"></span></span> <span class="rec" id="meRec"></span></div></div></div>
     <button class="small" id="signout">Sign out</button>
   </div>
 </nav>
@@ -1358,6 +1364,7 @@
     <table><thead><tr><th>#</th><th>Player</th><th class="r">Rating</th><th class="r">Games</th><th></th></tr></thead>
     <tbody id="lb"><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:110px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:80px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:130px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr></tbody></table>
   </div>
+  <div id="statscard" class="panel stcard"><div class="head"><h2>Move stats</h2></div><div class="sttabs lbtabs" id="statsTabs"></div><div id="statsBody"><div class="muted">Loading…</div></div></div>
 </div>
 
 <!-- learn -->
@@ -1497,6 +1504,12 @@
     <div class="muted" id="pfRecTxt" style="font-size:.9rem;font-weight:600"></div>
     <div class="recode hidden" id="pfRecCode"></div>
     <div class="row" style="margin-top:12px"><button class="small" id="pfRecNew">Create a new recovery code</button></div>
+  </div>
+  <div class="panel hidden" id="pfPhotoBox" style="margin-top:16px">
+    <h2 class="ph">Profile picture</h2>
+    <div class="row" style="align-items:center"><span id="pfPhotoPrev" style="width:64px;height:64px;border-radius:50%;overflow:hidden;display:inline-block"></span>
+      <label class="small btn" style="cursor:pointer"><input type="file" id="pfPhotoIn" accept="image/png,image/jpeg,image/webp,image/gif" hidden>Choose a picture</label><button class="small" id="pfPhotoDel">Remove</button></div>
+    <div class="muted" id="pfPhotoMsg" style="font-size:.85rem;font-weight:600;margin-top:6px">It is shrunk to a small square and everyone on your server can see it.</div>
   </div>
 </div>
 
@@ -2365,7 +2378,7 @@ function enterLobby() {
   stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
   show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume(); paintLocalResume(); paintNotify(); resendResults();
-  lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot(); loungeBadge();
+  lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot(); loungeBadge(); loadStats();
   // with live updates on, polling is only a safety net
   lobbyTimer = setInterval(() => {
     if (document.hidden) return;
@@ -2462,7 +2475,7 @@ async function pollLobby(full = true) {
     if (full) {
       if (r.user.srv !== user.srv) { finishAuth({ ...user, ...r.user, token: user.token }); return location.reload(); }   // moved to another server
       paintServerSwitch(r.user.srvOpts);
-      $('#meName').textContent = r.user.name;
+      $('#meName').textContent = r.user.name; user.avAt = r.user.avAt || 0; { const a = $('#meAv'); a.src = avSrc(user.name); a.hidden = false; }
       myElo = r.user.elo; myRatings = r.user.ratings || myRatings; paintMyRating();
       $('#meRec').textContent = `${r.user.w}W ${r.user.l}L ${r.user.d}D`;
       $('#navAdmin').classList.toggle('hidden', !r.user.admin);
@@ -2498,7 +2511,7 @@ function renderBoardTable() {
   if (ls === lbSig) return;
   lbSig = ls;
   $('#lb').innerHTML = rows.length ? rows.map((p, i) => `<tr class="${p.name === user.name ? 'you' : ''}">
-      <td>${i + 1}</td><td><span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span></td><td class="r">${ratingTxt(p.r, p.prov)}</td><td class="r muted">${p.n}</td>
+      <td>${i + 1}</td><td>${avImg(p.name, 22)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span></td><td class="r">${ratingTxt(p.r, p.prov)}</td><td class="r muted">${p.n}</td>
       <td class="r">${p.name === user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</td></tr>`).join('')
     : `<tr><td colspan="5" class="muted" style="padding:16px 10px">No rated ${CAT_NAME[lbCat].toLowerCase()} games yet.</td></tr>`;
   paintChallengeButtons();
@@ -2537,7 +2550,7 @@ function renderOnline(list) {
   onlineSig = sig;
   $('#onlineN').textContent = '· ' + list.filter((p) => p.st !== 'offline').length + ' online';
   $('#onlinelist').innerHTML = list.length ? list.map((p) => `<div class="orow ${p.st === 'offline' ? 'off' : ''}"><span class="odot ${esc(p.st)}" title="${p.st === 'offline' ? 'offline' : 'online'}"></span>
-      <span class="onm"><span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span>${p.name === user.name ? ' <span class="muted">(you)</span>' : ''}</span>
+      <span class="onm">${avImg(p.name, 22)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span>${p.name === user.name ? ' <span class="muted">(you)</span>' : ''}</span>
       <span class="os">${p.st === 'offline' ? (p.seen ? 'offline · seen ' + ago(p.seen) : 'offline') : ONLINE_ST[p.st] || ''}</span>
       ${p.name === user.name || p.st === 'offline' ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</div>`).join('')
     : '<div class="muted empty">Nobody else is around yet.</div>';
@@ -2592,7 +2605,7 @@ function drawChat() {
   const log = $('#chatlog');
   const near = !chatDrawn || log.scrollHeight - log.scrollTop - log.clientHeight < 50;
   const all = curChat.concat(chatPending.filter((p) => !curChat.some((m) => m.id === p.realId)));
-  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span><b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${mentionify(esc(m.text))}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
+  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span>${avImg(m.name, 18)}<b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${chatBody(m.text)}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
   // reuse the rows already on screen so nothing flickers; only new rows are built
   const old = new Map();
   for (const el of log.children) if (el.dataset.id) old.set(el.dataset.id, el);
@@ -2726,7 +2739,12 @@ function rvFind(k) {
 function rvRepaintActions() {
   document.querySelectorAll('#rivals [data-actfor]').forEach((el) => { const s = rvFind(el.dataset.actfor); if (s) setHTML(el, rvActions(s, el.dataset.big === '1' ? true : el.dataset.mode)); });
 }
-function rvAvatar(name, cls, online) { return `<span class="rav ${cls || ''}">${esc((name || '?')[0].toUpperCase())}${online != null ? `<span class="dot ${online ? 'on' : ''}" title="${online ? 'online' : 'offline'}"></span>` : ''}</span>`; }
+const avSrc = (name) => `/api?r=avatar&n=${encodeURIComponent(name)}${user && name === user.name && user.avAt ? '&v=' + user.avAt : ''}`;
+const avImg = (name, px = 20) => `<img class="avi" src="${avSrc(name)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async">`;
+// a chat message body: a GIF link from a known GIF site shows as the picture, anything else is text with @mentions
+const GIF_RE = /^https:\/\/(?:media\d*\.giphy\.com|i\.giphy\.com|media\.tenor\.com|c\.tenor\.com|media\d\.tenor\.com|i\.imgur\.com)\/[\w\-.\/%@~]+\.(?:gif|webp)$/i;
+const chatBody = (text) => (GIF_RE.test(String(text).trim()) ? `<img class="chatgif" src="${esc(String(text).trim())}" alt="GIF" loading="lazy" referrerpolicy="no-referrer">` : mentionify(esc(text)));
+function rvAvatar(name, cls, online) { return `<span class="rav ${cls || ''}">${avImg(name, 40)}${online != null ? `<span class="dot ${online ? 'on' : ''}" title="${online ? 'online' : 'offline'}"></span>` : ''}</span>`; }
 const rvStrip = (strip) => `<span class="rstrip" aria-label="Recent results, oldest first: ${strip.map((x) => RES[{ w: 'win', l: 'loss', d: 'draw' }[x]][2]).join(', ')}">${strip.map((x) => `<i class="${x}" title="${{ w: 'You won', l: 'You lost', d: 'Draw' }[x]}">${x.toUpperCase()}</i>`).join('')}</span>`;
 function rvLeadText(s) {
   const chg = s.leadChange === 'them' ? `<span class="chg">${esc(s.name)} just took the lead</span>` : s.leadChange === 'me' ? '<span class="chg">You just took the lead</span>' : '';
@@ -3246,6 +3264,7 @@ async function loadAdmin() {
       <td><div class="acts">${u.admin ? '' : `<button class="small" data-act="mute" data-name="${esc(u.name)}" data-v="${u.muted ? 0 : 1}">${u.muted ? 'Unmute' : 'Mute'}</button>${u.banUntil ? `<button class="small primary" data-act="unban" data-name="${esc(u.name)}">Unban</button>` : ''}
       <button class="small" data-act="reset" data-name="${esc(u.name)}">Reset rating</button>
       <button class="small" data-act="resetlink" data-name="${esc(u.name)}">Password link</button>
+      <button class="small" data-act="avclear" data-name="${esc(u.name)}" title="Remove their profile picture">Clear photo</button>
       ${adServers.length > 1 ? `<button class="small" data-act="access" data-name="${esc(u.name)}" title="Which servers they may switch to">Servers${(u.srvAccess || []).length ? ' (' + u.srvAccess.length + ')' : ''}</button>` : ''}
       <button class="small danger" data-act="delete" data-name="${esc(u.name)}">Delete</button>`}</div></td></tr>`).join('');
 }
@@ -3340,6 +3359,7 @@ $('#admin').addEventListener('click', async (e) => {
     });
     return;
   }
+  if (act === 'avclear') { if (!confirm(`Remove ${name}'s profile picture?`)) return; const r = await api('admin_avatar_clear', { name }); if (!r.ok) alert(r.error || 'Could not clear it.'); }
   if (act === 'unban') { if (!confirm(`Lift ${name}'s ban now?`)) return; const r = await api('admin_unban', { name }); if (!r.ok) alert(r.error || 'Could not unban.'); }
   if (act === 'mute') await api('admin_mute', { name, muted: b.dataset.v === '1' });
   if (act === 'reset') { if (!confirm(`Reset ${name}'s rating and record to 1200?`)) return; await api('admin_reset', { name }); }
@@ -4040,7 +4060,7 @@ function addGameMsg(m) {
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const el = document.createElement('div');
   el.className = 'gm'; el.dataset.ts = m.ts || 0;
-  el.innerHTML = `<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${mentionify(esc(m.t))}`;
+  el.innerHTML = `${avImg(m.n, 18)}<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${chatBody(m.t)}`;
   knownName(m.n);
   // keep time order even when the saved history arrives after a live message
   const after = [...log.children].find((x) => x.dataset.ts && +x.dataset.ts > +el.dataset.ts);   // notices have no time: never reordered
@@ -6621,12 +6641,12 @@ function enterProfile(name, opts = {}) {
   pfData = null;
   const id = ++pfReq;
   // skeleton that matches the final layout
-  $('#pfAvatar').textContent = (name[0] || '?').toUpperCase();
+  $('#pfAvatar').innerHTML = avImg(name, 64);
   $('#pfName').textContent = name;
   $('#pfSub').innerHTML = '<span class="sk" style="width:160px;height:.85em"></span>';
   $('#pfChallenge').classList.toggle('hidden', name === user.name);
   $('#pfChallenge').disabled = false; $('#pfChallenge').textContent = 'Challenge';
-  $('#pfAccount').classList.add('hidden'); $('#pfRecCode').classList.add('hidden');
+  $('#pfAccount').classList.add('hidden'); $('#pfPhotoBox').classList.add('hidden'); $('#pfRecCode').classList.add('hidden');
   $('#pfCards').innerHTML = ['Bullet', 'Blitz', 'Rapid', 'Classical'].map((c) => `<div class="rcard"><div class="rc-l">${c}</div><div class="rc-r"><span class="sk" style="width:70px;height:.9em"></span></div><div class="rc-s"><span class="sk" style="width:90px;height:.8em"></span></div></div>`).join('');
   $('#pfCatName').textContent = CAT_NAME[pfCat];
   $('#pfGraph').innerHTML = '<span class="sk block" style="height:100%;border-radius:8px"></span>';
@@ -6638,7 +6658,7 @@ function enterProfile(name, opts = {}) {
     if (!r.ok) { $('#pfSub').textContent = r.error || 'Could not load this profile.'; $('#pfCards').innerHTML = ''; $('#pfGraph').innerHTML = ''; return; }
     pfData = r;
     if (r.recovery !== undefined) {                          // my own profile: recovery code status
-      $('#pfAccount').classList.remove('hidden');
+      $('#pfAccount').classList.remove('hidden'); $('#pfPhotoBox').classList.remove('hidden'); setHTML($('#pfPhotoPrev'), avImg(user.name, 64));
       $('#pfRecTxt').textContent = r.recovery
         ? 'You have a recovery code. With your email it lets you set a new password if you forget yours. Lost it? Make a new one; the old one stops working.'
         : "You don't have a recovery code yet. Make one now so you can get back in if you forget your password.";
@@ -6848,7 +6868,7 @@ function paintTourChat(msgs) {
   const log = $('#tcLog'), atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const when = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   log.innerHTML = msgs.length ? msgs.map((m) => m.sys ? `<div class="tcm sys">${esc(m.t)}</div>`
-    : `<div class="tcm"><b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${mentionify(esc(m.t))}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
+    : `<div class="tcm">${avImg(m.n, 18)}<b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${chatBody(m.t)}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
   if (atEnd || !log.dataset.seen) log.scrollTop = log.scrollHeight;
   log.dataset.seen = '1';
 }
@@ -6886,6 +6906,77 @@ function paintTourList(list) {
 }
 $('#tourList').addEventListener('click', (e) => { const b = e.target.closest('[data-topen]'); if (b) enterTours(b.dataset.topen); });
 $('#tvBack').onclick = () => enterTours();
+// ----- profile picture: shrunk in the browser to a small centred square, then saved -----
+async function squarePhoto(file) {
+  const bmp = await createImageBitmap(file), side = Math.min(bmp.width, bmp.height), c = document.createElement('canvas');
+  c.width = c.height = 160; c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 160, 160);
+  for (const q of [0.82, 0.65, 0.5]) { const d = c.toDataURL('image/webp', q); if (d.startsWith('data:image/webp') && d.length < 60000) return d; const j = c.toDataURL('image/jpeg', q); if (j.length < 60000) return j; }
+  return null;
+}
+$('#pfPhotoIn').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const msg = $('#pfPhotoMsg'); msg.textContent = 'Saving…';
+  try {
+    const img = await squarePhoto(f); if (!img) { msg.textContent = 'That picture is too detailed. Try another one.'; return; }
+    const r = await api('avatar_set', { img }); if (!r.ok) { msg.textContent = r.error || 'Could not save it.'; return; }
+    user.avAt = r.at; msg.textContent = 'Saved.'; setHTML($('#pfPhotoPrev'), ''); setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = avImg(user.name, 64); $('#meAv').src = avSrc(user.name);
+  } catch { msg.textContent = 'That file could not be read as a picture.'; }
+});
+$('#pfPhotoDel').onclick = async () => { const r = await api('avatar_clear'); if (r.ok) { user.avAt = 0; $('#pfPhotoMsg').textContent = 'Removed.'; setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = avImg(user.name, 64); $('#meAv').src = avSrc(user.name) + '&r=' + Date.now(); } };
+
+// ----- GIFs in chat: search (when the server has a Giphy key) or paste a link; the message is just the GIF's address -----
+function gifFromLink(t) {
+  t = String(t || '').trim();
+  const m = /giphy\.com\/(?:gifs|stickers|media)\/(?:[\w-]*-)?([A-Za-z0-9]{8,})(?:\/|$|\?)/.exec(t);
+  if (m && !GIF_RE.test(t)) return `https://media.giphy.com/media/${m[1]}/giphy.gif`;
+  return GIF_RE.test(t) ? t : '';
+}
+function openGifPicker(onPick) {
+  openSheet('Send a GIF', `<div class="row"><input id="gifQ" placeholder="Search GIFs" autocomplete="off" aria-label="Search GIFs"><button class="primary" id="gifGo">Search</button></div><div id="gifRes" class="muted" style="margin-top:6px">Loading…</div>
+    <div class="label" style="margin-top:10px">Or paste a link from giphy.com or tenor.com</div><div class="row"><input id="gifLink" placeholder="https://giphy.com/gifs/…" autocomplete="off" aria-label="GIF link"><button id="gifUse">Send</button></div><div id="gifErr" class="muted" style="color:var(--bad,#c0392b)"></div>`, (o) => {
+    const pick = (u) => { closeSheet(); onPick(u); };
+    const search = async () => {
+      const r = await api('gif_search', { q: $('#gifQ').value });
+      if (!r.ok) return setHTML($('#gifRes'), esc(r.error || 'Search is not available.'));
+      if (r.nokey) { $('#gifQ').disabled = true; $('#gifGo').disabled = true; return setHTML($('#gifRes'), 'GIF search is not set up on this server. Paste a link below instead.'); }
+      setHTML($('#gifRes'), r.gifs.length ? `<div class="gifgrid">${r.gifs.map((g, i) => `<button data-i="${i}" aria-label="GIF ${i + 1}"><img src="${esc(g.prev)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>` : 'No GIFs found.');
+      $('#gifRes').onclick = (e) => { const b = e.target.closest('[data-i]'); if (b) pick(r.gifs[+b.dataset.i].url); };
+    };
+    $('#gifGo').onclick = search; $('#gifQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
+    $('#gifUse').onclick = () => { const u = gifFromLink($('#gifLink').value); if (!u) return setText($('#gifErr'), 'That is not a GIF link from Giphy, Tenor or Imgur.'); pick(u); };
+    search();
+  });
+}
+// a GIF button next to a chat box: the picked GIF is sent as a normal message through that chat's own form
+function addGifButton(formSel, inputSel) {
+  const f = $(formSel); if (!f || f.querySelector('.gifbtn')) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'small gifbtn'; b.textContent = 'GIF'; b.title = 'Send a GIF'; b.setAttribute('aria-label', 'Send a GIF');
+  b.onclick = () => openGifPicker((u) => { const i = $(inputSel); const keep = i.value; i.value = u; f.requestSubmit(); setTimeout(() => { if (!i.value) i.value = keep; }, 50); });
+  f.insertBefore(b, f.querySelector('button[type=submit], button.primary'));
+}
+addGifButton('#chatForm', '#chatIn'); addGifButton('#gcForm', '#gcIn'); addGifButton('#tcForm', '#tcIn');
+
+// ----- stats leaderboard: most brilliant moves, blunders, … from the games the engine has checked -----
+const STAT_TABS = [['brilliant', 'Brilliant', 'brilliant moves'], ['blunder', 'Blunders', 'blunders'], ['mistake', 'Mistakes', 'mistakes'], ['inaccuracy', 'Inaccuracies', 'inaccuracies'], ['best', 'Best moves', 'best moves'], ['acc', 'Accuracy', 'average accuracy'], ['clean', 'Cleanest', 'blunders per 100 moves']];
+let statsRows = [], statsTab = 'brilliant', statsAt = 0;
+function paintStats() {
+  const box = $('#statsBody'); if (!box) return;
+  const rate = (r, k) => (r.n ? (100 * r[k]) / r.n : 0);
+  const val = { acc: (r) => (r.n ? r.accSum / r.n : 0), clean: (r) => rate(r, 'blunder') };
+  const rows = statsRows.filter((r) => (statsTab === 'acc' || statsTab === 'clean' ? r.n >= 40 : r[statsTab] > 0 || true))
+    .map((r) => ({ r, v: val[statsTab] ? val[statsTab](r) : r[statsTab] }))
+    .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
+  const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
+  setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td>${avImg(r.name, 22)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></td><td class="r"><b>${fmt(v)}</b>${['acc', 'clean'].includes(statsTab) ? '' : ` <span class="muted">· ${rate(r, statsTab).toFixed(1)}/100</span>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
+    : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Stats come from finished, decisive games the engine has checked.</div>`);
+}
+async function loadStats(force) {
+  if (!$('#statscard') || (!force && Date.now() - statsAt < 120000)) return paintStats();
+  statsAt = Date.now();
+  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; paintStats(); }
+}
+$('#statscard').addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); } });
 $('#navTour').onclick = () => enterTours();
 let loungeP = null;
 const loadLounge = () => loungeP || (loungeP = loadScript('/lounge.js').catch((e) => { loungeP = null; throw e; }));

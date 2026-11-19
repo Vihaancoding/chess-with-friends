@@ -37,7 +37,7 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   await A.click('#roomlist [data-rm]'); await A.waitForSelector('#lgSend');
   ok('my room is listed on the lobby card and opens from it', /Friday club/.test(await A.textContent('#lounge')), null);
   console.log('chat');
-  await A.fill('#lgIn', 'hi all'); await A.click('#lgSend button'); await B.waitForFunction(() => /hi all/.test(document.querySelector('#lgLog').textContent), null, { timeout: 8000 });
+  await A.fill('#lgIn', 'hi all'); await A.click('#lgSend button[type=submit]'); await B.waitForFunction(() => /hi all/.test(document.querySelector('#lgLog').textContent), null, { timeout: 8000 });
   await C.waitForFunction(() => /hi all/.test(document.querySelector('#lgLog').textContent), null, { timeout: 8000 });
   ok('a message reaches everyone in the room', true);
 

@@ -58,10 +58,10 @@
     const d = L.data, rm = d.room, me = rm.me, owner = rm.owner === me, study = rm.kind === 'study';
     const keepNote = $('#stText') ? $('#stText').value : '';
     const keep = $('#lgIn') ? $('#lgIn').value : L.draft, hadFocus = document.activeElement && document.activeElement.id === 'lgIn';
-    const mem = rm.members.map((n) => `<div class="lgrow"><span><span class="lgdot${L.online.has(n) ? ' on' : ''}"></span><span class="plink" data-name="${esc(n)}">${esc(n)}</span>${n === rm.owner ? ' <span class="badge gold">owner</span>' : ''}${n === me ? ' <span class="muted">(you)</span>' : ''}</span><span class="acts">${n !== me ? `<button class="small" data-lg="chal" data-n="${esc(n)}">Challenge</button>` : ''}${owner && n !== me ? `<button class="small danger" data-lg="kick" data-n="${esc(n)}" aria-label="Remove ${esc(n)}">✕</button>` : ''}</span></div>`).join('');
+    const mem = rm.members.map((n) => `<div class="lgrow"><span><span class="lgdot${L.online.has(n) ? ' on' : ''}"></span>${avImg(n, 22)}<span class="plink" data-name="${esc(n)}">${esc(n)}</span>${n === rm.owner ? ' <span class="badge gold">owner</span>' : ''}${n === me ? ' <span class="muted">(you)</span>' : ''}</span><span class="acts">${n !== me ? `<button class="small" data-lg="chal" data-n="${esc(n)}">Challenge</button>` : ''}${owner && n !== me ? `<button class="small danger" data-lg="kick" data-n="${esc(n)}" aria-label="Remove ${esc(n)}">✕</button>` : ''}</span></div>`).join('');
     const tbl = d.table.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.name)}</td><td class="r">${x.w}</td><td class="r">${x.d}</td><td class="r">${x.l}</td><td class="r"><b>${x.pts % 1 ? (Math.floor(x.pts) || '') + '½' : x.pts}</b></td></tr>`).join('');
     const tabs = d.tables.map((t) => `<div class="lgrow"><span><b>${esc(t.by)}</b> <span class="muted">${esc(tcName(t.tc))}</span></span>${t.by === me ? '<button class="small" data-lg="sit" data-code="' + esc(t.code) + '">Go to my table</button>' : `<button class="primary small" data-lg="sit" data-code="${esc(t.code)}">Sit down</button>`}</div>`).join('');
-    const chat = d.chat.map((m) => `<div class="lgmsg"><b>${esc(m.n)}</b> ${esc(m.t)}</div>`).join('');
+    const chat = d.chat.map((m) => `<div class="lgmsg">${avImg(m.n, 18)}<b>${esc(m.n)}</b> ${chatBody(m.t)}</div>`).join('');
     const body = `<div class="lgwrap">
       <div class="lgtop"><button class="small" data-lg="back">← Rooms</button><h1 class="ptitle" style="margin:0">${esc(rm.name)}</h1><span class="acts"><button class="small" data-lg="link">Copy link</button>${owner ? '<button class="small danger" data-lg="del">Delete</button>' : ''}<button class="small" data-lg="leave">Leave</button></span></div>
       <div class="lggrid">
@@ -77,7 +77,7 @@
             ${d.recent.length ? `<div class="muted" style="font-size:.85rem;margin-top:8px">Latest: ${d.recent.map((g) => `${esc(g.w)} ${g.res === 'draw' ? 'drew with' : g.res === 'w' ? 'beat' : 'lost to'} ${esc(g.b)}`).join(' · ')}</div>` : '<div class="muted" style="font-size:.85rem;margin-top:8px">Games played from this room show up here.</div>'}</div>`}
         </div>
         <div class="panel lgchat"><h2 class="ph">Chat</h2><div id="lgLog" class="lglog">${chat || '<div class="muted">Say hello.</div>'}</div>
-          <form id="lgSend" class="lgrow"><input id="lgIn" maxlength="300" autocomplete="off" placeholder="Message the room" aria-label="Message" style="flex:1"><button class="primary" type="submit">Send</button></form></div>
+          <form id="lgSend" class="lgrow"><input id="lgIn" maxlength="300" autocomplete="off" placeholder="Message the room" aria-label="Message" style="flex:1"><button type="button" class="small gifbtn" data-lg="gif" title="Send a GIF">GIF</button><button class="primary" type="submit">Send</button></form></div>
       </div><div id="lgErr" class="muted" style="color:var(--bad,#c0392b)"></div></div>`;
     const log = $('#lgLog'), atEnd = !log || log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     const keepInv = $('#lgInvName') ? $('#lgInvName').value : '';
@@ -201,6 +201,7 @@
     if (a === 'ndel') { const r = await api('lounge_study_del', { id: L.id, note: b.dataset.id }); return r.ok ? L.loadRoom(true) : err(r.error); }
     if (a === 'pick') return L.pickGame();
     if (a === 'use') { if (L.data.study && L.data.study.notes.length && !confirm('Switching the game clears the notes. Continue?')) return; const r = await api('lounge_study_pick', { id: L.id, game: b.dataset.game }); if (!r.ok) return err(r.error); L.ply = 0; L.formPly = -1; return L.loadRoom(true); }
+    if (a === 'gif') return openGifPicker((u) => { $('#lgIn').value = u; $('#lgSend').requestSubmit(); });
     if (a === 'open') return L.enter(id);
     if (a === 'back') return L.enter(null);
     if (a === 'yes' || a === 'no') { const r = await api('lounge_reply', { id, accept: a === 'yes' }); if (!r.ok) return err(r.error); return a === 'yes' ? L.enter(id) : L.enter(null); }
