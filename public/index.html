@@ -682,7 +682,12 @@
   .liverow .mtag { font-size: .75rem; font-weight: 800; color: var(--gold); }
   /* tournaments */
   #lounge { max-width: 1100px; margin: 0 auto; padding: 20px; } #lounge.hidden { display: none; }
-  .avi { border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: #3b3a37; flex: none; }
+  /* profile pictures: always a 1:1 circle, cropped to fill (object-fit), a hairline ring so dark photos don't melt into the background, one size scale (20 chat, 28 lists, 36 sidebar, 64 profile) */
+  .avi { border-radius: 50%; object-fit: cover; aspect-ratio: 1; display: inline-block; vertical-align: middle; margin-right: 8px; background: #3b3a37; flex: none; outline: 1px solid #ffffff24; outline-offset: -1px; }
+  .avi.s20 { margin-right: 7px; } .avi.s28 { margin-right: 10px; }
+  #lb td, #statsBody td, #onlinelist .orow { vertical-align: middle; } #lb td, #statsBody td { height: 46px; }   /* same row height with or without a picture, text centred on the circle */
+  td > .who { display: flex; }   /* a block flex box in a cell has no text-baseline gap, so the row centres properly */
+  .who { display: inline-flex; align-items: center; min-width: 0; } .onm { display: flex; align-items: center; min-width: 0; }
   .rav { position: relative; } .rav .avi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; } .rav.gone .avi { filter: grayscale(1) opacity(.6); } .phead .avatar .avi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: inherit; }
   .userbox .avi { margin-right: 8px; } .userbox { gap: 8px; } .userbox > .avwrap { display: flex; align-items: center; min-width: 0; }
   .chatgif { display: block; max-width: min(220px, 100%); max-height: 180px; border-radius: 8px; margin-top: 4px; background: #0003; }
@@ -2511,7 +2516,7 @@ function renderBoardTable() {
   if (ls === lbSig) return;
   lbSig = ls;
   $('#lb').innerHTML = rows.length ? rows.map((p, i) => `<tr class="${p.name === user.name ? 'you' : ''}">
-      <td>${i + 1}</td><td>${avImg(p.name, 22)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span></td><td class="r">${ratingTxt(p.r, p.prov)}</td><td class="r muted">${p.n}</td>
+      <td>${i + 1}</td><td><span class="who">${avImg(p.name, 28)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span></span></td><td class="r">${ratingTxt(p.r, p.prov)}</td><td class="r muted">${p.n}</td>
       <td class="r">${p.name === user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</td></tr>`).join('')
     : `<tr><td colspan="5" class="muted" style="padding:16px 10px">No rated ${CAT_NAME[lbCat].toLowerCase()} games yet.</td></tr>`;
   paintChallengeButtons();
@@ -2550,7 +2555,7 @@ function renderOnline(list) {
   onlineSig = sig;
   $('#onlineN').textContent = '· ' + list.filter((p) => p.st !== 'offline').length + ' online';
   $('#onlinelist').innerHTML = list.length ? list.map((p) => `<div class="orow ${p.st === 'offline' ? 'off' : ''}"><span class="odot ${esc(p.st)}" title="${p.st === 'offline' ? 'offline' : 'online'}"></span>
-      <span class="onm">${avImg(p.name, 22)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span>${p.name === user.name ? ' <span class="muted">(you)</span>' : ''}</span>
+      <span class="onm">${avImg(p.name, 28)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span>${p.name === user.name ? ' <span class="muted">(you)</span>' : ''}</span>
       <span class="os">${p.st === 'offline' ? (p.seen ? 'offline · seen ' + ago(p.seen) : 'offline') : ONLINE_ST[p.st] || ''}</span>
       ${p.name === user.name || p.st === 'offline' ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</div>`).join('')
     : '<div class="muted empty">Nobody else is around yet.</div>';
@@ -2605,7 +2610,7 @@ function drawChat() {
   const log = $('#chatlog');
   const near = !chatDrawn || log.scrollHeight - log.scrollTop - log.clientHeight < 50;
   const all = curChat.concat(chatPending.filter((p) => !curChat.some((m) => m.id === p.realId)));
-  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span>${avImg(m.name, 18)}<b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${chatBody(m.text)}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
+  const html = (m) => `<span class="mt">${hhmm(m.ts)}</span>${avImg(m.name, 20)}<b class="mn ${m.admin ? 'adm' : ''}">${esc(m.name)}</b>${m.admin ? '<span class="admtag">admin</span>' : ''} <span class="mx">${chatBody(m.text)}</span>${curAdmin && !m.pending ? `<button class="x" data-del="${esc(m.id)}" title="Delete message">×</button>` : ''}`;
   // reuse the rows already on screen so nothing flickers; only new rows are built
   const old = new Map();
   for (const el of log.children) if (el.dataset.id) old.set(el.dataset.id, el);
@@ -2741,7 +2746,7 @@ function rvRepaintActions() {
 }
 const avSrc = (name) => `/api?r=avatar&n=${encodeURIComponent(name)}${user && name === user.name && user.avAt ? '&v=' + user.avAt : ''}`;
 // a picture, or nothing when the player has none (the 404 removes it, leaving whatever was there before)
-const avImg = (name, px = 20) => `<img class="avi" src="${avSrc(name)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async" onerror="this.remove()">`;
+const avImg = (name, px = 20) => `<img class="avi s${px}" src="${avSrc(name)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async" onerror="this.remove()">`;
 // a chat message body: a GIF link from a known GIF site shows as the picture, anything else is text with @mentions
 const GIF_RE = /^https:\/\/(?:media\d*\.giphy\.com|i\.giphy\.com|media\.tenor\.com|c\.tenor\.com|media\d\.tenor\.com|i\.imgur\.com)\/[\w\-.\/%@~]+\.(?:gif|webp)$/i;
 const chatBody = (text) => (GIF_RE.test(String(text).trim()) ? `<img class="chatgif" src="${esc(String(text).trim())}" alt="GIF" loading="lazy" referrerpolicy="no-referrer">` : mentionify(esc(text)));
@@ -4061,7 +4066,7 @@ function addGameMsg(m) {
   const log = $('#gclog'), near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const el = document.createElement('div');
   el.className = 'gm'; el.dataset.ts = m.ts || 0;
-  el.innerHTML = `${avImg(m.n, 18)}<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${chatBody(m.t)}`;
+  el.innerHTML = `${avImg(m.n, 20)}<b class="${esc(m.s)}">${esc(m.n)}</b>${m.s === 's' ? ' <span class="spec">spectator</span>' : ''} ${chatBody(m.t)}`;
   knownName(m.n);
   // keep time order even when the saved history arrives after a live message
   const after = [...log.children].find((x) => x.dataset.ts && +x.dataset.ts > +el.dataset.ts);   // notices have no time: never reordered
@@ -6869,7 +6874,7 @@ function paintTourChat(msgs) {
   const log = $('#tcLog'), atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const when = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   log.innerHTML = msgs.length ? msgs.map((m) => m.sys ? `<div class="tcm sys">${esc(m.t)}</div>`
-    : `<div class="tcm">${avImg(m.n, 18)}<b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${chatBody(m.t)}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
+    : `<div class="tcm">${avImg(m.n, 20)}<b class="${m.a ? 'a' : m.p ? 'p' : ''}">${esc(m.n)}</b>${chatBody(m.t)}<time>${when(m.ts)}</time></div>`).join('') : '<div class="muted">No messages yet.</div>';
   if (atEnd || !log.dataset.seen) log.scrollTop = log.scrollHeight;
   log.dataset.seen = '1';
 }
@@ -6969,7 +6974,7 @@ function paintStats() {
     .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
   const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
   setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
-  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td>${avImg(r.name, 22)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></td><td class="r"><b>${fmt(v)}</b>${['acc', 'clean'].includes(statsTab) ? '' : ` <span class="muted">· ${rate(r, statsTab).toFixed(1)}/100</span>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r"><b>${fmt(v)}</b>${['acc', 'clean'].includes(statsTab) ? '' : ` <span class="muted">· ${rate(r, statsTab).toFixed(1)}/100</span>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
     : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Stats come from finished, decisive games the engine has checked.</div>`);
 }
 async function loadStats(force) {
