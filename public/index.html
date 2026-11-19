@@ -734,8 +734,17 @@
   .lgchat { display: flex; flex-direction: column; gap: 8px; } .lglog { height: 360px; overflow: auto; display: flex; flex-direction: column; gap: 4px; overscroll-behavior: contain; } .lgmsg { word-break: break-word; }
   .lgdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #8886; margin-right: 8px; } .lgdot.on { background: #5cb85c; }
   .lgtbl { width: 100%; border-collapse: collapse; } .lgtbl td, .lgtbl th { padding: 5px 4px; text-align: left; } .lgtbl .r { text-align: right; }
-  .nav button.dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #e5534b; margin-left: auto; }
-  @media (max-width: 800px) { .lggrid { grid-template-columns: 1fr; } #lounge { padding: 12px; } .lglog { height: 240px; } }
+  /* "navdot", not "dot": .dot is the avatar status dot (position: absolute), which pulled the Rooms button out of the menu */
+  .nav button.navdot::after { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #e5534b; margin-left: auto; }
+  .lgerr { color: var(--bad, #c0392b) !important; font-weight: 600; } .lgerr:empty { display: none; }
+  .lgsugg { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; } .lgsugg button { min-height: 32px; }
+  .lgwait { display: inline-flex; align-items: center; } .lgwait .delx { min-height: 24px; } .lgx::before { content: '×'; }
+  .lgname { overflow-wrap: anywhere; } .lgts { font-size: .75rem; } .badge.lgnew { background: #e5534b; color: #fff; }
+  #sbLog { height: 220px; } .sbmem { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .sbboard .sq:focus-visible { outline: 3px solid var(--accent, #81b64c); outline-offset: -3px; z-index: 1; }
+  @media (max-width: 800px) { .lggrid { grid-template-columns: 1fr; } #lounge { padding: 12px; } .lglog { height: 240px; }
+    .lgcol { display: contents; } .lgmain { order: 0; } .lgchat { order: 1; } .lgcol > .panel:not(.lgmain) { order: 2; }   /* on a phone the chat comes right after the main panel, not below every list */
+    .lgtop h1 { order: -1; flex-basis: 100%; text-align: left; } }
   #tours { max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
   #tours.hidden { display: none; }
   #tourHome, #tourView { display: flex; flex-direction: column; gap: 14px; } #tourHome.hidden, #tourView.hidden { display: none; }
@@ -1990,7 +1999,7 @@ function onUserPing(d) {
   if (d.why === 'm' && d.ev && d.code === gameCode && roomH.m) return roomH.m(d.ev);                // a move for my own game, sent privately
   if (d.why === 'cam') return camOnSignal(d);                         // the opponent's video handshake, sent privately
   if (d.why === 'loungeinv') { sfx('challenge'); showToast('🏠', `${esc(d.from)} invited you to ${esc(d.name)}`, 'See it under Rooms'); loungeBadge(); if (view === 'lounge' && window.Lounge && !Lounge.id) Lounge.loadHome(); return; }
-  if (d.why === 'loungegone') { if (view === 'lounge' && window.Lounge && Lounge.id === d.id) Lounge.enter(null); return; }
+  if (d.why === 'loungegone') { loungeBadge(); if (window.Lounge && Lounge.id === d.id && (view === 'lounge' || (view === 'sandbox' && window.Sandbox && Sandbox.room === d.id))) { if (window.Sandbox) Sandbox.leaveRoom(); showToast('🏠', 'You were removed from a room', ''); Lounge.enter(null); } return; }
   if (d.why === 'moved') return location.reload();                    // an admin moved this player to another server
   if (d.why === 'result' && view === 'lobby') return pollLobby(true);
   if (d.why === 'mention' && d.m) return onMention([d.m]);
@@ -7128,12 +7137,18 @@ let loungeP = null;
 const loadLounge = () => loungeP || (loungeP = loadScript('/lounge.js').catch((e) => { loungeP = null; throw e; }));
 async function enterLounge(id) { await loadLounge(); return Lounge.enter(id); }
 $('#navLounge').onclick = () => enterLounge();
+// unread room chat: the newest message from someone else I have seen, per room (this browser only)
+const loungeSeenMap = () => { try { return JSON.parse(localStorage.getItem('chess:lseen') || '{}') || {}; } catch { return {}; } };
+function loungeSeen(id, ts) { const m = loungeSeenMap(); if ((m[id] || 0) >= ts) return; m[id] = ts; try { localStorage.setItem('chess:lseen', JSON.stringify(m)); } catch {} }
+const loungeUnread = (x) => x.st === 'in' && x.last && x.last > (loungeSeenMap()[x.id] || 0);
+// the red dot on Rooms: an invitation, or a room with messages I have not seen
+function loungeNav(rooms) { const n = rooms.filter((x) => x.st === 'invited' || loungeUnread(x)).length; const b = $('#navLounge'); b.classList.toggle('navdot', n > 0); b.setAttribute('aria-label', n ? `Rooms (${n} new)` : 'Rooms'); }
 async function loungeBadge() {
   const r = await api('lounge_mine'); if (!r.ok) return;
   const inv = r.rooms.filter((x) => x.st === 'invited'), mine = r.rooms.filter((x) => x.st === 'in');
-  $('#navLounge').classList.toggle('dot', inv.length > 0);
-  setHTML($('#roomlist'), [...inv.map((x) => `<div class="rmrow"><span><b>${esc(x.name)}</b> <span class="muted">invited you</span></span><button class="primary small" data-rm="${esc(x.id)}">View</button></div>`),
-    ...mine.slice(0, 4).map((x) => `<div class="rmrow"><b>${esc(x.name)}</b><button class="small" data-rm="${esc(x.id)}">Open</button></div>`)].join('')
+  loungeNav(r.rooms);
+  setHTML($('#roomlist'), [...inv.map((x) => `<div class="rmrow"><span><b>${esc(x.name)}</b> <span class="muted">${x.by ? esc(x.by) + ' invited you' : 'invited you'}</span></span><button class="primary small" data-rm="${esc(x.id)}">View</button></div>`),
+    ...mine.slice(0, 4).map((x) => `<div class="rmrow"><span><b>${esc(x.name)}</b>${loungeUnread(x) ? ' <span class="badge lgnew">new</span>' : ''}</span><button class="small" data-rm="${esc(x.id)}">Open</button></div>`)].join('')
     + (mine.length > 4 ? `<div class="muted" style="font-size:.85rem">and ${mine.length - 4} more</div>` : '')
     + (r.rooms.length ? '' : '<div class="muted" style="font-weight:600">Private rooms for you and your friends: chat and play each other back and forth. Make one and invite them.</div>')
     + '<div style="margin-top:8px"><button class="small" id="rmNew">+ Make a room</button></div>');

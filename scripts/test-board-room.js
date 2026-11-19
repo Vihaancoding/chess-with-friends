@@ -50,6 +50,12 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   ok('a note shows up for the other member', true);
   await pa.click('[data-sbnd]'); await pb.waitForFunction(() => !/loose/.test(document.querySelector('#sbNoteList').textContent), null, { timeout: 12000 });
   ok('deleting a note removes it for both', true);
+  ok('the room chat and the members are beside the board', await pa.$('#sbSend') !== null && /In this room · 2/.test(await pa.textContent('#sandbox')), null);
+  await pb.fill('#sbIn', 'nice setup'); await pb.press('#sbIn', 'Enter');
+  await pa.waitForFunction(() => /nice setup/.test(document.querySelector('#sbLog').textContent), null, { timeout: 12000 });
+  ok('a chat message from the board reaches the other member at the board', true);
+  await pa.focus(sq('a5')); await pa.keyboard.press('Enter');
+  ok('the squares work from the keyboard (Enter places the picked piece)', await pa.waitForFunction(() => !document.querySelector('.sbsq[data-sq="24"] img'), null, { timeout: 8000 }).then(() => true, () => false), null);
   if (process.env.SHOT) await pa.screenshot({ path: process.env.SHOT + '-board.png', fullPage: true });
   await pa.click('[data-sbback]'); await pa.waitForSelector('[data-lg="sbopen"]');
   ok('"Room" returns to the room', true);
