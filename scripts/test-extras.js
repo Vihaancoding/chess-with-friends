@@ -22,6 +22,21 @@ const get = (url) => new Promise((resolve) => handler({ method: 'GET', url, head
   ok('people without one get nothing', (await get('/api?r=avatar&n=bob')).status === 404, null);
   ok('only admins can clear someone else\'s', (await call('admin_avatar_clear', { name: 'ann' }, B)).status >= 400 && (await call('admin_avatar_clear', { name: 'ann' }, O)).ok && (await get('/api?r=avatar&n=ann')).status === 404, null);
 
+  console.log('animated pictures');
+  const GIFB = Buffer.from('47494638396101000100800000ffffff00000021ff0b4e45545343415045322e30030100000021f9040000000a002c00000000010001000002024401002c000000000100010000020244013b'.replace('3b', ''), 'hex');
+  const gif = 'data:image/gif;base64,' + Buffer.concat([GIFB, Buffer.from('3b', 'hex')]).toString('base64');
+  await new Promise((r) => setTimeout(r, 800));
+  const ag = await call('avatar_set', { img: gif }, A);
+  const sg = await get('/api?r=avatar&n=ann');
+  ok('an animated GIF is accepted and served unchanged (so it keeps moving)', ag.ok && sg.h['Content-Type'] === 'image/gif' && Buffer.compare(sg.body, Buffer.concat([GIFB, Buffer.from('3b', 'hex')])) === 0, [ag, sg.h]);
+  await new Promise((r) => setTimeout(r, 800));
+  ok('a file that is not really a GIF is refused', (await call('avatar_set', { img: 'data:image/gif;base64,' + Buffer.from('not a gif at all, just text').toString('base64') }, A)).status === 400, null);
+  await new Promise((r) => setTimeout(r, 800));
+  const big = 'data:image/gif;base64,' + Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(450 * 1024, 1)]).toString('base64');
+  ok('an animation over 400 KB is refused with a clear message', /400 KB/.test((await call('avatar_set', { img: big }, A)).error), null);
+  await new Promise((r) => setTimeout(r, 800));
+  ok('a PNG pretending to be a GIF is refused', (await call('avatar_set', { img: 'data:image/gif;base64,' + Buffer.from(png.split(',')[1], 'base64').toString('base64') }, A)).status === 400, null);
+
   console.log('gifs');
   const gs = await call('gif_search', { q: 'cat' }, A);
   ok('without a Giphy key the search says so (people paste links instead)', gs.nokey === true && gs.gifs.length === 0, gs);

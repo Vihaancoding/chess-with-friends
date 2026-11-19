@@ -136,6 +136,6 @@ The detector is a rating- and difficulty-adjusted statistical model with five le
 
 ### Profile pictures, GIFs and move stats
 
-- **Profile pictures:** on your own profile, choose a picture; the browser shrinks it to a small square and saves it (`avatar_set`). It shows next to names in the sidebar, players list, leaderboard, chats and rivalries; without one you get a coloured initial. Anyone can fetch `/api?r=avatar&n=<name>`; admins can clear someone's picture from the admin page.
+- **Profile pictures:** on your own profile, choose a picture; the browser shrinks it to a small square and saves it (`avatar_set`); a GIF or animated WebP up to 400 KB is saved as it is, so it stays animated. It shows next to names in the sidebar, players list, leaderboard, chats and rivalries; without one you get a coloured initial. Anyone can fetch `/api?r=avatar&n=<name>`; admins can clear someone's picture from the admin page.
 - **GIFs in chat:** a GIF button next to every chat box. Pasting a link from Giphy, Tenor or Imgur works anywhere; set `GIPHY_API_KEY` to also get a search. The message is just the GIF's address, shown as a picture only for those sites.
 - **Move stats leaderboard:** a card under the leaderboard ranks brilliant moves, blunders, mistakes, inaccuracies, best moves, accuracy and cleanest play (blunders per 100 moves). The numbers come from games the Damage Report's engine has checked (finished, decisive games), so a server with the Damage Report switched off has no stats. Tests: `node scripts/test-extras.js`, `node scripts/test-extras-ui.js`.

@@ -53,6 +53,16 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   const r = await fetch(`http://localhost:${PORT}/api?r=avatar&n=ann`);
   ok('the picture is saved and served as an image', /image\/(webp|jpeg|png)/.test(r.headers.get('content-type')), r.headers.get('content-type'));
   ok('it shows in the sidebar and on the profile', /v=\d+/.test(await p.getAttribute('#meAv', 'src')) && /v=\d+/.test(await p.getAttribute('#pfAvatar img', 'src')), await p.getAttribute('#meAv', 'src'));
+  await sleep(800);
+  const GIFBUF = Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(120 * 1024, 0), Buffer.from('3b', 'hex')]);   // a ~120 KB "animation" (header is real; the body is padding)
+  await p.setInputFiles('#pfPhotoIn', { name: 'moving.gif', mimeType: 'image/gif', buffer: GIFBUF });
+  await p.waitForFunction(() => /animated picture is on/.test(document.querySelector('#pfPhotoMsg').textContent), null, { timeout: 8000 });
+  const rg = await fetch(`http://localhost:${PORT}/api?r=avatar&n=ann`);
+  ok('a GIF is kept as a GIF (so it stays animated) and served as one', rg.headers.get('content-type') === 'image/gif' && Buffer.compare(Buffer.from(await rg.arrayBuffer()), GIFBUF) === 0, rg.headers.get('content-type'));
+  await sleep(800);
+  await p.setInputFiles('#pfPhotoIn', { name: 'huge.gif', mimeType: 'image/gif', buffer: Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(450 * 1024, 0)]) });
+  await p.waitForFunction(() => /under 400 KB/.test(document.querySelector('#pfPhotoMsg').textContent), null, { timeout: 8000 });
+  ok('an animation over 400 KB is turned down with a message', true);
   if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT + '-profile.png' });
   await p.click('#navPlay'); await p.click('[data-st="brilliant"]'); await p.waitForSelector('#statsBody table');
   if (process.env.SHOT) { await p.evaluate(() => document.querySelector('#statscard').scrollIntoView()); await sleep(400); await p.screenshot({ path: process.env.SHOT + '-stats.png' }); }

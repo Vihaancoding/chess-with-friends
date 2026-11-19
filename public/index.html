@@ -1525,7 +1525,7 @@
     <h2 class="ph">Profile picture</h2>
     <div class="row" style="align-items:center"><span id="pfPhotoPrev" style="width:64px;height:64px;border-radius:50%;overflow:hidden;display:inline-block"></span>
       <label class="small btn" style="cursor:pointer"><input type="file" id="pfPhotoIn" accept="image/png,image/jpeg,image/webp,image/gif" hidden>Choose a picture</label><button class="small" id="pfPhotoDel">Remove</button></div>
-    <div class="muted" id="pfPhotoMsg" style="font-size:.85rem;font-weight:600;margin-top:6px">It is shrunk to a small square and everyone on your server can see it.</div>
+    <div class="muted" id="pfPhotoMsg" style="font-size:.85rem;font-weight:600;margin-top:6px">Pictures are shrunk to a small square. A GIF (up to 400 KB) stays animated. Everyone on your server can see it.</div>
   </div>
 </div>
 
@@ -6944,13 +6944,18 @@ async function squarePhoto(file) {
   for (const q of [0.82, 0.65, 0.5]) { const d = c.toDataURL('image/webp', q); if (d.startsWith('data:image/webp') && d.length < 60000) return d; const j = c.toDataURL('image/jpeg', q); if (j.length < 60000) return j; }
   return null;
 }
+// an animated picture (a GIF, or an animated WebP) is uploaded as it is, so it keeps moving; anything else is shrunk first
+const readDataUrl = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(f); });
+async function isAnimatedWebp(f) { const b = new Uint8Array(await f.slice(0, 64).arrayBuffer()); return new TextDecoder('latin1').decode(b).includes('ANIM'); }
 $('#pfPhotoIn').addEventListener('change', async (e) => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   const msg = $('#pfPhotoMsg'); msg.textContent = 'Saving…';
   try {
-    const img = await squarePhoto(f); if (!img) { msg.textContent = 'That picture is too detailed. Try another one.'; return; }
+    const anim = f.type === 'image/gif' || (f.type === 'image/webp' && (await isAnimatedWebp(f)));
+    if (anim && f.size > 400 * 1024) { msg.textContent = `That animation is ${Math.round(f.size / 1024)} KB. Keep it under 400 KB (a shorter or smaller one).`; return; }
+    const img = anim ? await readDataUrl(f) : await squarePhoto(f); if (!img) { msg.textContent = 'That picture is too detailed. Try another one.'; return; }
     const r = await api('avatar_set', { img }); if (!r.ok) { msg.textContent = r.error || 'Could not save it.'; return; }
-    user.avAt = r.at; msg.textContent = 'Saved.'; setHTML($('#pfPhotoPrev'), ''); setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = esc((user.name[0] || '?').toUpperCase()) + avImg(user.name, 64); $('#meAv').src = avSrc(user.name);
+    user.avAt = r.at; msg.textContent = anim ? 'Saved. Your animated picture is on.' : 'Saved.'; setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = esc((user.name[0] || '?').toUpperCase()) + avImg(user.name, 64); $('#meAv').src = avSrc(user.name);
   } catch { msg.textContent = 'That file could not be read as a picture.'; }
 });
 $('#pfPhotoDel').onclick = async () => { const r = await api('avatar_clear'); if (r.ok) { user.avAt = 0; $('#pfPhotoMsg').textContent = 'Removed.'; setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = esc((user.name[0] || '?').toUpperCase()) + avImg(user.name, 64); $('#meAv').src = avSrc(user.name) + '&r=' + Date.now(); } };
