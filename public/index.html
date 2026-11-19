@@ -695,6 +695,7 @@
   #lb td, #statsBody td, #onlinelist .orow { vertical-align: middle; } #lb td, #statsBody td { height: 46px; }   /* same row height with or without a picture, text centred on the circle */
   td > .who { display: flex; }   /* a block flex box in a cell has no text-baseline gap, so the row centres properly */
   .who { display: inline-flex; align-items: center; min-width: 0; } .onm { display: flex; align-items: center; min-width: 0; }
+  .avatar .avi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: inherit; outline-offset: -1px; }
   .rav { position: relative; } .rav .avi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; } .rav.gone .avi { filter: grayscale(1) opacity(.6); } .phead .avatar .avi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: inherit; }
   .userbox .avi { margin-right: 8px; } .userbox { gap: 8px; } .userbox > .avwrap { display: flex; align-items: center; min-width: 0; }
   .chatgif { display: block; max-width: min(220px, 100%); max-height: 180px; border-radius: 8px; margin-top: 4px; background: #0003; }
@@ -2752,9 +2753,10 @@ function rvFind(k) {
 function rvRepaintActions() {
   document.querySelectorAll('#rivals [data-actfor]').forEach((el) => { const s = rvFind(el.dataset.actfor); if (s) setHTML(el, rvActions(s, el.dataset.big === '1' ? true : el.dataset.mode)); });
 }
-const avSrc = (name) => `/api?r=avatar&n=${encodeURIComponent(name)}${user && name === user.name && user.avAt ? '&v=' + user.avAt : ''}`;
+// live = during a game: also re-asked every 30 seconds, so a picture someone changes (or removes) shows up while you play
+const avSrc = (name, live) => `/api?r=avatar&n=${encodeURIComponent(name)}${user && name === user.name && user.avAt ? '&v=' + user.avAt : ''}${live ? '&t=' + Math.floor(Date.now() / 30000) : ''}`;
 // a picture, or nothing when the player has none (the 404 removes it, leaving whatever was there before)
-const avImg = (name, px = 20) => `<img class="avi s${px}" src="${avSrc(name)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async" onerror="this.remove()">`;
+const avImg = (name, px = 20, live) => `<img class="avi s${px}" src="${avSrc(name, live)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async" onerror="this.remove()">`;
 // a chat message body: a GIF link from a known GIF site shows as the picture, anything else is text with @mentions
 const GIF_RE = /^https:\/\/(?:media\d*\.giphy\.com|i\.giphy\.com|media\.tenor\.com|c\.tenor\.com|media\d\.tenor\.com|i\.imgur\.com)\/[\w\-.\/%@~]+\.(?:gif|webp)$/i;
 const chatBody = (text) => (GIF_RE.test(String(text).trim()) ? `<img class="chatgif" src="${esc(String(text).trim())}" alt="GIF" loading="lazy" referrerpolicy="no-referrer">` : mentionify(esc(text)));
@@ -3616,7 +3618,7 @@ function render() {
     const you = p && !p.local && p.name === user.name ? '<span class="youtag">you</span>' : '';
     const lead = mat[c] - mat[c === 'w' ? 'b' : 'w'];
     const capt = takenBy[c].map((pc) => `<img src="${PIECE_CDN}${pc}.svg" alt="" ${pieceFallback(pc)}>`).join('') + (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
-    return `<span class="avatar ${c}">${p ? esc(p.name[0].toUpperCase()) : '?'}<span class="dot ${present[c] ? 'on' : ''}" title="${present[c] ? 'online' : 'offline'}"></span></span>
+    return `<span class="avatar ${c}"${p && !p.bot && p.name !== 'Computer' && !p.local ? ` data-avn="${esc(p.name)}" data-avp="52"` : ''}>${p ? esc(p.name[0].toUpperCase()) : '?'}${p && !p.bot && p.name !== 'Computer' && !p.local ? avImg(p.name, 52, true) : ''}<span class="dot ${present[c] ? 'on' : ''}" title="${present[c] ? 'online' : 'offline'}"></span></span>
       <span class="pcol"><span class="pinfo"><span class="pname ${p && p.name !== 'Computer' && !p.local && !p.bot ? 'plink' : ''}" data-name="${p ? esc(p.name) : ''}">${name}</span>${p ? ` <span class="prating">(${p.elo}${p.prov ? '?' : ''})</span>` : ''}${you}${dtxt}</span><span class="capt">${capt}</span></span>${clock}`;
   };
   setHTML($('#top'), bar(flip ? 'w' : 'b'));
@@ -5485,7 +5487,7 @@ function paintMatch() {
   const gameNo = m.done ? m.games.length : snap.status.over ? m.games.length : m.games.length + 1;
   setText($('#mpTitle'), snap.tour ? `🏆 ${snap.tour.name} · ${snap.tour.stage}` : `${Match.label(m)}${m.no > 1 ? ` · match ${m.no}` : ''}`);
   setText($('#mpSub'), m.done ? 'Finished' : snap.arma && !snap.status.over ? 'Armageddon' : m.fmt === 'bo' && m.n === 1 ? 'One game' : `Game ${gameNo}${m.fmt === 'bo' ? ` of ${m.n}` : ''}`);
-  setHTML($('#mpScore'), sides.map((x) => `<div class="mprow${x.name === lead ? ' lead' : ''}"><span class="avatar ${x.c}">${esc(x.name[0].toUpperCase())}</span><span class="mpn">${esc(x.name)}${x.name === meN() ? ' <span class="youtag">you</span>' : ''}</span><span class="mps">${half(s.pts[x.name])}</span></div>`).join(''));
+  setHTML($('#mpScore'), sides.map((x) => `<div class="mprow${x.name === lead ? ' lead' : ''}"><span class="avatar ${x.c}" data-avn="${esc(x.name)}" data-avp="26">${esc(x.name[0].toUpperCase())}${avImg(x.name, 26, true)}</span><span class="mpn">${esc(x.name)}${x.name === meN() ? ' <span class="youtag">you</span>' : ''}</span><span class="mps">${half(s.pts[x.name])}</span></div>`).join(''));
   // one square per game: green = the first-listed player won, red = the other, grey = draw; empty squares still to play
   const a = sides[0] && sides[0].name;
   let dots = m.games.map((g, i) => {
@@ -7020,6 +7022,9 @@ function showWhatsNew() {
   $('#splashPfp').onclick = () => { done(); if (user) enterProfile(user.name); };
 }
 $('#whatsNew').onclick = showWhatsNew;
+// pictures on the game screen are re-asked every 30 seconds (a missing one stays the letter avatar)
+function avRefresh() { document.querySelectorAll('.avatar[data-avn]').forEach((el) => { const i = el.querySelector('img.avi'); if (i) i.remove(); el.insertAdjacentHTML('beforeend', avImg(el.dataset.avn, +el.dataset.avp || 40, true)); }); }
+setInterval(() => { if (!document.hidden && view === 'game') avRefresh(); }, 30000);
 // after an update, once per browser, on the main page (not for automated browsers, unless asked with ?whatsnew)
 function maybeWhatsNew() { if (!user || whatsNewSeen() || (navigator.webdriver && !FORCE_WN)) return; setTimeout(() => { if (view === 'lobby' && !whatsNewSeen()) showWhatsNew(); }, 700); }
 $('#navTour').onclick = () => enterTours();
