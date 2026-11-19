@@ -695,9 +695,26 @@
   .gm:hover .delx, .tcm:hover .delx, .lgmsg:hover .delx, .delx:focus-visible { opacity: 1; } @media (hover: none) { .delx { opacity: .55; } }
   #ideaForm textarea { padding: 10px 14px; border-radius: 8px; border: 2px solid transparent; background: #1f1e1b; color: inherit; font: inherit; font-weight: 600; resize: vertical; min-height: 72px; transition: border-color .15s; } #ideaForm textarea:focus { outline: none; border-color: var(--accent, #81b64c); }
   #ideasErr.ok { color: var(--accent, #81b64c) !important; }
+  #moves .mv[data-notes]::before { content: '●'; color: #e8a33d; font-size: .5em; margin-right: 3px; vertical-align: 3px; }
   .idea { padding: 12px 0; border-top: 1px solid #8883; display: flex; gap: 12px; } .idea .vt { flex: none; min-width: 46px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 4px; background: #ffffff0d; box-shadow: none; border-radius: 10px; font-weight: 800; line-height: 1.15; } .idea .vt.on { background: var(--accent, #81b64c); color: #fff; }
   .idea h3 { margin: 0 0 2px; font-size: 1rem; } .idea .by { color: var(--muted); font-size: .8rem; font-weight: 600; } .idea p { margin: 4px 0 0; font-size: .92rem; overflow-wrap: anywhere; white-space: pre-line; }
   .idea .note { margin-top: 5px; font-size: .85rem; font-weight: 700; color: var(--gold, #f7c631); } .stbadge { font-size: .65rem; font-weight: 800; text-transform: uppercase; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; background: #ffffff1a; } .stbadge.planned { background: #3b5fa8; color: #fff; } .stbadge.done { background: #3f7d2c; color: #fff; } .stbadge.no { background: #6b2d2a; color: #fff; }
+  /* selects match the theme everywhere (they were the browser's own grey) */
+  select { -webkit-appearance: none; appearance: none; background: #1f1e1b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a8a7a4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center / 12px 8px; color: inherit; border: 2px solid transparent; border-radius: 8px; padding: 8px 34px 8px 12px; font: inherit; font-weight: 700; min-height: 40px; cursor: pointer; transition: border-color .15s; }
+  select:hover { border-color: #ffffff1f; } select:focus-visible { outline: none; border-color: var(--accent, #81b64c); } select option { background: #262522; color: #f2f1ec; }
+  .lgkind input[type=radio] { flex: none; width: 18px; min-width: 18px; padding: 0; accent-color: var(--accent, #81b64c); }
+  .lgtop .acts { display: flex; gap: 8px; align-items: center; } .lgtop h1 { flex: 1; text-align: center; min-width: 0; overflow-wrap: anywhere; }
+  .who .badge { margin-left: 6px; } .who .muted { margin-left: 6px; }
+  .idea { align-items: flex-start; } .idea .vt { align-self: flex-start; } .idea .acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } .idea .acts select { min-height: 36px; padding-top: 4px; padding-bottom: 4px; } .idea .acts input { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+  #statscard { margin-top: 16px; }
+  #sandbox { max-width: 1100px; margin: 0 auto; padding: 20px; } #sandbox.hidden { display: none; }
+  .sbgrid { display: grid; grid-template-columns: minmax(0, 560px) minmax(260px, 1fr); gap: 18px; align-items: start; } .sbboard { width: 100%; margin: 0; }
+  .sbsq { padding: 0; border: 0; border-radius: 0; box-shadow: none; min-height: 0; width: 100%; height: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; } .sbsq:active { transform: none; }
+  .sbsq.lt { background: #ecebd2; } .sbsq.dk { background: #739552; } .sbsq.lm { box-shadow: inset 0 0 0 100px #f5d54755; } .sbsq.sel { box-shadow: inset 0 0 0 4px #f5d547; }
+  .sbsq.tgt::after { content: ''; position: absolute; width: 30%; height: 30%; border-radius: 50%; background: #0004; } .sbsq img { width: 100%; height: 100%; pointer-events: none; }
+  .sbpal { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; } .sbp { width: 48px; height: 48px; min-height: 0; padding: 4px; background: #ffffff10; box-shadow: none; border-radius: 8px; } .sbp img { width: 100%; height: 100%; } .sbp.on { outline: 2px solid var(--accent, #81b64c); background: #81b64c33; } .sbp.wide { width: auto; padding: 0 14px; font-weight: 700; }
+  .sbstatus { font-weight: 800; font-size: 1.1rem; margin: 12px 0; }
+  @media (max-width: 800px) { .sbgrid { grid-template-columns: 1fr; } #sandbox { padding: 12px; } }
   .avi[hidden] { display: none; } .avi.s20 { margin-right: 7px; } .avi.s28 { margin-right: 10px; }
   #lb td, #statsBody td, #onlinelist .orow { vertical-align: middle; } #lb td, #statsBody td { height: 46px; }   /* same row height with or without a picture, text centred on the circle */
   td > .who { display: flex; }   /* a block flex box in a cell has no text-baseline gap, so the row centres properly */
@@ -1195,6 +1212,7 @@
     <button id="navCoach" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
     <button id="navTour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg> Tournaments</button>
     <button id="navIdeas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg> Ideas</button>
+    <button id="navSandbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg> Sandbox</button>
     <button id="navLounge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg> Rooms</button>
     <button id="navRivals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3"/></svg> Rivalries</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
@@ -1440,6 +1458,7 @@
 </div>
 
 <div id="lounge" class="hidden"></div>
+<div id="sandbox" class="hidden"></div>
 <div id="tours" class="hidden">
   <div id="tourHome">
     <h1 class="ptitle">Tournaments</h1>
@@ -1664,6 +1683,7 @@
       <div id="anComment"></div>
       <div class="muted annote">Reviewed by the built-in engine, which looks a few moves deep. Treat it as a guide, not gospel.</div>
     </div>
+    <div class="panel hidden" id="studypanel" role="region" aria-label="Study notes"></div>
     <div class="panel hidden" id="gchat">
       <div class="gchead"><div class="gctabs" role="tablist" aria-label="Camera or chat"><button type="button" role="tab" id="tabCam" class="hidden" aria-selected="false" aria-controls="camPane">CAMERA</button><button type="button" role="tab" id="tabChat" aria-selected="true" aria-controls="chatPane">CHAT<i id="chatDot" class="hidden" aria-label="New messages"></i></button></div><span id="callctl"></span></div>
       <div id="camPane" class="hidden" role="tabpanel" aria-labelledby="tabCam">
@@ -1781,7 +1801,7 @@ function pieceHTML(p) {
 }
 // The Coach is archived: hidden from the menu, and ?coach links open the main page. Set to false to bring it back.
 const COACH_ARCHIVED = true;
-const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge', 'sandbox'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -1957,7 +1977,7 @@ function paintRtDot() {
   d.classList.toggle('on', rtLobbyLive);
   const why = RTC.mode === 'none' ? 'not configured on the server' : RTC.err ? (RTC.hint || RTC.err) + ' · polling instead' : RTC.status && RTC.status !== 'SUBSCRIBED' ? RTC.status.toLowerCase().replace(/_/g, ' ') : 'connecting…';
   d.title = rtLobbyLive ? 'Live updates on' : 'Live updates off: ' + why;
-  n.textContent = rtLobbyLive ? '' : 'live updates off · ' + why;
+  n.textContent = '';   // no red "live updates off" text; the dot's tooltip still says why
 }
 // session-wide subscriptions: made once after sign-in, kept while navigating
 function ensureSessionSubs() {
@@ -2168,6 +2188,7 @@ async function start() {
   if (params.has('tours')) return enterTours();
   if (params.has('lounge')) return enterLounge(params.get('lounge'));
   if (params.has('lounges')) return enterLounge();
+  if (params.has('sandbox')) return enterSandbox();
   if (params.has('rival')) return enterRivals(params.get('rival'));
   if (params.has('rivalry')) { const [a, b] = String(params.get('rivalry')).split('~'); if (a && b) return enterRivals(null, { a, b }); }
   if (params.has('rivals')) return enterRivals();
@@ -3500,7 +3521,7 @@ async function checkAway(code) {
   if (!awayGame || awayGame.code !== code || view === 'game') return;
   if (r.status === 404 || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();   // a network blip keeps watching
 }
-$('#leave').onclick = () => (isArchive() && archive.back && archive.back.startsWith('rivalry:') ? enterRivals(null, { a: archive.back.slice(8).split('~')[0], b: archive.back.slice(8).split('~')[1] }) : isArchive() && archive.back && archive.back.startsWith('rival:') ? enterRivals(archive.back.slice(6) || null) : isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
+$('#leave').onclick = () => (isArchive() && archive.back && archive.back.startsWith('lounge:') ? enterLounge(archive.back.slice(7)) : isArchive() && archive.back && archive.back.startsWith('rivalry:') ? enterRivals(null, { a: archive.back.slice(8).split('~')[0], b: archive.back.slice(8).split('~')[1] }) : isArchive() && archive.back && archive.back.startsWith('rival:') ? enterRivals(archive.back.slice(6) || null) : isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
@@ -3521,6 +3542,8 @@ function netNote(ok, ms) {
   netPaint();
 }
 function netPaint() {
+  const quiet = $('#netPill'); if (quiet) quiet.style.display = 'none';   // the red connection badge is switched off (the numbers are still tracked)
+  return;
   let el = $('#netPill');
   if (!el) { el = document.createElement('div'); el.id = 'netPill'; el.setAttribute('role', 'status'); el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:60;padding:7px 12px;border-radius:999px;font:700 .8rem system-ui,sans-serif;background:#7a2a1f;color:#fff;box-shadow:0 2px 10px #0006;max-width:92vw;text-align:center'; document.body.appendChild(el); }
   const avg = NET.rtt.length ? Math.round(NET.rtt.reduce((a, b) => a + b, 0) / NET.rtt.length) : 0;
@@ -3708,6 +3731,7 @@ function render() {
   $('#anBtn').classList.toggle('hidden', !status.over || !(snap.hist || []).length);
   const incoming = canDraw && snap.drawOffer && snap.drawOffer !== you;
   $('#drawbox').classList.toggle('hidden', !incoming);
+  if (incoming) { const o = snap.players[you === 'w' ? 'b' : 'w']; setText($('#drawtxt'), `${o ? o.name : 'Your opponent'} offers a draw.`); }
   updateOver();
   paintMatch();
 
@@ -3732,7 +3756,7 @@ function render() {
   if (AN.key && AN.n) paintAnalysis();
   paintBadge(false); paintEval(state, flip);
   if (!isBot() && !isArchive()) paintCall();
-  setText($('#leave').lastChild, isArchive() ? ' Back to games' : ' Lobby');
+  setText($('#leave').lastChild, isArchive() ? (archive.study ? ' Back to room' : ' Back to games') : ' Lobby');
   paintReplay();
 }
 function paintPendingMove() {
@@ -6189,16 +6213,16 @@ function archiveSnap(g) {
     cat: g.cat, ratings: g.ratings, unrated: !g.rated, startedAt: g.startedAt, endedAt: g.endedAt, v: 0, paused: false, pauseReq: null, resumeReady: [],
   };
 }
-async function enterArchive(id, { analyze = false, back = null, at = 0, note = '' } = {}) {
-  stopLobby(); stopAdmin(); stopGame();
-  archive = { id, back, game: null, note, noteAt: note ? at : null }; view = 'game'; gameCode = 'ARCHIVE';
+async function enterArchive(id, { analyze = false, back = null, at = 0, note = '', study = null } = {}) {
+  stopLobby(); stopAdmin(); stopGame(); if (window.Lounge) { Lounge.stop(); if (!study) Lounge.studyEnd(); }
+  archive = { id, back, game: null, note, noteAt: note ? at : null, study }; view = 'game'; gameCode = 'ARCHIVE';
   snap = null; sig = ''; selected = null; legal = []; premoves = []; arrows = []; marks = [];
   viewPly = null; prevMoves = null; prevOver = false; prevCode = 'ARCHIVE'; pending = null; sending = false;
   $('#over').classList.add('hidden'); document.title = 'Game replay · Chess';
   history.replaceState(null, '', '?archive=' + encodeURIComponent(id));
   document.body.classList.add('archive');
   show('game'); hideGameChat(); gameSkeleton();
-  $('#leave').lastChild.textContent = ' Back to games';
+  $('#leave').lastChild.textContent = study ? ' Back to room' : ' Back to games';
   const r = await gaFetch(id);
   if (!isArchive() || archive.id !== id) return;          // the player moved on while it loaded
   if (!r.ok) { setText($('#status'), r.status === 404 ? 'Game not found' : 'Could not load the game'); setText($('#sub'), r.error || ''); return; }
@@ -6206,6 +6230,7 @@ async function enterArchive(id, { analyze = false, back = null, at = 0, note = '
   applySnapshot(archiveSnap(r.game));
   goPly(at == null ? null : Math.min(at, r.game.hist.length));
   if (analyze) startAnalysis(false);
+  if (study && window.Lounge) Lounge.studyStart(study);
 }
 
 // ---------- replay: play through a finished game (archived or just ended) at a chosen speed ----------
@@ -7031,7 +7056,7 @@ function paintStats() {
     .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
   const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
   setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
-  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r"><b>${fmt(v)}</b>${['acc', 'clean'].includes(statsTab) ? '' : ` <span class="muted">· ${rate(r, statsTab).toFixed(1)}/100</span>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r"><b>${fmt(v)}</b></td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
     : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Stats come from finished, decisive games the engine has checked.</div>`);
 }
 async function loadStats(force) {
@@ -7104,6 +7129,9 @@ document.addEventListener('click', async (e) => {
   const r = await api('tour_chat_delete', { id: tourId, mid: b.dataset.tcdel }); if (!r.ok) setText($('#tcErr'), r.error || 'Could not delete.'); loadTours();
 });
 $('#navTour').onclick = () => enterTours();
+let sandboxP = null;
+async function enterSandbox() { try { await (sandboxP || (sandboxP = loadScript('/sandbox.js'))); } catch (e) { sandboxP = null; throw e; } Sandbox.enter(); }
+$('#navSandbox').onclick = () => enterSandbox();
 let loungeP = null;
 const loadLounge = () => loungeP || (loungeP = loadScript('/lounge.js').catch((e) => { loungeP = null; throw e; }));
 async function enterLounge(id) { await loadLounge(); return Lounge.enter(id); }
