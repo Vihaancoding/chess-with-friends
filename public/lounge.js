@@ -162,16 +162,18 @@
   L.studyStart = async function (id) {
     L.id = id; L.sPly = -1; L.sDone = -1; L.sFormPly = -2; L.sMarks = '';
     const box = $('#studypanel'); if (!box) return;
-    const col = document.querySelector('#game .boardcol'); if (col && box.parentNode !== col) col.appendChild(box);   // under the board, in the empty space
+    // the flagging controls (marks, note, notes on this move) stay in the side column under the move list;
+    // the rest spreads out in the empty space under the board
+    let wide = $('#studywide'); const col = document.querySelector('#game .boardcol');
+    if (!wide && col) { wide = document.createElement('div'); wide.id = 'studywide'; wide.className = 'panel'; wide.setAttribute('role', 'region'); wide.setAttribute('aria-label', 'Study overview and chat'); col.appendChild(wide); }
     document.body.classList.add('studying'); document.body.classList.remove('showreview');
-    box.classList.remove('hidden');
+    box.classList.remove('hidden'); if (wide) wide.classList.remove('hidden');
     box.innerHTML = `<div class="anhead sghead"><b id="sgTitle">Study</b><span class="muted" id="sgMem"></span><button type="button" class="small" data-sg="review" aria-pressed="false">Show game review</button></div>
-      <div class="sgcols"><div class="sgcol"><details class="sghelp"><summary>How this works</summary><ol><li>Step through the game with the arrow keys, the buttons under the board, or by clicking a move.</li><li>On any move, pick a mark and say why. Everyone in the room sees your note.</li><li>When the review above says Done, Stockfish checks each mark: ✓ agrees, ~ close, ✗ disagrees.</li><li>The table at the bottom scores each member against Stockfish.</li></ol></details>
       <div id="sgSf" class="muted" style="font-size:.82rem;font-weight:700;margin:6px 0"></div>
       <div id="sgNav"></div>
-      <div id="sgForm"></div><div id="sgList"></div></div><div class="sgcol"><div id="sgAll"></div><div id="sgScore"></div>
-      <h2 class="ph" style="margin-top:14px"><span>Room chat</span></h2><div id="sgLog" class="lglog" style="height:160px"></div>
-      <form id="sgSend" class="lgrow"><input id="sgIn" maxlength="300" autocomplete="off" placeholder="Message the room" aria-label="Message" style="flex:1"><button type="button" class="small gifbtn" data-sg="gif" title="Send a GIF">GIF</button><button class="primary" type="submit">Send</button></form></div></div><div id="sgErr" class="muted" style="color:var(--bad,#c0392b)"></div>`;
+      <div id="sgErr" role="alert" style="color:var(--bad,#e74c3c);font-weight:700;font-size:.85rem"></div><div id="sgForm"></div><div id="sgList"></div>`;
+    if (wide) wide.innerHTML = `<div class="sgcols"><div class="sgcol"><details class="sghelp"><summary>How this works</summary><ol><li>Step through the game with the arrow keys, the buttons under the board, or by clicking a move.</li><li>On any move, pick a mark and say why. Everyone in the room sees your note.</li><li>When the review above says Done, Stockfish checks each mark: ✓ agrees, ~ close, ✗ disagrees.</li><li>The table at the bottom scores each member against Stockfish.</li></ol></details><div id="sgAll"></div><div id="sgScore"></div></div><div class="sgcol"><h2 class="ph" style="margin-top:14px"><span>Room chat</span></h2><div id="sgLog" class="lglog" style="height:160px"></div>
+      <form id="sgSend" class="lgrow"><input id="sgIn" maxlength="300" autocomplete="off" placeholder="Message the room" aria-label="Message" style="flex:1"><button type="button" class="small gifbtn" data-sg="gif" title="Send a GIF">GIF</button><button class="primary" type="submit">Send</button></form></div></div>`;
     await L.sFetch();
     if (L.data && L.data.room) L.sOff = rtSubscribe(L.data.room.topic, { chat: (m) => L.sChat(m), tbl: L.sFetch, cd: L.sFetch, mem: L.sFetch }, () => {});
     L.sTimer = setInterval(L.sTick, 300); L.sPoll = setInterval(() => { if (!document.hidden) L.sFetch(); }, 8000);
@@ -180,6 +182,7 @@
     clearInterval(L.sTimer); clearInterval(L.sPoll); L.sTimer = L.sPoll = null; if (L.sOff) { L.sOff(); L.sOff = null; }
     document.body.classList.remove('studying', 'showreview');
     const box = $('#studypanel'); if (box) { box.classList.add('hidden'); box.innerHTML = ''; }
+    const wide = $('#studywide'); if (wide) { wide.classList.add('hidden'); wide.innerHTML = ''; }
     document.querySelectorAll('#moves .mv[data-notes]').forEach((c) => c.removeAttribute('data-notes'));
   };
   L.sFetch = async function () {
@@ -230,7 +233,7 @@
     setText($('#sgErr'), ''); L.sChat(r.msg);
   });
   document.addEventListener('click', async (e) => {
-    const b = e.target.closest('#studypanel [data-sg]'); if (!b || b.disabled) return;
+    const b = e.target.closest('#studypanel [data-sg], #studywide [data-sg]'); if (!b || b.disabled) return;
     const a = b.dataset.sg;
     if (a === 'mark') { L.mark = L.mark === b.dataset.m ? '' : b.dataset.m; document.querySelectorAll('#sgForm .stmk').forEach((x) => x.classList.toggle('on', x.dataset.m === L.mark)); setText($('#sgMarkDesc'), L.mark ? MARKD[L.mark] : 'Optional: pick a mark, or just write a comment.'); return; }
     if (a === 'note') { const r = await api('lounge_study_note', { id: L.id, ply: curPly(), mark: L.mark, text: $('#sgText').value }); if (!r.ok) return setText($('#sgErr'), r.error); setText($('#sgErr'), ''); L.sFlash = Date.now(); await L.sFetch(); setText($('#sgSaved'), 'Saved ✓'); setTimeout(() => setText($('#sgSaved'), ''), 2500); return; }
