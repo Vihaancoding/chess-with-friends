@@ -4039,7 +4039,7 @@ const gchatMissing = (c) => { for (let k = c; k > 0 && k > c - 30; k--) if (!gch
 function openGameChat(code) {
   camLeave(); camReset(); paintCamTab();
   gchatIds = new Set(); gchatKs = new Set(); VC.roster.clear(); VC.early.clear();
-  $('#gclog').innerHTML = ''; $('#gcIn').disabled = false; $('#gcForm button').disabled = false;
+  $('#gclog').innerHTML = ''; $('#gcIn').disabled = false; document.querySelectorAll('#gcForm button').forEach((b) => { b.disabled = false; });
   $('#gchat').classList.remove('hidden');
   paintCall();
   loadGameChat(code);
@@ -4050,7 +4050,7 @@ function loadGameChat(code) {
   api('game_chat', { code }).then((r) => {
     if (gameCode !== code || view !== 'game') return;
     if (r.ok) return r.msgs.forEach(addGameMsg);
-    if (r.status === 403) { $('#gclog').innerHTML = '<div class="muted" style="font-weight:600">Chat is for the two players while the game is in progress.</div>'; $('#gcIn').disabled = true; $('#gcForm button').disabled = true; }
+    if (r.status === 403) { $('#gclog').innerHTML = '<div class="muted" style="font-weight:600">Chat is for the two players while the game is in progress.</div>'; $('#gcIn').disabled = true; document.querySelectorAll('#gcForm button').forEach((b) => { b.disabled = true; }); }
   });
 }
 function addGameMsg(m) {

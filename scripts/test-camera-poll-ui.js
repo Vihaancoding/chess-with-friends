@@ -75,7 +75,7 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   await ctxNo.addInitScript((x) => localStorage.setItem('chess:user', JSON.stringify(x)), P.bob); await N.route(/cdn\.jsdelivr\.net/, (r) => r.abort());
   await N.goto(`http://localhost:${PORT}/?game=${g.code}`); await N.waitForSelector('#tabCam:not(.hidden)'); await N.click('#tabCam'); await N.click('#camToggle');
   await N.waitForFunction(() => /Chat still works/.test(document.querySelector('#camNote').textContent), null, { timeout: 10000 });
-  await N.click('#tabChat'); await N.fill('#gcIn', 'still here'); await N.click('#gcForm button');
+  await N.click('#tabChat'); await N.fill('#gcIn', 'still here'); await N.click('#gcForm button[type=submit]');
   await sleep(600);
   ok('declining the camera leaves chat fully working', /still here/.test(await N.textContent('#gclog')), null);
   await brNo.close(); await br.close();
