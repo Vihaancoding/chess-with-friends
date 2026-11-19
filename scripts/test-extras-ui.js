@@ -56,5 +56,23 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT + '-profile.png' });
   await p.click('#navPlay'); await p.click('[data-st="brilliant"]'); await p.waitForSelector('#statsBody table');
   if (process.env.SHOT) { await p.evaluate(() => document.querySelector('#statscard').scrollIntoView()); await sleep(400); await p.screenshot({ path: process.env.SHOT + '-stats.png' }); }
+  console.log('pictures during a game');
+  await api('avatar_clear', {}, A);   // ann starts without a picture
+  const g = await api('create', { color: 'w', tc: { base: 300, inc: 0 } }, A); await api('join', { code: g.code }, B);
+  const ctxB = await br.newContext({ viewport: { width: 1280, height: 900 } }); const pb = await ctxB.newPage();
+  await ctxB.addInitScript((x) => localStorage.setItem('chess:user', JSON.stringify(x)), B); await pb.route(/cdn\.jsdelivr\.net|fonts\.g/, (r) => r.abort());
+  await pb.goto(`http://localhost:${PORT}/?game=${g.code}`); await pb.waitForSelector('.avatar[data-avn]');
+  const hasImg = () => pb.evaluate(() => !!document.querySelector('.avatar[data-avn="ann"] img.avi'));
+  ok('a player without a picture shows the old letter avatar in the game', !(await hasImg()) && /^A/.test(await pb.textContent('.avatar[data-avn="ann"]')), null);
+  const PNGD = 'data:image/png;base64,' + PNG.toString('base64');
+  await api('avatar_set', { img: PNGD }, A);
+  const later = () => pb.evaluate(() => { const real = Date.now.bind(Date); Date.now = () => real() + 40000; avRefresh(); });
+  await later();
+  await pb.waitForSelector('.avatar[data-avn="ann"] img.avi', { timeout: 8000 });
+  ok('when they set one it shows up for the opponent while playing', true);
+  await api('avatar_clear', {}, A);
+  await pb.evaluate(() => { const real = Date.now.bind(Date); Date.now = () => real() + 40000; avRefresh(); });
+  await pb.waitForFunction(() => !document.querySelector('.avatar[data-avn="ann"] img.avi'), null, { timeout: 8000 });
+  ok('and when they remove it, it goes back to the old letter avatar', /^A/.test(await pb.textContent('.avatar[data-avn="ann"]')), null);
   await br.close(); console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
