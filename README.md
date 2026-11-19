@@ -122,7 +122,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Camera / Chat tabs
 
-In a live game the two players get CAMERA and CHAT tabs beside the board. The camera is video only (never any audio or microphone), browser-to-browser WebRTC at 320x240, 15 fps and 140 kbps at most, never recorded or stored. Each player turns their own camera on (the browser asks); the server only relays the handshake (`cam_signal`), privately to the opponent, and only between the two players. Spectators can chat as before (set `GAME_CHAT_PLAYERS_ONLY=1` to keep a live game's chat to the two players) and can open the CAMERA tab to watch both players' cameras (receive only, at most 3 spectators per player at once, only while their tab is open). Test: `node scripts/test-camera-ui.js` (two real browsers with fake cameras).
+In a live game the two players get CAMERA and CHAT tabs beside the board. The camera is video only (never any audio or microphone), browser-to-browser WebRTC at 320x240, 15 fps and 140 kbps at most, never recorded or stored. Each player turns their own camera on (the browser asks); the server only relays the handshake (`cam_signal`), privately to the opponent, and only between the two players. Spectators can chat as before (set `GAME_CHAT_PLAYERS_ONLY=1` to keep a live game's chat to the two players; games played from a private room are only open to that room's members, chat included), and spectators can open the CAMERA tab to watch both players' cameras (receive only, at most 3 spectators per player at once, only while their tab is open). Test: `node scripts/test-camera-ui.js` (two real browsers with fake cameras).
 
 ## Fair-play detection
 
@@ -133,3 +133,9 @@ The detector is a rating- and difficulty-adjusted statistical model with five le
 ## Third-party code
 
 `public/stockfish/` is [Stockfish.js](https://github.com/nmrugg/stockfish.js) 19 (lite, single-threaded WebAssembly), based on [Stockfish](https://github.com/official-stockfish/Stockfish). It is licensed under the GPLv3 (see `public/stockfish/COPYING.txt`), separately from the rest of this project. It only runs when a player picks Stockfish as their analysis engine.
+
+### Profile pictures, GIFs and move stats
+
+- **Profile pictures:** on your own profile, choose a picture; the browser shrinks it to a small square and saves it (`avatar_set`). It shows next to names in the sidebar, players list, leaderboard, chats and rivalries; without one you get a coloured initial. Anyone can fetch `/api?r=avatar&n=<name>`; admins can clear someone's picture from the admin page.
+- **GIFs in chat:** a GIF button next to every chat box. Pasting a link from Giphy, Tenor or Imgur works anywhere; set `GIPHY_API_KEY` to also get a search. The message is just the GIF's address, shown as a picture only for those sites.
+- **Move stats leaderboard:** a card under the leaderboard ranks brilliant moves, blunders, mistakes, inaccuracies, best moves, accuracy and cleanest play (blunders per 100 moves). The numbers come from games the Damage Report's engine has checked (finished, decisive games), so a server with the Damage Report switched off has no stats. Tests: `node scripts/test-extras.js`, `node scripts/test-extras-ui.js`.
