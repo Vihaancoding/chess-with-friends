@@ -119,7 +119,7 @@ flowchart LR
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
 | `lib/app.js` | 4006 | API handler shared by local server.js and the Vercel function (api/index.js). |
-| `lib/damage.js` | 427 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
+| `lib/damage.js` | 391 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
 | `lib/damagechat.js` | 50 | In-game chat for the Damage Report. Only messages stored server-side from this game, sent by its two authenticated players, |
