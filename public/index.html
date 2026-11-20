@@ -222,6 +222,28 @@
   .liverow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
   .liverow:first-child { border-top: 0; }
   .liverow .lv { flex: 1; min-width: 160px; } .liverow i { color: var(--muted); font-style: normal; font-size: .85rem; } .liverow .lm { font-size: .8rem; }
+  #reels { position: relative; height: 100vh; overflow: hidden; } #reels.hidden { display: none; }
+  #reels .rls-top { position: absolute; top: 0; left: 0; right: 0; z-index: 2; padding: 14px 18px; pointer-events: none; }
+  #reels .rls-filters { display: flex; gap: 6px; flex-wrap: wrap; pointer-events: auto; }
+  #reels .rls-filters button.on { border-color: var(--green); color: #fff; }
+  #reels .rls-scroll { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; }
+  #reels .rls-slide { height: 100vh; scroll-snap-align: start; display: flex; align-items: center; justify-content: center; gap: 48px; padding: 64px 40px 40px; box-sizing: border-box; }
+  #reels .rls-boardwrap { flex: 0 0 auto; width: min(68vh, 560px); }
+  #reels .rls-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; }
+  #reels .rls-sq { display: flex; align-items: center; justify-content: center; }
+  #reels .rls-sq.l { background: #e8dcc4; } #reels .rls-sq.d { background: #9aa6b0; }
+  #reels .rls-sq.hot { box-shadow: inset 0 0 0 3px rgba(255,210,80,.85); }
+  #reels .rls-sq img { width: 88%; height: 88%; }
+  #reels .rls-meta { width: min(380px, 100%); font-size: .95rem; }
+  #reels .rls-kind { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); font-weight: 700; }
+  #reels .rls-head { margin: 6px 0 10px; font-size: 2rem; font-weight: 800; line-height: 1.1; }
+  #reels .rls-line { color: var(--muted); margin: 4px 0 12px; }
+  #reels .rls-why { margin: 0 0 16px; color: #d6d4d2; line-height: 1.45; }
+  #reels .rls-ctl { display: flex; gap: 6px; align-items: center; }
+  #reels .rls-ctl input[type=range] { flex: 1; }
+  #reels .rls-pos { font-size: .8rem; margin: 6px 0 14px; color: var(--muted); }
+  #reels .rls-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  #reels .rls-empty { padding: 140px 20px; text-align: center; color: var(--muted); }
   #tuneCard .tune-star { margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
   #tuneCard .tune-kicker { display: block; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
   #tuneCard .tune-why { display: block; font-size: .8rem; color: var(--muted); margin-top: 2px; }
@@ -229,33 +251,6 @@
   #tuneCard .tune-foot { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: .85rem; }
   #tuneCard .tune-foot label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
   #tuneCard .tune-status { font-size: .78rem; margin-top: 8px; }
-  #reelsCard .rl-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-  #reelsCard .rl-filters button.on { border-color: var(--green); color: #fff; }
-  #reelsCard .rl-trend { margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font-size: .85rem; }
-  #reelsCard .rl-kicker { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
-  #reelsCard .rl-trow { padding: 3px 0; }
-  #reelsCard .rl-tk { color: var(--gold); font-weight: 700; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; margin-right: 4px; }
-  #reelsCard .rl-list { max-height: 640px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px; }
-  #reelsCard .rl-reel { border-top: 1px solid var(--line); padding-top: 12px; }
-  #reelsCard .rl-reel:first-child { border-top: 0; padding-top: 0; }
-  #reelsCard .rl-kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); font-weight: 700; }
-  #reelsCard .rl-head { margin: 2px 0 4px; font-size: 1.05rem; font-weight: 800; }
-  #reelsCard .rl-players, #reelsCard .rl-line { font-size: .85rem; }
-  #reelsCard .rl-line { color: var(--muted); margin-bottom: 8px; }
-  #reelsCard .rl-body { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
-  #reelsCard .rl-boardwrap { width: 240px; flex: 0 0 240px; }
-  #reelsCard .rl-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border-radius: 4px; overflow: hidden; }
-  #reelsCard .rl-sq { display: flex; align-items: center; justify-content: center; }
-  #reelsCard .rl-sq.l { background: #e8dcc4; } #reelsCard .rl-sq.d { background: #9aa6b0; }
-  #reelsCard .rl-sq.hot { box-shadow: inset 0 0 0 3px rgba(255,210,80,.8); }
-  #reelsCard .rl-sq img { width: 88%; height: 88%; }
-  #reelsCard .rl-side { flex: 1; min-width: 180px; font-size: .85rem; }
-  #reelsCard .rl-why { margin-bottom: 8px; }
-  #reelsCard .rl-ctl { display: flex; gap: 6px; align-items: center; }
-  #reelsCard .rl-ctl input[type=range] { flex: 1; }
-  #reelsCard .rl-pos { font-size: .78rem; margin: 4px 0 8px; }
-  #reelsCard .rl-acts { display: flex; gap: 6px; flex-wrap: wrap; }
-  #reelsCard .rl-note { font-size: .75rem; margin-top: 8px; }
   /* each player: a chip in their piece colour; the side to move gets a softly pulsing green ring, the other is dimmed */
   .lp { white-space: nowrap; transition: opacity .3s; } .lp.wait { opacity: .55; }
   .pc { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-shadow: inset 0 0 0 1px #0005; }
@@ -1395,6 +1390,7 @@
     <button id="navIdeas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg> Ideas</button>
     <button id="navLounge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg> Rooms</button>
     <button id="navRivals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3"/></svg> Rivalries</button>
+    <button id="navReels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M10 8.5v7l5.5-3.5z"/></svg> Reels</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
     <button id="navProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile</button>
@@ -1483,10 +1479,6 @@
       <div class="panel hidden" id="dmgcard" role="region" aria-label="The Damage Report"><h2 class="ph"><span class="dmgttl">The <i>Damage</i> Report</span><span class="dmgtools"><button class="small" id="dmgHide" title="Hide the Damage Report (Shift+D). Saved to your account." aria-keyshortcuts="Shift+D">Hide</button></span></h2><div id="dmgbody"><div class="dmgskel"></div></div></div>
       <div class="panel hidden" id="rvwatch"><h2 class="ph"><span>Rivalries to watch</span><button class="small" id="rvwAll">See all</button></h2><div id="rvwlist"></div></div>
       <div class="panel" id="tourcard"><h2 class="ph"><span>Tournaments</span><button class="small" id="tcAll">See all</button></h2><div id="tourmini"><div class="muted">Loading…</div></div></div>
-      <div class="panel" id="reelsCard"><h2 class="ph"><span>Highlight reels<span class="rtnote" id="reelsCount"></span></span></h2>
-      <div class="rl-filters" id="reelsFilters"></div><div id="reelsTrend" class="rl-trend"></div>
-      <div class="rl-list" id="reelsList"><div class="muted empty">Finding moments…</div></div>
-      <div class="muted rl-note">Brilliant-move and checkmate reels are not found yet. They need deeper checks than the live analysis gives.</div></div>
       <div class="panel" id="tuneCard"><h2 class="ph"><span>Live TUNE-IN<span class="rtnote" id="tuneCount"></span></span></h2>
       <div id="tuneStar"></div><div id="tuneList"><div class="muted empty">Finding exciting games…</div></div>
       <div class="muted tune-status" id="tuneStatus" data-kind=""></div></div>
@@ -1655,6 +1647,7 @@
   <div id="rvDetail" class="hidden"></div>
 </div>
 
+<div id="reels" class="hidden"></div>
 <div id="lounge" class="hidden"></div>
 <div id="puzzles" class="hidden"></div>
 <div id="sandbox" class="hidden"></div>
@@ -2004,7 +1997,7 @@ function pieceHTML(p) {
 }
 // The Coach is archived: hidden from the menu, and ?coach links open the main page. Set to false to bring it back.
 const COACH_ARCHIVED = true;
-const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge', 'sandbox', 'puzzles'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge', 'sandbox', 'puzzles', 'reels'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); if (id !== 'reels' && window.reelsPage) reelsPage.leave(); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -2277,7 +2270,6 @@ function finishAuth(r) {
   $('#meName').textContent = r.name; paintMyRating();
   if (r.w != null) $('#meRec').textContent = `${r.w}W ${r.l}L ${r.d}D`;
   tuneSync();
-  if (window.reelsReady) window.reelsReady.reload();   // the reels were drawn logged out: show them now
 }
 async function login(name, token) {
   const r = await api('resume', { name, token });
@@ -2840,13 +2832,19 @@ if (window.TuneIn) tuneReady = TuneIn.init(api, {
   watch: async (code) => { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); else $('#err').textContent = r.error; },
 });
 
-// ---------- HIGHLIGHT REELS (public/highlights.js): moments the server checked, each a small replay ----------
-if (window.HighlightReels) window.reelsReady = HighlightReels.init(api, {
-  list: $('#reelsList'), filters: $('#reelsFilters'), trend: $('#reelsTrend'), count: $('#reelsCount'),
-  tc: tcLabel, loggedIn: () => !!user,
+// ---------- REELS (public/highlights.js): a full-screen feed of checked moments, on its own page ----------
+if (window.HighlightReels) window.reelsPage = HighlightReels.init(api, {
+  root: $('#reels'), tc: tcLabel, loggedIn: () => !!user,
   open: (gid) => enterArchive(gid),
   watch: async (code) => { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); else $('#err').textContent = r.error; },
 });
+function enterReels() {
+  stopLobby(); stopGame(); stopAdmin(); stopTour(); stopRivals();
+  view = 'reels'; gameCode = null; show('reels');
+  document.querySelectorAll('.nav button').forEach((b) => b.classList.toggle('on', b.id === 'navReels'));
+  if (window.reelsPage) reelsPage.enter();
+}
+$('#navReels').onclick = () => enterReels();
 
 $('#livelist').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-watch]');

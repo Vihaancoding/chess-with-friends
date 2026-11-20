@@ -19,7 +19,7 @@ Clients never submit highlights or scores.
 ## The feed
 
 - `highlight_feed` returns one reel per game (the strongest moment), for the chosen filter, plus a trending strip (last 48 h).
-- The reel board (public/highlights.js) starts 4 moves before the moment. It has step and scrub controls.
+- Reels is its own page in the sidebar: one reel per screen, scroll-snap between them. The reel on screen plays from 4 moves before the moment; the others stop. Step, scrub and play controls on each reel.
 - "Open full game" opens the archive replay for finished games. "Watch live" joins ongoing ones.
 
 ## Limits
