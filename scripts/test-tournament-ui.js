@@ -61,7 +61,7 @@ process.on('exit', () => { if (srv) srv.kill(); });
   const B = await open(P.bob, { width: 390, height: 820 });
   await B.goto(`http://localhost:${PORT}/?tours`);
   await B.waitForSelector('#tourList .tl');
-  ok('players have no create form', await B.isHidden('#tourNew') && await B.isVisible('#tourAdminNote'));
+  ok('players can host a tournament too (the create form is open to everyone)', await B.isVisible('#tourNew') && await B.isHidden('#tourAdminNote'));
   await B.goto(`http://localhost:${PORT}/`);
   await B.waitForSelector('#tourBanners .tinvite', { timeout: 15000 });
   ok('the invitation shows in the lobby', /invited: Autumn Cup/.test(await B.textContent('#tourBanners')), await B.textContent('#tourBanners'));

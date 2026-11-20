@@ -1478,7 +1478,7 @@
     <div class="muted" style="font-weight:600">Group stages, knockout brackets and round robins for everyone on this server. Every pairing is a match played in a normal game room, and results move the tournament on by themselves.</div>
     <div class="tgrid">
       <div class="panel"><h2 class="ph">All tournaments</h2><div id="tourList"><div class="muted">Loading…</div></div></div>
-      <div class="panel hidden" id="tourAdminNote"><h2 class="ph">Want to run one?</h2><div class="muted" style="font-weight:600">Tournaments are set up by the admins. When one opens for sign-ups, you'll get an invitation on the main page.</div></div>
+      <div class="panel hidden" id="tourAdminNote"><h2 class="ph">Want to run one?</h2><div class="muted" style="font-weight:600">Anyone can host a tournament.</div></div>
       <form class="panel hidden" id="tourNew" autocomplete="off">
         <h2 class="ph">Create a tournament</h2>
         <label class="tf">Name<input id="tnName" maxlength="40" placeholder="e.g. Friday Night Cup"></label>
@@ -2547,7 +2547,7 @@ async function pollLobby(full = true) {
       renderBoardTable();
     }
     syncChallenges(r.inbox, r.outbox);
-    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); renderTourMini(r.tours || [], !!r.user.admin); loadRvWatch(); loadDamage(); loadFair(); }
+    if (full) { renderResults(r.results || [], r.resultsOut || []); renderClones(r.clones || []); renderTourNext(r.tourNext || [], r.tourOpen || []); renderTourMini(r.tours || [], true); loadRvWatch(); loadDamage(); loadFair(); }
   } finally {
     lobbyBusy = false;
     if (lobbyRerun) { lobbyRerun = false; pollLobby(true); }
@@ -6942,7 +6942,7 @@ async function loadTours() {
     return;
   }
   tourAdmin = !!r.admin;
-  if (id) { paintTour(r.tour); paintTourChat(r.chat || []); } else { $('#tourNew').classList.toggle('hidden', !tourAdmin); $('#tourAdminNote').classList.toggle('hidden', tourAdmin); paintTourList(r.tours); }
+  if (id) { paintTour(r.tour); paintTourChat(r.chat || []); } else { $('#tourNew').classList.remove('hidden'); $('#tourAdminNote').classList.add('hidden'); paintTourList(r.tours); }
 }
 const tourVoting = (x) => (x.cfg ? !!(x.poll && x.poll.chosen == null) : !!x.poll);
 const tourKindLine = (x) => `${Tour.KINDS[x.kind || x.cfg.kind]} · ${tourVoting(x) ? 'time control by vote' : tcLabel(x.tc)}`;
@@ -7615,7 +7615,7 @@ function renderTourMini(list, admin) {
     const info = x.phase === 'done' ? `🏆 ${esc(x.champion || '')}` : x.phase === 'signup' ? `${x.n} / ${x.max} signed up${x.startAt ? ` · starts ${esc(untilText(x.startAt))}` : ''}` : `${x.n} players · ${x.phase === 'groups' ? 'group stage' : 'knockout'}`;
     return `<div class="tl"><span class="tbadge ${x.phase}">${PHASE[x.phase]}</span><span class="tn"><b>${esc(x.name)}</b><span class="muted">${tourKindLine(x)} · ${info}${x.in ? ' · <b style="display:inline;color:var(--green)">you\'re in</b>' : ''}</span></span>
       <button class="small ${join ? 'primary' : ''}" data-tm${join ? 'join' : 'open'}="${esc(x.id)}">${join ? 'Join' : x.phase === 'done' ? 'Results' : 'Open'}</button></div>`;
-  }).join('') : `<div class="muted">No tournaments right now.${admin ? ' <button class="small primary" data-tmnew="1">Create one</button>' : ' When an admin opens one, it shows up here.'}</div>`);
+  }).join('') : `<div class="muted">No tournaments right now.${admin ? ' <button class="small primary" data-tmnew="1">Create one</button>' : ' Start one yourself, or wait for another player to open one.'}</div>`);
 }
 $('#tcAll').onclick = () => enterTours();
 $('#tourmini').addEventListener('click', async (e) => {
