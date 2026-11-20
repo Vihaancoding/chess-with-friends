@@ -136,7 +136,7 @@ flowchart LR
 | `lib/rivalry.js` | 302 | Rivalries: head-to-head records, tiers, streaks, moments and seasons between two players. |
 | `lib/sfserver.js` | 173 | Stockfish 19 (lite, single thread, WebAssembly: the same files the browser uses, in public/stockfish/) running on the |
 | `lib/store.js` | 137 | Tiny JSON key-value store. Uses Supabase (PostgREST) when SUPABASE_URL + SUPABASE_SERVICE_KEY are set, |
-| `lib/streaks.js` | 67 | Win streaks, from each player's very first completed game. Pure and deterministic: the stats are always rebuilt from the player's |
+| `lib/streaks.js` | 70 | Win streaks, from each player's very first completed game. Pure and deterministic: the stats are always rebuilt from the player's |
 | `lib/tribunal.js` | 74 | Fair-play tribunal: pure rules. When the engine check is sure enough a game is forfeited, a case opens, the community |
 | `public/bot.js` | 248 | Chess bot: alpha-beta search over the shared engine (chess.js) for the computer opponents, and the analysis engine |
 | `public/chess.js` | 197 | Chess engine shared by server (authoritative) and browser (move hints). |
@@ -152,7 +152,7 @@ flowchart LR
 | `public/sfengine.js` | 123 | Stockfish as an alternative analysis engine (Stockfish 19 lite, single-threaded WebAssembly, in public/stockfish/; |
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
-| `public/index.html` | 7981 |  |
+| `public/index.html` | 7986 |  |
 
 ## API routes (153, all in lib/app.js, called as POST /api?r=<name>)
 
