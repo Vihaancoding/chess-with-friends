@@ -712,8 +712,19 @@
   #statscard { margin-top: 16px; }
 
   /* ---------- win streaks: the same card, tabs and table as the leaderboard; profile cards reuse .rcard ---------- */
-  #strkcard, #statscard { margin-top: 16px; } #strkcard h2, #statscard h2 { margin: 0 0 10px; font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 10px; } #strkcard h2 svg { width: 22px; height: 22px; color: var(--gold); }
+  #strkcard, #statscard, #shcard { margin-top: 16px; } #shcard h2, #strkcard h2, #statscard h2 { margin: 0 0 10px; font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 10px; } #strkcard h2 svg, #shcard h2 svg { width: 22px; height: 22px; color: var(--gold); }
   #strkcard .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; } #strkcard .head h2 { margin: 0; } #strkcard .lbtabs { max-width: 100%; overflow-x: auto; }
+  #shcard .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; } #shcard .head h2 { margin: 0; }
+  #shcard td.big { font-weight: 800; font-size: 1.05rem; } #shcard td.act { width: 1%; white-space: nowrap; } #shcard .shnote { margin: 0 0 10px; font-size: .9rem; } #shcard .shnote b { color: var(--text); }
+  #shcard .shme { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 12px; background: var(--panel2); border-radius: 8px; font-size: .9rem; font-weight: 600; } #shcard .shme b { color: var(--text); }
+  #shcard h3 { margin: 18px 0 4px; font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .shev { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); } .shev:first-of-type { border-top: 0; }
+  .shev .shk { display: block; font-size: .75rem; font-weight: 800; letter-spacing: .06em; color: var(--muted); } .shev.l2 .shk, .shev.l3 .shk, .shev.l4 .shk { color: var(--gold); }
+  .shev .sht { font-weight: 600; } .shev .sht b { color: var(--text); } .shev .shw { flex: none; text-align: right; font-size: .8rem; }
+  #chatToast.shbig { border-left-color: var(--gold); animation: shpunch .45s cubic-bezier(.2, 1.4, .4, 1); } #chatToast.shbig .ct-n { color: var(--gold); }
+  @media (max-width: 560px) { #shcard .sh-opt, #shcard .who .badge.gold { display: none; } #shcard td, #shcard th { padding-left: 6px; padding-right: 6px; } }
+  @keyframes shpunch { 0% { transform: translate(-50%, -20px) scale(.92); } 100% { transform: translate(-50%, 0) scale(1); } }
+  @media (prefers-reduced-motion: reduce) { #chatToast.shbig { animation: none; } }
   #strkcard td.sel { color: var(--text); font-weight: 800; } .strknote { margin-top: 12px; font-size: .9rem; } .strknote b { color: var(--text); }
   .rcard.static { cursor: default; } .rcard.static .rc-s { margin-top: 4px; }
   /* ---------- SHUT UP ---------- */
@@ -1539,6 +1550,12 @@
     <table><thead><tr><th>#</th><th>Player</th><th class="r">Rating</th><th class="r">Games</th><th></th></tr></thead>
     <tbody id="lb"><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:110px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:80px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:130px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr></tbody></table>
   </div>
+  <div id="shcard" class="panel">
+    <div class="head"><h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>Streak Hunt</h2></div>
+    <div id="shMe"></div><div id="shNote"></div>
+    <table id="shTable"><thead><tr><th>#</th><th>Player</th><th class="r">Streak</th><th class="r sh-opt">Best</th><th class="r sh-opt">Last game</th><th></th></tr></thead><tbody id="shLb"><tr><td colspan="6" class="muted" style="padding:16px 10px">Loading…</td></tr></tbody></table>
+    <h3>Recent takedowns</h3><div id="shFeed"></div>
+  </div>
   <div id="strkcard" class="panel">
     <div class="head"><h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Win streaks</h2>
       <div class="lbtabs" id="strkTabs"></div></div>
@@ -2074,7 +2091,7 @@ function sseEnsure() {
     for (const t of SSE.topics.values()) t.onState && t.onState(false);
     if (es.readyState === 2) setTimeout(sseEnsure, 1000);               // closed for good: reopen
   };
-  for (const ev of ['m', 's', 'c', 'cd', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem']) es.addEventListener(ev, (e) => {
+  for (const ev of ['m', 's', 'c', 'cd', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem', 'sbreak']) es.addEventListener(ev, (e) => {
     let d; try { d = JSON.parse(e.data); } catch { return; }
     for (const t of SSE.topics.values()) if (t.handlers[ev]) t.handlers[ev](d);
   });
@@ -2132,7 +2149,7 @@ function ensureSessionSubs() {
   if (rtSession || !user || !user.topic) return;
   rtSession = true;
   rtSubscribe(user.topic, { ping: onUserPing }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok && view === 'lobby') pollLobby(false); });
-  rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel }, () => {});
+  rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel, sbreak: onStreakBreak }, () => {});
 }
 function onUserPing(d) {
   if (d.why === 'cd' && d.ev && d.code === gameCode) return onGameChatDel(d.ev);
@@ -2568,7 +2585,7 @@ function enterLobby() {
   stopGame(); stopAdmin(); stopLobby(); gameCode = null; view = 'lobby';
   history.replaceState(null, '', '/');
   show('lobby'); $('#err').textContent = ''; drawPreview(); paintBotResume(); paintLocalResume(); paintNotify(); resendResults();
-  lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot(); loungeBadge(); loadStats(); loadStreaks(); maybeWhatsNew();
+  lobbyTick = 0; pollLobby(true); ensureSessionSubs(); paintRtDot(); loungeBadge(); loadStats(); loadStreaks(); loadHunt(); maybeWhatsNew();
   // with live updates on, polling is only a safety net
   lobbyTimer = setInterval(() => {
     if (document.hidden) return;
@@ -4394,7 +4411,7 @@ function chatToast(m, awayCode) {
 }
 function showToast(icon, html, more, awayCode) {
   const t = $('#chatToast');
-  t.dataset.code = awayCode || ''; t.dataset.lobby = ''; t.dataset.tour = ''; t.dataset.chat = ''; t.dataset.profile = '';
+  t.dataset.code = awayCode || ''; t.dataset.lobby = ''; t.dataset.tour = ''; t.dataset.chat = ''; t.dataset.profile = ''; t.dataset.game = ''; t.classList.remove('shbig');
   t.innerHTML = `<span class="ct-i">${icon}</span><div>${html}<div class="ct-more">${more}</div></div>`;
   t.classList.add('show');
   clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
@@ -4416,6 +4433,7 @@ $('#chatToast').onclick = () => {
   const code = $('#chatToast').dataset.code;
   const tt = $('#chatToast').dataset;
   if (tt.profile) { tt.profile = ''; return enterProfile(user.name); }
+  if (tt.game) { const g = tt.game; tt.game = ''; return enterArchive(g); }
   if (tt.tour) { enterTours(tt.tour); if (tt.chat) setTimeout(() => $('#tcIn').focus({ preventScroll: false }), 400); return; }
   if (tt.lobby) { enterLobby(); if (tt.chat) setTimeout(() => { $('#chatcard').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('#chatIn').focus({ preventScroll: true }); }, 300); return; }
   if (code) { enterGame(code); setTimeout(() => $('#gcIn').focus({ preventScroll: true }), 300); return; }
@@ -7343,6 +7361,58 @@ async function loadStreaks(force) {
   const r = await api('streak_board'); if (r.ok) { strkRows = r.rows; strkMin = r.min || 10; paintStreaks(); }
 }
 $('#strkcard').addEventListener('click', (e) => { const b = e.target.closest('[data-sk]'); if (b) { strkTab = b.dataset.sk; paintStreaks(); } });
+// ----- STREAK HUNT: the hunted, the takedowns, your breaker record, ON THE LINE (server: lib/streakhunt.js) -----
+let hunt = null, huntAt = 0;
+const HUNT_ACH = { first: 'First Blood', giant: 'Giant Slayer', legend: 'Legend Hunter', exec: 'Streak Executioner' }, HUNT_NEED = { first: 'break a 3+ streak', giant: 'end a 10+ streak', legend: 'end a 15+ streak', exec: 'end a 20+ streak' };
+const huntAgo = (t) => { if (!t) return ''; const d = Date.now() - t; return d < 86400e3 ? agoText(t) : `${Math.round(d / 86400e3)} d ago`; };
+function huntEvHTML(e) {
+  return `<div class="shev l${e.level || 0}"><div><span class="shk">${esc(e.head)}</span><span class="sht"><span class="plink" data-name="${esc(e.breaker)}">${esc(e.breaker)}</span> ended <span class="plink" data-name="${esc(e.victim)}">${esc(e.victim)}</span>'s <b>${e.len}</b>-game win streak.</span></div>
+    <div class="shw muted">${esc(huntAgo(e.at))}${e.id && !e.hist ? `<br><button class="small" data-shg="${esc(e.id)}">Watch game</button>` : ''}</div></div>`;
+}
+function paintHunt() {
+  if (!hunt || !$('#shcard')) return;
+  const h = hunt.hunted, me = hunt.me, st = me.stats, top = h[0];
+  setHTML($('#shNote'), `<div class="muted shnote">${top ? (top.name === user.name ? `You are the most wanted player here: <b>${top.cur} wins in a row</b>. Everyone is coming for you.`
+    : `<b>${esc(top.name)}</b> has won <b>${top.cur} in a row</b>${top.line ? ' and put it on the line' : ''}. ${top.cur >= 10 ? 'Somebody end this.' : 'Be the one who ends it.'}`)
+    : `Nobody is on a streak of ${hunt.min} or more right now. Win ${hunt.min} in a row and you are the target.`}</div>`);
+  const mine = me.cur >= hunt.min ? `<span>You are on <b>${me.cur}</b>.${me.line ? ' Your streak is <b>on the line</b>.' : ' Willing to defend it?'}</span><button class="small${me.line ? '' : ' primary'}" data-shline="${me.line ? 0 : 1}">${me.line ? 'Take it off the line' : 'Put it on the line'}</button>` : '';
+  const rec = st.total ? `<span>You have ended <b>${st.total}</b> streak${st.total === 1 ? '' : 's'}${st.biggest ? `, the biggest <b>${st.biggest}</b> (${esc(st.biggestOf.victim)})` : ''}.${st.title ? ` <span class="badge gold">${esc(st.title)}</span>` : ''}</span>` : '';
+  setHTML($('#shMe'), mine || rec ? `<div class="shme">${mine || rec}</div>${mine && rec ? `<div class="shme">${rec}</div>` : ''}` : '');
+  setHTML($('#shLb'), h.length ? h.map((r, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span><span class="badge gold">${esc(r.tier)}</span>${r.line ? '<span class="badge red" title="They put this streak on the line">On the line</span>' : ''}</span></td>
+    <td class="r big">${r.cur}</td><td class="r muted sh-opt">${r.best}</td><td class="r muted sh-opt">${esc(huntAgo(r.lastTs))}</td><td class="r act">${r.name === user.name ? '' : `<button class="small" data-ch="${esc(r.name)}">Challenge</button>`}</td></tr>`).join('')
+    : '');
+  $('#shTable').classList.toggle('hidden', !h.length);
+  setHTML($('#shFeed'), hunt.feed.length ? hunt.feed.map(huntEvHTML).join('') : '<div class="muted" style="padding:6px 0">No streak has been broken yet. The first one is history.</div>');
+}
+async function loadHunt(force) {
+  if (!$('#shcard') || (!force && hunt && Date.now() - huntAt < 120000)) return paintHunt();
+  huntAt = Date.now();
+  const r = await api('streak_hunt'); if (r.ok) { hunt = r; paintHunt(); }
+}
+$('#shcard').addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-ch]'); if (c) { if (!c.disabled) challenge(c.dataset.ch); return; }
+  const g = e.target.closest('[data-shg]'); if (g) return enterArchive(g.dataset.shg);
+  const l = e.target.closest('[data-shline]');
+  if (l) { l.disabled = true; const r = await api('streak_line', { on: l.dataset.shline === '1' }); if (!r.ok) { l.disabled = false; return showToast('⚠', `<span class="ct-t">${esc(r.error || 'Could not do that.')}</span>`, ''); } return loadHunt(true); }
+  const n = e.target.closest('.plink'); if (n) enterProfile(n.dataset.name);
+});
+// the announcement, pushed to everyone on the site the moment a streak falls
+function onStreakBreak(e) {
+  if (!e || !e.victim) return;
+  if (hunt) { hunt.feed = [e, ...hunt.feed.filter((x) => x.id !== e.id)].slice(0, 12); hunt.hunted = hunt.hunted.filter((x) => x.name !== e.victim); paintHunt(); }
+  if (e.victim === user.name || (view === 'game' && snap && !snap.status.over && (snap.you === 'w' || snap.you === 'b'))) return;   // your own loss has its own toast; never in the middle of your game
+  const me = e.breaker === user.name;
+  showToast('🎯', `<span class="ct-n">${esc(e.head)}</span> <span class="ct-t">${esc(me ? 'You' : e.breaker)} ended ${esc(e.victim)}'s ${e.len}-game win streak.${e.level >= 2 ? ' ' + esc(e.tail) : ''}</span>`, 'Tap to watch the game');
+  const t = $('#chatToast'); t.dataset.game = e.id;
+  if (e.level >= 2 || me) { t.classList.add('shbig'); clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 9000); }
+  sfx(e.level >= 2 ? 'end' : 'chAccepted');
+}
+function pfHuntCards(s) {
+  if (!s || !s.total) return '';                                       // only once they have broken a streak: no row of zeros
+  const next = Object.entries(HUNT_ACH).find(([k]) => !s.ach.includes(k));
+  return `<div class="rcard static"><div class="rc-l">Streaks broken</div><div class="rc-r">${s.total}</div><div class="rc-s">${s.total ? `Biggest: ${esc(s.biggestOf.victim)}'s ${s.biggest}${s.recent.id !== s.biggestOf.id ? `. Latest: ${esc(s.recent.victim)}'s ${s.recent.len}` : ''}` : 'End a 3+ win streak to start'}</div></div>
+    <div class="rcard static"><div class="rc-l">Streak breaker</div><div class="rc-r" style="font-size:1.15rem">${s.title ? esc(s.title) : '—'}</div><div class="rc-s">${s.ach.length ? s.ach.map((k) => HUNT_ACH[k]).join(' · ') : ''}${next ? `${s.ach.length ? '. ' : ''}Next: ${esc(next[1])}, ${HUNT_NEED[next[0]]}` : '. Every title earned'}</div></div>`;
+}
 // profile: the same rating-card pattern as the ratings below it
 function paintPfStreak(r) {
   const box = $('#pfStreakCards'), s = r && r.streak; if (!box) return;
@@ -7352,7 +7422,8 @@ function paintPfStreak(r) {
   box.innerHTML = `<div class="rcard static"><div class="rc-l">Win streak</div><div class="rc-r">${s.cur}</div><div class="rc-s">${s.cur >= 3 ? `${esc(s.tier)}. ${esc(quipFor(s.cur).replace(/^The heat is rising\./, 'Keep going.'))}` : s.cur ? 'One win. It starts somewhere.' : 'Back to zero. Go again.'}${s.cur && s.next ? ` ${s.next - s.cur} more win${s.next - s.cur === 1 ? '' : 's'} for ${s.next} in a row.` : ''}</div></div>
     <div class="rcard static"><div class="rc-l">Longest streak</div><div class="rc-r">${s.best}</div><div class="rc-s">${s.best >= 2 ? `Your record${s.bestTs ? `, set ${esc(day(s.bestTs))}` : ''}${s.cur && s.cur === s.best ? '. Still going' : ''}` : 'Your record to beat'}</div></div>
     <div class="rcard static"><div class="rc-l">Win rate</div><div class="rc-r">${pctOf(s.rate)}</div><div class="rc-s">${s.w} win${s.w === 1 ? '' : 's'} · ${s.l} loss${s.l === 1 ? '' : 'es'} · ${s.d} draw${s.d === 1 ? '' : 's'}</div></div>
-    <div class="rcard static"><div class="rc-l">Milestones</div><div class="rc-r">${ms.length}<span class="prov" style="font-size:.9rem"> of 6</span></div><div class="rc-s">${ms.length ? ms.map((m) => m + ' in a row').join(' · ') : 'Win 3 in a row for the first'}${s.partial ? '. Counted from the latest 1000 games' : ''}</div></div>`;
+    <div class="rcard static"><div class="rc-l">Milestones</div><div class="rc-r">${ms.length}<span class="prov" style="font-size:.9rem"> of 6</span></div><div class="rc-s">${ms.length ? ms.map((m) => m + ' in a row').join(' · ') : 'Win 3 in a row for the first'}${s.partial ? '. Counted from the latest 1000 games' : ''}</div></div>
+    ${pfHuntCards(r.hunt)}`;
 }
 // the moment after a game: a milestone, a new record or the end of a streak, in the site's own toast (once per game, remembered in this browser)
 async function streakToast(r) {
@@ -7365,7 +7436,7 @@ async function streakToast(r) {
   if (seen.includes(id)) return;
   const big = f.milestones.length || f.newBest || (f.result !== 'win' && f.prevCur >= 3);
   try { localStorage.setItem('chess:strkSeen', JSON.stringify([...seen, id].slice(-60))); } catch {}
-  loadStreaks(true);
+  loadStreaks(true); loadHunt(true);
   if (!big) return;
   const head = f.result === 'win' ? `${f.cur} wins in a row.` : `The ${f.prevCur}-win streak is over.`;
   showToast(f.result === 'win' ? '🔥' : '🧊', `<span class="ct-n">${esc(head)}</span> <span class="ct-t">${esc(sentence(f.headline).replace(/^\d+ (wins in a row|consecutive wins|straight wins?|straight)\.\s*/i, ''))}</span>`, f.result === 'win' ? 'Tap to see your streaks' : 'Tap to see your record');

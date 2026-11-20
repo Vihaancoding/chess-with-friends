@@ -28,6 +28,7 @@ flowchart LR
     lib_rivalry_js["rivalry.js"]
     lib_sfserver_js["sfserver.js"]
     lib_store_js["store.js"]
+    lib_streakhunt_js["streakhunt.js"]
     lib_streaks_js["streaks.js"]
     lib_tribunal_js["tribunal.js"]
   end
@@ -70,6 +71,7 @@ flowchart LR
   lib_app_js --> lib_puzzleai_js
   lib_app_js --> lib_movestats_js
   lib_app_js --> lib_streaks_js
+  lib_app_js --> lib_streakhunt_js
   lib_app_js --> lib_tribunal_js
   lib_app_js --> lib_sfserver_js
   lib_app_js --> lib_fairan_js
@@ -95,6 +97,7 @@ flowchart LR
   lib_realtime_js --> lib_store_js
   lib_sfserver_js --> public_chess_js
   lib_sfserver_js --> lib_fairplay_js
+  lib_streakhunt_js --> lib_streaks_js
   public_bot_js --> public_chess_js
   public_bot_js --> public_style_js
   public_bot_js --> public_engine_js
@@ -118,7 +121,7 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 4006 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/app.js` | 4085 | API handler shared by local server.js and the Vercel function (api/index.js). |
 | `lib/damage.js` | 391 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
@@ -136,6 +139,7 @@ flowchart LR
 | `lib/rivalry.js` | 302 | Rivalries: head-to-head records, tiers, streaks, moments and seasons between two players. |
 | `lib/sfserver.js` | 173 | Stockfish 19 (lite, single thread, WebAssembly: the same files the browser uses, in public/stockfish/) running on the |
 | `lib/store.js` | 137 | Tiny JSON key-value store. Uses Supabase (PostgREST) when SUPABASE_URL + SUPABASE_SERVICE_KEY are set, |
+| `lib/streakhunt.js` | 98 | STREAK HUNT: ending someone's win streak is an event. Pure functions over the same archive rows as lib/streaks.js |
 | `lib/streaks.js` | 70 | Win streaks, from each player's very first completed game. Pure and deterministic: the stats are always rebuilt from the player's |
 | `lib/tribunal.js` | 74 | Fair-play tribunal: pure rules. When the engine check is sure enough a game is forfeited, a case opens, the community |
 | `public/bot.js` | 248 | Chess bot: alpha-beta search over the shared engine (chess.js) for the computer opponents, and the analysis engine |
@@ -152,9 +156,9 @@ flowchart LR
 | `public/sfengine.js` | 123 | Stockfish as an alternative analysis engine (Stockfish 19 lite, single-threaded WebAssembly, in public/stockfish/; |
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
-| `public/index.html` | 8038 |  |
+| `public/index.html` | 8109 |  |
 
-## API routes (155, all in lib/app.js, called as POST /api?r=<name>)
+## API routes (157, all in lib/app.js, called as POST /api?r=<name>)
 
 - **admin** (32): `admin_access_list`, `admin_access_decide`, `admin_avatar_clear`, `admin_feat_set`, `admin_claim`, `admin_overview`, `admin_fair`, `admin_unban`, `admin_mute`, `admin_reset`, `admin_reset_link`, `admin_delete`, `admin_servers`, `admin_dmg_server`, `admin_server_new`, `admin_server_edit`, `admin_server_access`, `admin_move`, `admin_abort`, `admin_clear_chat`, `admin_delete_msg`, `admin_fair_case`, `admin_fair_apply`, `admin_fair_decide`, `admin_fair_inv`, `admin_fair_inv_act`, `admin_fair_flag`, `admin_fair_phrases`, `admin_fair_exempt`, `admin_dmg_targets`, `admin_dmg_target`, `admin_announce`
 - **lounge** (18): `lounge_mine`, `lounge_create`, `lounge_get`, `lounge_invite`, `lounge_reply`, `lounge_leave`, `lounge_kick`, `lounge_rename`, `lounge_delete`, `lounge_chat`, `lounge_msgs`, `lounge_table`, `lounge_sit`, `lounge_board`, `lounge_study_pick`, `lounge_study_note`, `lounge_study_del`, `lounge_chat_delete`
@@ -163,6 +167,7 @@ flowchart LR
 - **game** (6): `game_chat`, `game_chat_send`, `game_get`, `game_shutup`, `game_shutup_revoke`, `game_chat_delete`
 - **rivalry** (6): `rivalry`, `rivalry_community`, `rivalry_public`, `rivalry_brief`, `rivalry_archive`, `rivalry_season`
 - **fair** (5): `fair_report`, `fair_cases`, `fair_vote`, `fair_comment`, `fair_appeal`
+- **streak** (4): `streak_board`, `streak_hunt`, `streak_line`, `streak_report`
 - **stats** (4): `stats_job`, `stats_submit`, `stats_board`, `stats_moves`
 - **feat** (4): `feat_list`, `feat_add`, `feat_vote`, `feat_delete`
 - **draw** (3): `draw_offer`, `draw_accept`, `draw_decline`
@@ -170,7 +175,6 @@ flowchart LR
 - **cam** (2): `cam_signal`, `cam_poll`
 - **pause** (2): `pause_request`, `pause_respond`
 - **damage** (2): `damage_feed`, `damage_prefs`
-- **streak** (2): `streak_board`, `streak_report`
 - **avatar** (2): `avatar_set`, `avatar_clear`
 - **chat** (2): `chat_delete`, `chat_send`
 - **clone** (2): `clone_played`, `clone_dismiss`
@@ -208,6 +212,6 @@ flowchart LR
 - **decline** (1): `decline`
 - **cancel** (1): `cancel`
 
-## Tests (62)
+## Tests (63)
 
-`test-access-ui.js`, `test-access.js`, `test-archive-ui.js`, `test-archive.js`, `test-board-room.js`, `test-brilliant.js`, `test-camera-poll-ui.js`, `test-camera-ui.js`, `test-coach-ask.js`, `test-damage-ui.js`, `test-damage.js`, `test-damagechat.js`, `test-drag.js`, `test-engine.js`, `test-extras-ui.js`, `test-extras.js`, `test-fair-quadrant-ui.js`, `test-fairdetect.js`, `test-fairmodel.js`, `test-fairplay-ui.js`, `test-fairplay.js`, `test-fairworker.js`, `test-gamechat-private.js`, `test-ideas-ui.js`, `test-lounge-ui.js`, `test-lounge.js`, `test-match-ui.js`, `test-match.js`, `test-mentions-ui.js`, `test-mentions.js`, `test-movestats-browser.js`, `test-movestats.js`, `test-pass-play.js`, `test-premoves.js`, `test-presence-ui.js`, `test-puzzles-ui.js`, `test-puzzles.js`, `test-rival-away.js`, `test-rivalries-ui.js`, `test-rivalries.js`, `test-sandbox-ui.js`, `test-server-switch-ui.js`, `test-server-switch.js`, `test-servers.js`, `test-sfserver.js`, `test-shutup-ui.js`, `test-shutup.js`, `test-splash-arrows-ui.js`, `test-stockfish-ui.js`, `test-streaks-ui.js`, `test-streaks.js`, `test-study-ui.js`, `test-style-ui.js`, `test-style.js`, `test-sync-stall.js`, `test-tour-add.js`, `test-tour-host.js`, `test-tour-reverse.js`, `test-tournament-ui.js`, `test-tournament.js`, `test-tribunal-ui.js`, `test-tribunal.js`
+`test-access-ui.js`, `test-access.js`, `test-archive-ui.js`, `test-archive.js`, `test-board-room.js`, `test-brilliant.js`, `test-camera-poll-ui.js`, `test-camera-ui.js`, `test-coach-ask.js`, `test-damage-ui.js`, `test-damage.js`, `test-damagechat.js`, `test-drag.js`, `test-engine.js`, `test-extras-ui.js`, `test-extras.js`, `test-fair-quadrant-ui.js`, `test-fairdetect.js`, `test-fairmodel.js`, `test-fairplay-ui.js`, `test-fairplay.js`, `test-fairworker.js`, `test-gamechat-private.js`, `test-ideas-ui.js`, `test-lounge-ui.js`, `test-lounge.js`, `test-match-ui.js`, `test-match.js`, `test-mentions-ui.js`, `test-mentions.js`, `test-movestats-browser.js`, `test-movestats.js`, `test-pass-play.js`, `test-premoves.js`, `test-presence-ui.js`, `test-puzzles-ui.js`, `test-puzzles.js`, `test-rival-away.js`, `test-rivalries-ui.js`, `test-rivalries.js`, `test-sandbox-ui.js`, `test-server-switch-ui.js`, `test-server-switch.js`, `test-servers.js`, `test-sfserver.js`, `test-shutup-ui.js`, `test-shutup.js`, `test-splash-arrows-ui.js`, `test-stockfish-ui.js`, `test-streakhunt.js`, `test-streaks-ui.js`, `test-streaks.js`, `test-study-ui.js`, `test-style-ui.js`, `test-style.js`, `test-sync-stall.js`, `test-tour-add.js`, `test-tour-host.js`, `test-tour-reverse.js`, `test-tournament-ui.js`, `test-tournament.js`, `test-tribunal-ui.js`, `test-tribunal.js`
