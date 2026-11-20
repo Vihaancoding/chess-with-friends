@@ -3641,12 +3641,30 @@ function viewInfo() {
   return { H, live, state: live ? snap.state : H.states[viewPly], last: live ? snap.last : viewPly > 0 ? hist[viewPly - 1] : null, upto: live ? hist.length : viewPly };
 }
 
+// the notice laid over the board when the fair-play check noticed something in this game (shown to both players)
+const FW_SEEN = new Set();
+function paintFw() {
+  const old = $('#fwSheet'), fw = snap && snap.fw && gameCode !== 'BOT' && gameCode !== 'ARCHIVE' ? snap.fw : null, key = fw ? gameCode + '|' + fw.at : '';
+  if (!fw || FW_SEEN.has(key)) { if (old) old.remove(); return; }
+  if (old && old.dataset.k === key) return;
+  if (old) old.remove();
+  const me = fw.by === (user && user.name), side = snap.you === 'w' || snap.you === 'b';
+  const title = me ? 'Fair-play check' : 'Fair-play notice';
+  const text = me ? 'Our fair-play check noticed something unusual on your screen during this game. It has been recorded for the admins to review. The game goes on. If you are using an engine or any outside help, stop now.'
+    : `Our fair-play check noticed something unusual on ${esc(fw.by)}'s screen. The admins will take a look. The game goes on${side ? ', and you can keep playing' : ''}.`;
+  const o = document.createElement('div'); o.id = 'fwSheet'; o.dataset.k = key; o.setAttribute('role', 'alertdialog'); o.setAttribute('aria-label', title);
+  o.style.cssText = 'position:absolute;inset:0;z-index:6;background:#000b;display:flex;align-items:center;justify-content:center;padding:14px;text-align:center';
+  o.innerHTML = `<div style="max-width:340px"><div style="font-size:1.25rem;font-weight:800;margin-bottom:8px">⚠ ${title}</div><div style="font-weight:600;line-height:1.4">${text}</div><button class="primary" id="fwOk" style="margin-top:14px;min-width:120px">OK</button></div>`;
+  $('#boardwrap').appendChild(o);
+  o.querySelector('#fwOk').onclick = () => { FW_SEEN.add(key); o.remove(); };
+}
 function render() {
   const { status, present, moves, players, you } = snap;
   const { H, live, state, upto } = viewInfo();
   const flip = (snap.pov || you) === 'b';
   const mine = you === 'w' || you === 'b';
   paintBoard();
+  paintFw();
   drawOverlay();
 
   const VAL = { P: 1, N: 3, B: 3, R: 5, Q: 9 };
@@ -5227,7 +5245,7 @@ function fpFindings() {
   const out = [], wrap = $('#boardwrap'), bd = $('#board');
   if (!wrap || !bd) return out;
   // 1. inside the board: only our squares, and in them only our pieces and labels
-  for (const el of wrap.children) if (!['board', 'arrows', 'pausedOv'].includes(el.id) && !el.matches('.mbadge, .mtoast')) out.push('added to the board: ' + fpName(el));
+  for (const el of wrap.children) if (!['board', 'arrows', 'pausedOv', 'fwSheet'].includes(el.id) && !el.matches('.mbadge, .mtoast')) out.push('added to the board: ' + fpName(el));
   for (const el of bd.children) {
     if (!el.classList.contains('sq')) { out.push('added to the board: ' + fpName(el)); continue; }
     for (const k of el.children) if (![...k.classList].some((c) => FP_SQ_KIDS.has(c))) out.push('added to a square: ' + fpName(k));
@@ -5237,7 +5255,7 @@ function fpFindings() {
   // 2. layers the app didn't make (at the top of the page) lying over the board
   const b = bd.getBoundingClientRect();
   for (const el of [...document.body.children, ...document.documentElement.children]) {
-    if (FP.roots.has(el) || el === document.body || el === document.head || el.matches('script, style, link, audio, .dragghost')) continue;
+    if (FP.roots.has(el) || el.id === 'sheet' || el === document.body || el === document.head || el.matches('script, style, link, audio, .dragghost')) continue;
     const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
     const over = r.width > 0 && r.height > 0 && r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top;
     if (over && cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > 0.05) out.push('a layer over the board: ' + fpName(el));
@@ -5267,16 +5285,22 @@ function fpcLive() {
   return view === 'game' && snap && gameCode && gameCode !== 'BOT' && gameCode !== 'ARCHIVE' && (snap.you === 'w' || snap.you === 'b') && !snap.status.over;
 }
 function fpcPly() { if (FPC.game !== gameCode) { FPC.game = gameCode; FPC.turns.clear(); FPC.mine.clear(); } return (snap.hist || snap.moves || []).length; }
-document.addEventListener('mouseout', (e) => {
-  if (e.relatedTarget || !fpcLive() || snap.state.turn !== snap.you) return;          // only leaving the window, on my turn
-  if (e.clientY > 8 || e.clientX < window.innerWidth * 0.6) return;                  // through the top edge, right side
-  FPC.turns.add(fpcPly());
-  const n = FPC.turns.size, of = FPC.mine.size;
+// Two places the cursor can leave for: the toolbar's right end (extensions) and the top-left quadrant (tabs, a second
+// window with an engine). Each is counted per turn on its own and reported once per game when it keeps happening.
+FPC.tl = new Set();
+function fpcCount(set, what) {
+  set.add(fpcPly());
+  const n = set.size, of = FPC.mine.size;
   if (n >= FPC_MIN && of >= FPC_MIN_TURNS && n / of >= FPC_SHARE) {
-    const what = 'cursor went to the browser toolbar (top right, where extensions are) on many of their turns';
     const k = gameCode + '|' + what;
     if (!FP.sent.has(k)) { FP.sent.add(k); api('fair_report', { code: gameCode, what: `${what}: ${n} of ${of}` }); }
   }
+}
+document.addEventListener('mouseout', (e) => {
+  if (e.relatedTarget || !fpcLive() || snap.state.turn !== snap.you) return;          // only leaving the window, on my turn
+  if (FPC.gameTl !== gameCode) { FPC.gameTl = gameCode; FPC.tl.clear(); }
+  if (e.clientY <= 8 && e.clientX >= window.innerWidth * 0.6) return fpcCount(FPC.turns, 'cursor went to the browser toolbar (top right, where extensions are) on many of their turns');
+  if (e.clientX < window.innerWidth * 0.5 && e.clientY < window.innerHeight * 0.5 && (e.clientY <= 8 || e.clientX <= 8)) fpcCount(FPC.tl, 'cursor left through the top-left quadrant (tabs, another window) on many of their turns');
 });
 setInterval(() => { if (fpcLive() && snap.state.turn === snap.you) FPC.mine.add(fpcPly()); }, 1000);   // which of my turns there were
 
