@@ -49,6 +49,8 @@ const until = async (f, ms = 90000) => { const t0 = Date.now(); while (Date.now(
   ok('Black, who was mated, has no brilliant move in that game', !(await call('stats_moves', { name: 'bob', kind: 'brilliant' }, A)).list.some((x) => x.g.startsWith(go.code)), null);
   await sleep(300);
 
+  const stt = (await call('stats_board', {}, A)).status;
+  ok('the board reports the status of the Stockfish checks: idle once everything is counted, with when the last game finished', stt.state === 'idle' && stt.done >= 4 && stt.lastAt > 0 && stt.now >= stt.lastAt, stt);
   console.log('older games are counted too (backfill), once per game');
   const before = (await call('stats_board', {}, A)).rows.map((r) => ({ name: r.name, n: r.n, games: r.games, blunder: r.blunder }));
   for (const n of ['ann', 'bob', 'cat']) { await store.del('mstat:' + n); await store.del('mlog:' + n); }     // as if these games had been played before this feature
@@ -59,7 +61,7 @@ const until = async (f, ms = 90000) => { const t0 = Date.now(); while (Date.now(
   const q = await store.get('mq');
   ok('every archived game is queued', q && q.ids.length === 4, q);
   const r = await call('stats_board', {}, A);
-  ok('and the board says how many are still to be counted', r.pending === 4, r.pending);
+  ok('and the board says how many are still to be counted, and that games are waiting', r.pending === 4 && r.status.state === 'waiting', r.status);
   const w = await handler.statsWork(60000);
   const after = (await call('stats_board', {}, A)).rows.map((x) => ({ name: x.name, n: x.n, games: x.games, blunder: x.blunder }));
   ok('working the queue brings back exactly the same totals', w.done === 4 && JSON.stringify(after.filter((x) => x.name !== 'ann' || true)) === JSON.stringify(after) && after.length === before.length, [w, before, after]);

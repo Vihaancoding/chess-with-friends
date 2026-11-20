@@ -7372,9 +7372,17 @@ async function streakToast(r) {
   $('#chatToast').dataset.profile = '1';
   if (f.result === 'win') sfx('chAccepted');
 }
+// the status report of the Stockfish checks behind these numbers (always shown)
+function statsStatusHTML() {
+  const st = statsStatus; if (!st) return '';
+  const done = Math.max(0, statsTotal - statsPending), pct = statsTotal ? Math.round((100 * done) / statsTotal) : 0;
+  const ago = st.lastAt ? (() => { const m = Math.round((st.now - st.lastAt) / 60000); return m < 1 ? 'a moment ago' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; })() : null;
+  const head = st.state === 'off' ? 'Stockfish: not set up on this server. The checks cannot run until an admin sets FAIR_SECRET.' : st.state === 'working' ? `Stockfish: checking games now, ${done} of ${statsTotal} done (${pct}%).` : st.state === 'waiting' ? `Stockfish: ${statsPending} game${statsPending === 1 ? '' : 's'} waiting for the next batch (${done} of ${statsTotal} done). Batches start while someone has the lobby open.` : 'Stockfish: every finished game has been checked.';
+  return `<div class="stprog" role="status">${statsPending ? `<div class="stprogbar"><i style="width:${pct}%"></i></div>` : ''}<div class="muted stpend">${esc(head)}${st.done ? ` ${st.done} game${st.done === 1 ? '' : 's'} checked in this round of counting.` : ''}${ago ? ` Last game finished ${ago}.` : ''}</div></div>`;
+}
 // ----- stats leaderboard: most brilliant moves, blunders, … from the games the engine has checked -----
 const STAT_TABS = [['brilliant', 'Brilliant', 'brilliant moves'], ['blunder', 'Blunders', 'blunders'], ['mistake', 'Mistakes', 'mistakes'], ['inaccuracy', 'Inaccuracies', 'inaccuracies'], ['best', 'Best moves', 'best moves'], ['acc', 'Accuracy', 'average accuracy'], ['clean', 'Cleanest', 'blunders per 100 moves']];
-let statsRows = [], statsTab = 'brilliant', statsAt = 0, statsPending = 0, statsTotal = 0, statsT = null;
+let statsRows = [], statsTab = 'brilliant', statsAt = 0, statsPending = 0, statsTotal = 0, statsT = null, statsStatus = null;
 function paintStats() {
   const box = $('#statsBody'); if (!box) return;
   const rate = (r, k) => (r.n ? (100 * r[k]) / r.n : 0);
@@ -7384,13 +7392,14 @@ function paintStats() {
     .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
   const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
   setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
-  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r">${statsTab === 'acc' ? `<b>${fmt(v)}</b>` : `<button class="stnum" data-stp="${esc(r.name)}" data-stk="${statsTab === 'clean' ? 'blunder' : statsTab}" title="Show the games and moves" aria-label="${esc(r.name)}: ${fmt(v)} ${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}. Show the games and moves">${fmt(v)}</button>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>${statsPending ? `<div class="stprog" role="status"><div class="stprogbar"><i style="width:${statsTotal ? Math.round(100 * (statsTotal - statsPending) / statsTotal) : 0}%"></i></div><div class="muted stpend">Stockfish is checking games: ${Math.max(0, statsTotal - statsPending)} of ${statsTotal} done (${statsTotal ? Math.round(100 * (statsTotal - statsPending) / statsTotal) : 0}%). The numbers grow as they are counted.</div></div>` : ''}<div class="muted stpend">Every finished game is checked move by move by Stockfish. Tap a number to see where those moves happened.</div>`
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r">${statsTab === 'acc' ? `<b>${fmt(v)}</b>` : `<button class="stnum" data-stp="${esc(r.name)}" data-stk="${statsTab === 'clean' ? 'blunder' : statsTab}" title="Show the games and moves" aria-label="${esc(r.name)}: ${fmt(v)} ${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}. Show the games and moves">${fmt(v)}</button>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>${statsStatusHTML()}<div class="muted stpend">Tap a number to see where those moves happened.</div>`
     : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Every finished game is checked by Stockfish${statsPending ? `; ${statsPending} are still being counted` : ''}.</div>`);
+  if (!rows.length) box.insertAdjacentHTML('beforeend', statsStatusHTML());
 }
 async function loadStats(force) {
   if (!$('#statscard') || (!force && Date.now() - statsAt < 120000)) return paintStats();
   statsAt = Date.now();
-  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; statsTotal = r.total || 0; paintStats(); clearTimeout(statsT); if (statsPending) statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); }
+  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; statsTotal = r.total || 0; statsStatus = r.status || null; paintStats(); clearTimeout(statsT); if (statsPending) statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); }
 }
 $('#statscard').addEventListener('click', (e) => {
   const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); return; }
