@@ -6,3 +6,4 @@ Start with `docs/code-map.md` instead of reading every file: it lists each file 
 - Fair-play detector write-up: `docs/fairplay-detection.md`.
 - Tests are `scripts/test-*.js` (run one with `node scripts/test-name.js`); the browser ones need Playwright.
 - Keep replies short and token-light.
+- Design for laptop/desktop only for now. Do not spend effort on the mobile or phone layout (no phone-width checks or fixes) unless asked.
