@@ -706,6 +706,8 @@
   .lgtop .acts { display: flex; gap: 8px; align-items: center; } .lgtop h1 { flex: 1; text-align: center; min-width: 0; overflow-wrap: anywhere; }
   .who .badge { margin-left: 6px; } .who .muted { margin-left: 6px; }
   .idea { align-items: flex-start; } .idea .vt { align-self: flex-start; } .idea .acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } .idea .acts select { min-height: 36px; padding-top: 4px; padding-bottom: 4px; } .idea .acts input { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+  .stnum { min-height: 0; padding: 2px 10px; font-weight: 800; font-size: 1rem; background: #ffffff10; box-shadow: none; border-radius: 8px; border: 1px solid var(--line); } .stnum:hover { background: #81b64c30; border-color: var(--green); }
+  .stpend { font-size: .8rem; margin-top: 8px; } .stmvs { display: grid; gap: 4px; margin-top: 8px; } .stmv { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; background: #ffffff0a; box-shadow: none; padding: 8px 12px; min-height: 0; font-weight: 600; border-radius: 8px; } .stmv:hover { background: #ffffff16; } .stmvn { font-size: 1rem; } .stmv .muted { font-size: .78rem; }
   #statscard { margin-top: 16px; }
 
   /* ---------- puzzle trainer ---------- */
@@ -7174,7 +7176,7 @@ addGifButton('#chatForm', '#chatIn'); addGifButton('#gcForm', '#gcIn'); addGifBu
 
 // ----- stats leaderboard: most brilliant moves, blunders, … from the games the engine has checked -----
 const STAT_TABS = [['brilliant', 'Brilliant', 'brilliant moves'], ['blunder', 'Blunders', 'blunders'], ['mistake', 'Mistakes', 'mistakes'], ['inaccuracy', 'Inaccuracies', 'inaccuracies'], ['best', 'Best moves', 'best moves'], ['acc', 'Accuracy', 'average accuracy'], ['clean', 'Cleanest', 'blunders per 100 moves']];
-let statsRows = [], statsTab = 'brilliant', statsAt = 0;
+let statsRows = [], statsTab = 'brilliant', statsAt = 0, statsPending = 0, statsT = null;
 function paintStats() {
   const box = $('#statsBody'); if (!box) return;
   const rate = (r, k) => (r.n ? (100 * r[k]) / r.n : 0);
@@ -7184,15 +7186,35 @@ function paintStats() {
     .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
   const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
   setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
-  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r"><b>${fmt(v)}</b></td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>`
-    : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Stats come from finished, decisive games the engine has checked.</div>`);
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r">${statsTab === 'acc' ? `<b>${fmt(v)}</b>` : `<button class="stnum" data-stp="${esc(r.name)}" data-stk="${statsTab === 'clean' ? 'blunder' : statsTab}" title="Show the games and moves" aria-label="${esc(r.name)}: ${fmt(v)} ${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}. Show the games and moves">${fmt(v)}</button>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>${statsPending ? `<div class="muted stpend" role="status">Counting older games: ${statsPending} still to go. The numbers grow as they are checked.</div>` : ''}<div class="muted stpend">Every finished game is checked move by move by Stockfish. Tap a number to see where those moves happened.</div>`
+    : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Every finished game is checked by Stockfish${statsPending ? `; ${statsPending} are still being counted` : ''}.</div>`);
 }
 async function loadStats(force) {
   if (!$('#statscard') || (!force && Date.now() - statsAt < 120000)) return paintStats();
   statsAt = Date.now();
-  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; paintStats(); }
+  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; paintStats(); clearTimeout(statsT); if (statsPending) statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); }
 }
-$('#statscard').addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); } });
+$('#statscard').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); return; }
+  const n = e.target.closest('[data-stp]'); if (n) openStatsMoves(n.dataset.stp, n.dataset.stk);
+});
+// the games and moves behind a number on the stats board; each one opens the game at that move
+const STAT_NAMES = { brilliant: 'Brilliant moves', blunder: 'Blunders', mistake: 'Mistakes', inaccuracy: 'Inaccuracies', best: 'Best moves', excellent: 'Excellent moves', good: 'Good moves' };
+async function openStatsMoves(name, kind) {
+  openSheet(`${name}: ${(STAT_NAMES[kind] || kind).toLowerCase()}`, '<div class="muted">Loading…</div>');
+  const r = await api('stats_moves', { name, kind });
+  const box = document.querySelector('#sheet .panel'); if (!box) return;
+  const body = !r.ok ? `<div class="muted">${esc(r.error || 'Could not load.')}</div>`
+    : r.list.length ? `<div class="muted stpend">${r.total} counted in total. ${r.list.length < r.total ? `The latest ${r.list.length} are listed${statsPending ? '; older games are still being counted' : ''}.` : 'All are listed.'} Tap one to open the game at that move.</div>
+      <div class="stmvs">${r.list.map((x) => `<button class="stmv" data-smg="${esc(x.g)}" data-smp="${x.p}"><span class="stmvn">${Math.ceil(x.p / 2)}${x.p % 2 ? '.' : '...'} <b>${esc(x.san)}</b></span><span class="muted">${x.c === 'w' ? 'White' : 'Black'} vs ${esc(x.o)} · ${new Date(x.t).toLocaleDateString()}${x.l >= 2 && kind !== 'brilliant' && kind !== 'best' && kind !== 'excellent' && kind !== 'good' ? ` · −${Math.round(x.l)}% win chance` : ''}</span></button>`).join('')}</div>`
+    : `<div class="muted">${r.total ? 'These are in games from private rooms, which are counted but not listed, or in games still being checked.' : 'None yet.'}</div>`;
+  const h = box.querySelector('h2'), top = h ? h.parentElement : null;
+  if (top) { while (top.nextSibling) top.nextSibling.remove(); top.insertAdjacentHTML('afterend', body); }
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('#sheet [data-smg]'); if (!b) return;
+  closeSheet(); enterArchive(b.dataset.smg, { at: +b.dataset.smp, back: null });
+});
 // ----- "What's new": shown once after an update (and from the sidebar), remembered per browser -----
 const WHATS_NEW = { id: '2026-11-b', items: [
   { t: 'GIFs in chat', d: 'Tap GIF next to any chat box. Search for one, or paste a link from Giphy, Tenor or Imgur. It works in the lobby, in games, in tournaments and in rooms.',
