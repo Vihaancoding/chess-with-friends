@@ -711,19 +711,11 @@
   .stpend { font-size: .8rem; margin-top: 8px; } .stmvs { display: grid; gap: 4px; margin-top: 8px; } .stmv { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; background: #ffffff0a; box-shadow: none; padding: 8px 12px; min-height: 0; font-weight: 600; border-radius: 8px; } .stmv:hover { background: #ffffff16; } .stmvn { font-size: 1rem; } .stmv .muted { font-size: .78rem; }
   #statscard { margin-top: 16px; }
 
-  /* ---------- win streaks & the Domination Report ---------- */
-  table.strk td.hot, table.strk td.hot b { color: #9ccc65; font-weight: 800; }
-  .pfstrk { margin-bottom: 16px; } .pfs-main { display: flex; gap: 34px; flex-wrap: wrap; align-items: flex-end; } .pfs-big { font-family: "Iowan Old Style", Georgia, serif; font-size: 3.4rem; font-weight: 700; line-height: 1; } .pfs-big small { font-size: 1.4rem; } .pfs-big.hot { color: #f7c631; text-shadow: 0 0 24px #f7c63166; }
-  .pfs-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; color: var(--muted); } .pfs-row b { color: #fff; } .pfs-ms { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; } .pfs-chip { background: #f7c63126; color: #ffe08a; border: 1px solid #f7c63155; border-radius: 999px; padding: 2px 11px; font-size: .8rem; font-weight: 800; }
-  .odom { margin-top: 16px; padding: 18px 16px; border-radius: 12px; background: linear-gradient(180deg, #1b1a18, #121110); border: 1px solid var(--line); text-align: center; animation: pzin .4s ease; } .odom.hidden { display: none; }
-  .odom-h { font-family: Impact, "Arial Black", system-ui, sans-serif; text-transform: uppercase; font-size: clamp(1.7rem, 6.5vw, 2.8rem); line-height: 1.02; letter-spacing: .01em; } .odom.win .odom-h { color: #f7c631; text-shadow: 0 0 30px #f7c63155; } .odom.loss .odom-h { color: #fa7c6d; } .odom.draw .odom-h { color: #c9c8c6; }
-  .odom-nums { display: flex; justify-content: center; align-items: flex-end; gap: clamp(14px, 6vw, 40px); margin: 16px 0 6px; } .odom-n { font-family: Impact, "Arial Black", system-ui, sans-serif; font-size: clamp(3.4rem, 15vw, 6rem); line-height: 1; } .odom-n.s { font-size: clamp(2rem, 9vw, 3.2rem); color: #ddd; } .odom .pzlabel { margin-bottom: 2px; }
-  .odom-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; color: var(--muted); font-size: .9rem; margin-top: 8px; } .odom-row b { color: #fff; }
-  .odom-tag { display: inline-block; margin: 10px 4px 0; padding: 3px 12px; border-radius: 4px; background: #81b64c2e; color: #cfe8b6; font-weight: 900; font-size: .78rem; letter-spacing: .1em; } .odom-tag.ms { background: #f7c63133; color: #ffe08a; animation: pzflash2 1.2s ease 2; } .odom-rank { margin-top: 10px; color: var(--muted); font-size: .84rem; }
-  @keyframes pzflash2 { 50% { box-shadow: 0 0 0 4px #f7c63155; } }
-  #msOverlay { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #3a2a00ee 0%, #000d 70%); color: #fff; text-align: center; animation: suIn .25s ease-out both; font-family: Impact, "Arial Black", system-ui, sans-serif; text-transform: uppercase; pointer-events: none; } #msOverlay.out { animation: suOut .45s ease-in forwards; }
-  .ms-in { position: relative; z-index: 2; padding: 0 14px; } .ms-kick { letter-spacing: .3em; color: #ffe08a; font-size: clamp(.9rem, 3.2vw, 1.4rem); animation: suFade .3s ease-out .1s both; } .ms-num { font-size: clamp(8rem, 38vw, 22rem); line-height: .85; color: #f7c631; text-shadow: 0 0 60px #f7c631aa, 6px 6px 0 #000; animation: suSlam .55s cubic-bezier(.2, 1.7, .35, 1) .15s both; } .ms-sub { font-size: clamp(1.4rem, 6vw, 3rem); letter-spacing: .12em; animation: suFade .3s ease-out .6s both; } .ms-line { margin-top: .8em; font-size: clamp(.8rem, 2.8vw, 1.2rem); letter-spacing: .14em; color: #ffd6a0; animation: suFade .3s ease-out .9s both; }
-  .ms-ring { position: absolute; left: 50%; top: 50%; width: 20vmin; height: 20vmin; margin: -10vmin 0 0 -10vmin; border-radius: 50%; border: .8vmin solid #f7c631; opacity: 0; animation: suRing 1.2s ease-out .2s both; } .ms-ring.r2 { animation-delay: .5s; border-color: #fff; } #msOverlay.calm *, #msOverlay.calm { animation-duration: .01s !important; animation-delay: 0s !important; } #msOverlay.calm .ms-ring { display: none; }
+  /* ---------- win streaks: the same card, tabs and table as the leaderboard; profile cards reuse .rcard ---------- */
+  #strkcard, #statscard { margin-top: 16px; } #strkcard h2, #statscard h2 { margin: 0 0 10px; font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 10px; } #strkcard h2 svg { width: 22px; height: 22px; color: var(--gold); }
+  #strkcard .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; } #strkcard .head h2 { margin: 0; } #strkcard .lbtabs { max-width: 100%; overflow-x: auto; }
+  #strkcard td.sel { color: var(--text); font-weight: 800; } .strknote { margin-top: 12px; font-size: .9rem; } .strknote b { color: var(--text); }
+  .rcard.static { cursor: default; } .rcard.static .rc-s { margin-top: 4px; }
   /* ---------- SHUT UP ---------- */
   .gm.su { background: #e6394614; border-left: 3px solid #e63946; padding: 4px 8px; border-radius: 4px; font-weight: 800; color: #ffd6d9; letter-spacing: .01em; }
   .subadge { display: inline-block; font-size: .6rem; font-weight: 900; letter-spacing: .1em; color: #fff; background: #e63946; border-radius: 4px; padding: 1px 6px; margin-left: 4px; vertical-align: 1px; text-transform: uppercase; }
@@ -1547,7 +1539,12 @@
     <table><thead><tr><th>#</th><th>Player</th><th class="r">Rating</th><th class="r">Games</th><th></th></tr></thead>
     <tbody id="lb"><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:110px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:80px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr><tr class="sk-row"><td><span class="sk" style="width:14px"></span></td><td><span class="sk" style="width:130px"></span></td><td class="r"><span class="sk" style="width:38px"></span></td><td class="r"><span class="sk" style="width:22px"></span></td><td></td></tr></tbody></table>
   </div>
-  <div id="strkcard" class="panel stcard"><div class="head"><h2>Win streaks</h2></div><div class="sttabs lbtabs" id="strkTabs"></div><div id="strkBody"><div class="muted">Loading…</div></div></div>
+  <div id="strkcard" class="panel">
+    <div class="head"><h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Win streaks</h2>
+      <div class="lbtabs" id="strkTabs"></div></div>
+    <table id="strkBody"><thead><tr><th>#</th><th>Player</th><th class="r">Streak</th><th class="r">Best</th><th class="r">Win rate</th><th class="r">Wins</th><th class="r">Games</th></tr></thead><tbody id="strkLb"><tr><td colspan="7" class="muted" style="padding:16px 10px">Loading…</td></tr></tbody></table>
+    <div id="strkNote"></div>
+  </div>
   <div id="statscard" class="panel stcard"><div class="head"><h2>Move stats</h2></div><div class="sttabs lbtabs" id="statsTabs"></div><div id="statsBody"><div class="muted">Loading…</div></div></div>
 </div>
 
@@ -1670,8 +1667,8 @@
 <!-- profile -->
 <div id="profile" class="hidden">
   <div class="phead"><div class="avatar w" id="pfAvatar"></div><div><h1 class="ptitle" id="pfName"></h1><div class="muted" id="pfSub" style="font-weight:600"></div></div><span class="pfacts"><button id="pfGamesBtn">Game archive</button><button id="pfClone" title="Play a bot that plays like this player">Play their style</button><button class="primary" id="pfChallenge">Challenge</button></span></div>
-  <div id="pfStreak" class="hidden"></div>
   <div class="rcards" id="pfCards"></div>
+  <div class="rcards" id="pfStreakCards"></div>
   <div class="panel" style="margin-bottom:16px"><h2 class="ph"><span>Rating history · <span id="pfCatName"></span></span></h2><div id="pfGraph"></div></div>
   <div class="panel" id="pfArchive">
     <h2 class="ph"><span>Game archive <span class="muted gacount" id="gaCount"></span></span></h2>
@@ -1861,7 +1858,6 @@
   <div id="omatch" class="hidden"></div>
   <div class="ostats"><div><b id="oMoves"></b><span>Moves</span></div><div><b id="oDur"></b><span>Duration</span></div><div><b id="oCat"></b><span>Time control</span></div></div>
   <div id="orival" class="hidden"></div>
-  <div id="odom" class="hidden"></div>
   <div class="oact"><button class="primary big" id="oRematch">Rematch</button><button class="hidden" id="oBo3" title="Offer a three-game series">Best of 3</button><button id="oAnalyze">Analyze game</button><button id="oClose">Review moves</button><button id="oLobby">Back to home</button></div>
 </div></div>
 
@@ -4398,7 +4394,7 @@ function chatToast(m, awayCode) {
 }
 function showToast(icon, html, more, awayCode) {
   const t = $('#chatToast');
-  t.dataset.code = awayCode || ''; t.dataset.lobby = ''; t.dataset.tour = ''; t.dataset.chat = '';
+  t.dataset.code = awayCode || ''; t.dataset.lobby = ''; t.dataset.tour = ''; t.dataset.chat = ''; t.dataset.profile = '';
   t.innerHTML = `<span class="ct-i">${icon}</span><div>${html}<div class="ct-more">${more}</div></div>`;
   t.classList.add('show');
   clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
@@ -4419,6 +4415,7 @@ $('#chatToast').onclick = () => {
   hideChatToast();
   const code = $('#chatToast').dataset.code;
   const tt = $('#chatToast').dataset;
+  if (tt.profile) { tt.profile = ''; return enterProfile(user.name); }
   if (tt.tour) { enterTours(tt.tour); if (tt.chat) setTimeout(() => $('#tcIn').focus({ preventScroll: false }), 400); return; }
   if (tt.lobby) { enterLobby(); if (tt.chat) setTimeout(() => { $('#chatcard').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('#chatIn').focus({ preventScroll: true }); }, 300); return; }
   if (code) { enterGame(code); setTimeout(() => $('#gcIn').focus({ preventScroll: true }), 300); return; }
@@ -5651,7 +5648,7 @@ function afterSnapshot(r) {
 }
 function showOver(r) {
   $('#over').classList.remove('hidden');
-  dominationReport(r);
+  streakToast(r);
   rvBriefFor(r);
   overAnimated = false;
   paintOver(r);
@@ -7000,7 +6997,7 @@ function enterProfile(name, opts = {}) {
   api('profile', { name }).then((r) => {
     if (id !== pfReq || view !== 'profile') return;
     if (!r.ok) { $('#pfSub').textContent = r.error || 'Could not load this profile.'; $('#pfCards').innerHTML = ''; $('#pfGraph').innerHTML = ''; return; }
-    pfData = r; paintPfStreak(r);
+    pfData = r;
     if (r.recovery !== undefined) {                          // my own profile: recovery code status
       $('#pfAccount').classList.remove('hidden'); $('#pfPhotoBox').classList.remove('hidden'); setHTML($('#pfPhotoPrev'), avImg(user.name, 64));
       $('#pfRecTxt').textContent = r.recovery
@@ -7014,6 +7011,7 @@ function enterProfile(name, opts = {}) {
 }
 function paintProfile() {
   const r = pfData; if (!r) return;
+  paintPfStreak(r);
   $('#pfName').textContent = r.name;
   const total = r.w + r.l + r.d;
   $('#pfSub').textContent = `${total} game${total === 1 ? '' : 's'} · ${r.w}W ${r.l}L ${r.d}D` + (r.joined ? ` · joined ${new Date(r.joined).toLocaleDateString()}` : '');
@@ -7306,17 +7304,38 @@ function addGifButton(formSel, inputSel) {
 addGifButton('#chatForm', '#chatIn'); addGifButton('#gcForm', '#gcIn'); addGifButton('#tcForm', '#tcIn');
 
 
-// ----- win streaks: the board, the profile panel and the Domination Report after a game (from the player's very first game; server: lib/streaks.js) -----
-const STRK_TABS = [['cur', 'Current streak'], ['best', 'All-time streak'], ['rate', 'Win rate'], ['wins', 'Career wins'], ['games', 'Games played']];
+// ----- win streaks (career statistics, counted from each player's first game; server: lib/streaks.js). Same patterns as the leaderboard and the profile rating cards. -----
+const STRK_TABS = [['cur', 'Streak'], ['best', 'Best streak'], ['rate', 'Win rate'], ['wins', 'Wins'], ['games', 'Games']];
+const STRK_SORT = { cur: (a, b) => b.cur - a.cur || b.best - a.best || b.w - a.w, best: (a, b) => b.best - a.best || b.cur - a.cur || b.w - a.w, rate: (a, b) => b.rate - a.rate || b.n - a.n, wins: (a, b) => b.w - a.w || b.rate - a.rate, games: (a, b) => b.n - a.n || b.w - a.w };
 let strkRows = [], strkTab = 'cur', strkMin = 10, strkAt = 0;
+const pctOf = (x) => Math.round(100 * x) + '%';
+const sentence = (t) => String(t).toLowerCase().replace(/(^|[.!?]\s+)([a-z])/g, (m, a, b) => a + b.toUpperCase());
+const quipFor = (n) => (n >= 20 ? 'This is a hostile takeover.' : n >= 10 ? 'This is getting ridiculous.' : n >= 5 ? 'Someone stop them.' : n >= 3 ? 'The heat is rising.' : 'It starts somewhere.');
+// one line of commentary under the table, from the real numbers
+function strkLine(rows) {
+  const me = rows.findIndex((r) => r.name === user.name), top = rows[0], mine = strkRows.find((r) => r.name === user.name);
+  if (strkTab === 'cur') {
+    if (!top) return 'Nobody is on a winning streak. The throne is empty.';
+    let t = `<b>${esc(top.name)}</b> has won ${top.cur} in a row. ${quipFor(top.cur)}`;
+    if (me === 0) t += ' You are <b>#1</b>. Everyone is chasing you.';
+    else if (me > 0) t += ` You are <b>#${me + 1}</b>: win ${rows[me - 1].cur - mine.cur + 1} more in a row to pass <b>${esc(rows[me - 1].name)}</b>.`;
+    else if (mine) t += ` Your streak is ${mine.cur}. Go and get them.`;
+    return t;
+  }
+  if (!top) return strkTab === 'rate' ? `Win rate needs at least ${strkMin} completed games, so one lucky game cannot top it.` : 'No games yet.';
+  if (strkTab === 'best') return `The record is <b>${top.best} in a row</b>, held by <b>${esc(top.name)}</b>.${mine && mine.best < top.best && me !== 0 ? ` Your best is ${mine.best}. ${top.best - mine.best + 1} more and it is yours.` : ''}`;
+  if (strkTab === 'rate') return `<b>${esc(top.name)}</b> wins ${pctOf(top.rate)} of their games. At least ${strkMin} completed games to be listed, so one lucky game cannot top it.`;
+  if (strkTab === 'wins') return `<b>${esc(top.name)}</b> has ${top.w} career wins.${mine && me > 0 ? ` You have ${mine.w}: ${rows[0].w - mine.w + 1} to take the top spot.` : ''}`;
+  return `<b>${esc(top.name)}</b> has played ${top.n} games. Does anyone here sleep?`;
+}
 function paintStreaks() {
-  const box = $('#strkBody'); if (!box) return;
-  const by = { cur: (a, b) => b.cur - a.cur || b.best - a.best || b.w - a.w, best: (a, b) => b.best - a.best || b.cur - a.cur || b.w - a.w, rate: (a, b) => b.rate - a.rate || b.n - a.n, wins: (a, b) => b.w - a.w || b.rate - a.rate, games: (a, b) => b.n - a.n || b.w - a.w };
-  const rows = strkRows.filter((r) => r.n > 0 && (strkTab !== 'rate' || r.n >= strkMin) && (strkTab !== 'cur' || r.cur > 0)).sort((a, b) => by[strkTab](a, b) || (a.name < b.name ? -1 : 1)).slice(0, 15);
+  const body = $('#strkBody'); if (!body) return;
+  const rows = strkRows.filter((r) => r.n > 0 && (strkTab !== 'rate' || r.n >= strkMin) && (strkTab !== 'cur' || r.cur > 0)).sort((a, b) => STRK_SORT[strkTab](a, b) || (a.name < b.name ? -1 : 1)).slice(0, 15);
   setHTML($('#strkTabs'), STRK_TABS.map(([k, l]) => `<button data-sk="${k}" class="${k === strkTab ? 'on' : ''}">${l}</button>`).join(''));
-  const pr = (r) => Math.round(100 * r.rate) + '%';
-  setHTML(box, rows.length ? `<table class="strk"><thead><tr><th>#</th><th>Player</th><th class="r">Streak</th><th class="r">Best</th><th class="r">Win rate</th><th class="r">Wins</th><th class="r">Games</th></tr></thead><tbody>${rows.map((r, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r${strkTab === 'cur' ? ' hot' : ''}"><b>${r.cur}</b></td><td class="r${strkTab === 'best' ? ' hot' : ''}">${r.best}</td><td class="r${strkTab === 'rate' ? ' hot' : ''}">${pr(r)}</td><td class="r${strkTab === 'wins' ? ' hot' : ''}">${r.w}</td><td class="r${strkTab === 'games' ? ' hot' : ''}">${r.n}</td></tr>`).join('')}</tbody></table>${strkTab === 'rate' ? `<div class="muted stpend">At least ${strkMin} completed games, so one lucky game cannot top the list.</div>` : ''}`
-    : `<div class="muted">${strkTab === 'cur' ? 'Nobody is on a winning streak right now.' : strkTab === 'rate' ? `Needs at least ${strkMin} completed games.` : 'No games yet.'}</div>`);
+  const col = (k) => (k === strkTab ? ' class="r sel"' : ' class="r muted"');
+  setHTML($('#strkLb'), rows.length ? rows.map((r, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span>${r.cur >= 3 ? ` <span class="badge gold" title="${r.cur} wins in a row">${esc(r.tier)}</span>` : ''}</span></td><td${col('cur')}>${r.cur}</td><td${col('best')}>${r.best}</td><td${col('rate')}>${pctOf(r.rate)}</td><td${col('wins')}>${r.w}</td><td${col('games')}>${r.n}</td></tr>`).join('')
+    : `<tr><td colspan="7" class="muted" style="padding:16px 10px">${strkTab === 'cur' ? 'Nobody is on a winning streak right now.' : strkTab === 'rate' ? `Needs at least ${strkMin} completed games.` : 'No games yet.'}</td></tr>`);
+  setHTML($('#strkNote'), `<div class="muted strknote">${strkLine(rows)}</div>`);
 }
 async function loadStreaks(force) {
   if (!$('#strkcard') || (!force && Date.now() - strkAt < 120000)) return paintStreaks();
@@ -7324,52 +7343,46 @@ async function loadStreaks(force) {
   const r = await api('streak_board'); if (r.ok) { strkRows = r.rows; strkMin = r.min || 10; paintStreaks(); }
 }
 $('#strkcard').addEventListener('click', (e) => { const b = e.target.closest('[data-sk]'); if (b) { strkTab = b.dataset.sk; paintStreaks(); } });
-const MS_NAMES = { 3: 'Heating up', 5: 'On fire', 10: 'Unstoppable', 15: 'Ridiculous', 20: 'Hostile takeover', 50: 'Legend' };
+// profile: the same rating-card pattern as the ratings below it
 function paintPfStreak(r) {
-  const box = $('#pfStreak'), s = r && r.streak; if (!box) return;
-  if (!s || !s.n) { box.className = 'hidden'; box.innerHTML = ''; return; }
+  const box = $('#pfStreakCards'), s = r && r.streak; if (!box) return;
+  if (!s || !s.n) { box.innerHTML = ''; return; }
   const ms = Object.keys(s.ms || {}).map(Number).sort((a, b) => a - b);
-  box.className = 'panel pfstrk';
-  box.innerHTML = `<div class="pfs-main"><div><div class="pzlabel">Current streak</div><div class="pfs-big${s.cur >= 3 ? ' hot' : ''}">${s.cur}</div></div><div><div class="pzlabel">Longest streak</div><div class="pfs-big">${s.best}</div></div><div><div class="pzlabel">Win rate</div><div class="pfs-big">${Math.round(100 * s.rate)}<small>%</small></div></div></div>
-    <div class="pfs-row"><span><b>${s.w}</b> wins</span><span><b>${s.l}</b> losses</span><span><b>${s.d}</b> draws</span><span><b>${s.n}</b> games</span></div>
-    <div class="pfs-ms">${ms.length ? ms.map((m) => `<span class="pfs-chip" title="${esc(MS_NAMES[m] || '')}">${m} in a row</span>`).join('') : '<span class="muted">Streak milestones (3, 5, 10, 15, 20, 50 wins in a row) show up here.</span>'}</div>${s.partial ? '<div class="muted stpend">Counted from the most recent 1000 games.</div>' : ''}`;
+  const day = (t) => (t ? new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '');
+  box.innerHTML = `<div class="rcard static"><div class="rc-l">Win streak</div><div class="rc-r">${s.cur}</div><div class="rc-s">${s.cur >= 3 ? `${esc(s.tier)}. ${esc(quipFor(s.cur).replace(/^The heat is rising\./, 'Keep going.'))}` : s.cur ? 'One win. It starts somewhere.' : 'Back to zero. Go again.'}${s.cur && s.next ? ` ${s.next - s.cur} more win${s.next - s.cur === 1 ? '' : 's'} for ${s.next} in a row.` : ''}</div></div>
+    <div class="rcard static"><div class="rc-l">Longest streak</div><div class="rc-r">${s.best}</div><div class="rc-s">${s.best >= 2 ? `Your record${s.bestTs ? `, set ${esc(day(s.bestTs))}` : ''}${s.cur && s.cur === s.best ? '. Still going' : ''}` : 'Your record to beat'}</div></div>
+    <div class="rcard static"><div class="rc-l">Win rate</div><div class="rc-r">${pctOf(s.rate)}</div><div class="rc-s">${s.w} win${s.w === 1 ? '' : 's'} · ${s.l} loss${s.l === 1 ? '' : 'es'} · ${s.d} draw${s.d === 1 ? '' : 's'}</div></div>
+    <div class="rcard static"><div class="rc-l">Milestones</div><div class="rc-r">${ms.length}<span class="prov" style="font-size:.9rem"> of 6</span></div><div class="rc-s">${ms.length ? ms.map((m) => m + ' in a row').join(' · ') : 'Win 3 in a row for the first'}${s.partial ? '. Counted from the latest 1000 games' : ''}</div></div>`;
 }
-// counts up to its number (calm when motion is reduced)
-function countUp(el, to, ms = 900, suffix = '') {
-  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches; if (calm || to < 2) { el.textContent = to + suffix; return; }
-  const t0 = performance.now(); const step = (t) => { const k = Math.min(1, (t - t0) / ms); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + suffix; if (k < 1 && el.isConnected) requestAnimationFrame(step); }; requestAnimationFrame(step);
-}
-let domFor = null;
-async function dominationReport(r) {
-  const box = $('#odom'); if (!box) return;
-  box.className = 'hidden'; box.innerHTML = '';
+// the moment after a game: a milestone, a new record or the end of a streak, in the site's own toast (once per game, remembered in this browser)
+async function streakToast(r) {
   if (!r || r.local || isBot() || isArchive() || !(r.you === 'w' || r.you === 'b') || !r.startedAt || !r.code) return;
-  const id = `${r.code}-${r.startedAt.toString(36)}`; domFor = id;
+  const id = `${r.code}-${r.startedAt.toString(36)}`;
   let res = null;
-  for (let i = 0; i < 6 && domFor === id; i++) { res = await api('streak_report', { id }); if (res.ok || res.status !== 404) break; await new Promise((x) => setTimeout(x, 1500)); }   // the game is archived a moment after it ends
-  if (domFor !== id || !res || !res.ok) return;
-  const f = res.facts, win = f.result === 'win';
-  box.className = 'odom ' + f.result;
-  box.innerHTML = `<div class="odom-h">${esc(f.headline)}</div>
-    <div class="odom-nums"><div><div class="pzlabel">Win streak</div><div class="odom-n" data-n="${f.cur}">0</div></div><div><div class="pzlabel">Personal best</div><div class="odom-n s" data-n="${f.best}">0</div></div><div><div class="pzlabel">Win rate</div><div class="odom-n s" data-n="${Math.round(100 * f.rate)}" data-x="%">0</div></div></div>
-    <div class="odom-row"><span><b>${f.w}</b> career wins</span><span><b>${f.l}</b> losses</span><span><b>${f.d}</b> draws</span><span><b>${f.n}</b> games</span></div>
-    ${f.newBest ? '<div class="odom-tag">NEW PERSONAL BEST</div>' : ''}${f.milestones.map((m) => `<div class="odom-tag ms">MILESTONE: ${m} WINS IN A ROW</div>`).join('')}
-    ${res.rank ? `<div class="odom-rank">${res.rank.now ? `#${res.rank.now} on the current-streak board` : 'Off the current-streak board'}${res.rank.before && res.rank.now !== res.rank.before ? ` (was #${res.rank.before}, comparing with everyone's streak now)` : ''}</div>` : ''}`;
-  box.querySelectorAll('.odom-n').forEach((e) => countUp(e, +e.dataset.n, 900, e.dataset.x || ''));
-  if (win && f.milestones.length) { const seen = (() => { try { return JSON.parse(localStorage.getItem('chess:msSeen')) || []; } catch { return []; } })(), key = id + ':' + Math.max(...f.milestones); if (!seen.includes(key)) { try { localStorage.setItem('chess:msSeen', JSON.stringify([...seen, key].slice(-40))); } catch {} msPlay(Math.max(...f.milestones), f.headline); } }
+  for (let i = 0; i < 6; i++) { res = await api('streak_report', { id }); if (res.ok || res.status !== 404) break; await new Promise((x) => setTimeout(x, 1500)); }    // the game is archived a moment after it ends
+  if (!res || !res.ok) return;
+  const f = res.facts, seen = (() => { try { return JSON.parse(localStorage.getItem('chess:strkSeen')) || []; } catch { return []; } })();
+  if (seen.includes(id)) return;
+  const big = f.milestones.length || f.newBest || (f.result !== 'win' && f.prevCur >= 3);
+  try { localStorage.setItem('chess:strkSeen', JSON.stringify([...seen, id].slice(-60))); } catch {}
   loadStreaks(true);
+  if (!big) return;
+  const head = f.result === 'win' ? `${f.cur} wins in a row.` : `The ${f.prevCur}-win streak is over.`;
+  showToast(f.result === 'win' ? '🔥' : '🧊', `<span class="ct-n">${esc(head)}</span> <span class="ct-t">${esc(sentence(f.headline).replace(/^\d+ (wins in a row|consecutive wins|straight wins?|straight)\.\s*/i, ''))}</span>`, f.result === 'win' ? 'Tap to see your streaks' : 'Tap to see your record');
+  $('#chatToast').dataset.profile = '1';
+  if (f.result === 'win') sfx('chAccepted');
 }
-// the milestone moment: a full-screen burst for about two seconds, once per milestone and game
-function msPlay(m, text) {
-  const old = $('#msOverlay'); if (old) old.remove();
-  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, o = document.createElement('div'); o.id = 'msOverlay'; o.className = calm ? 'calm' : ''; o.setAttribute('role', 'status');
-  o.innerHTML = `<i class="ms-ring"></i><i class="ms-ring r2"></i><div class="ms-in"><div class="ms-kick">${esc(MS_NAMES[m] || 'Milestone')}</div><div class="ms-num">${m}</div><div class="ms-sub">WINS IN A ROW</div><div class="ms-line">${esc(text)}</div></div>`;
-  document.body.appendChild(o); sfx('chAccepted');
-  setTimeout(() => { o.classList.add('out'); setTimeout(() => o.remove(), 450); }, calm ? 2000 : 2600);
+// the status report of the Stockfish checks behind these numbers (always shown)
+function statsStatusHTML() {
+  const st = statsStatus; if (!st) return '';
+  const done = Math.max(0, statsTotal - statsPending), pct = statsTotal ? Math.round((100 * done) / statsTotal) : 0;
+  const ago = st.lastAt ? (() => { const m = Math.round((st.now - st.lastAt) / 60000); return m < 1 ? 'a moment ago' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; })() : null;
+  const head = st.state === 'off' ? 'Stockfish: not set up on this server. The checks cannot run until an admin sets FAIR_SECRET.' : st.state === 'working' ? `Stockfish: checking games now, ${done} of ${statsTotal} done (${pct}%).` : st.state === 'waiting' ? `Stockfish: ${statsPending} game${statsPending === 1 ? '' : 's'} waiting for the next batch (${done} of ${statsTotal} done). Batches start while someone has the lobby open.` : 'Stockfish: every finished game has been checked.';
+  return `<div class="stprog" role="status">${statsPending ? `<div class="stprogbar"><i style="width:${pct}%"></i></div>` : ''}<div class="muted stpend">${esc(head)}${st.done ? ` ${st.done} game${st.done === 1 ? '' : 's'} checked in this round of counting.` : ''}${ago ? ` Last game finished ${ago}.` : ''}</div></div>`;
 }
 // ----- stats leaderboard: most brilliant moves, blunders, … from the games the engine has checked -----
 const STAT_TABS = [['brilliant', 'Brilliant', 'brilliant moves'], ['blunder', 'Blunders', 'blunders'], ['mistake', 'Mistakes', 'mistakes'], ['inaccuracy', 'Inaccuracies', 'inaccuracies'], ['best', 'Best moves', 'best moves'], ['acc', 'Accuracy', 'average accuracy'], ['clean', 'Cleanest', 'blunders per 100 moves']];
-let statsRows = [], statsTab = 'brilliant', statsAt = 0, statsPending = 0, statsTotal = 0, statsT = null;
+let statsRows = [], statsTab = 'brilliant', statsAt = 0, statsPending = 0, statsTotal = 0, statsT = null, statsStatus = null;
 function paintStats() {
   const box = $('#statsBody'); if (!box) return;
   const rate = (r, k) => (r.n ? (100 * r[k]) / r.n : 0);
@@ -7379,13 +7392,14 @@ function paintStats() {
     .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
   const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
   setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
-  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r">${statsTab === 'acc' ? `<b>${fmt(v)}</b>` : `<button class="stnum" data-stp="${esc(r.name)}" data-stk="${statsTab === 'clean' ? 'blunder' : statsTab}" title="Show the games and moves" aria-label="${esc(r.name)}: ${fmt(v)} ${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}. Show the games and moves">${fmt(v)}</button>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>${statsPending ? `<div class="stprog" role="status"><div class="stprogbar"><i style="width:${statsTotal ? Math.round(100 * (statsTotal - statsPending) / statsTotal) : 0}%"></i></div><div class="muted stpend">Stockfish is checking games: ${Math.max(0, statsTotal - statsPending)} of ${statsTotal} done (${statsTotal ? Math.round(100 * (statsTotal - statsPending) / statsTotal) : 0}%). The numbers grow as they are counted.</div></div>` : ''}<div class="muted stpend">Every finished game is checked move by move by Stockfish. Tap a number to see where those moves happened.</div>`
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r">${statsTab === 'acc' ? `<b>${fmt(v)}</b>` : `<button class="stnum" data-stp="${esc(r.name)}" data-stk="${statsTab === 'clean' ? 'blunder' : statsTab}" title="Show the games and moves" aria-label="${esc(r.name)}: ${fmt(v)} ${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}. Show the games and moves">${fmt(v)}</button>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>${statsStatusHTML()}<div class="muted stpend">Tap a number to see where those moves happened.</div>`
     : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Every finished game is checked by Stockfish${statsPending ? `; ${statsPending} are still being counted` : ''}.</div>`);
+  if (!rows.length) box.insertAdjacentHTML('beforeend', statsStatusHTML());
 }
 async function loadStats(force) {
   if (!$('#statscard') || (!force && Date.now() - statsAt < 120000)) return paintStats();
   statsAt = Date.now();
-  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; statsTotal = r.total || 0; paintStats(); clearTimeout(statsT); if (statsPending) statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); }
+  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; statsTotal = r.total || 0; statsStatus = r.status || null; paintStats(); clearTimeout(statsT); if (statsPending) statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); }
 }
 $('#statscard').addEventListener('click', (e) => {
   const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); return; }
