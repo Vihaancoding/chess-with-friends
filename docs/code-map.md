@@ -116,8 +116,8 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 3901 | API handler shared by local server.js and the Vercel function (api/index.js). |
-| `lib/damage.js` | 380 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
+| `lib/app.js` | 3933 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/damage.js` | 384 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
 | `lib/damagechat.js` | 50 | In-game chat for the Damage Report. Only messages stored server-side from this game, sent by its two authenticated players, |
@@ -149,7 +149,7 @@ flowchart LR
 | `public/sfengine.js` | 123 | Stockfish as an alternative analysis engine (Stockfish 19 lite, single-threaded WebAssembly, in public/stockfish/; |
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
-| `public/index.html` | 7901 |  |
+| `public/index.html` | 7914 |  |
 
 ## API routes (151, all in lib/app.js, called as POST /api?r=<name>)
 

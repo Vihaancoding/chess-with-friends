@@ -26,7 +26,11 @@ const age = async (code, ms) => { const r = await store.get('room:' + code); if 
   ok('the spectator can no longer send a message (rejected by the server)', (await say(C, 'cat again')).status === 403, null);
   ok('the other spectator still can', (await say(D, 'dan again')).status === 200, null);
   ok('the silenced spectator can keep watching (the game still answers them)', (await call('sync', { code, v: null }, C)).status === 200, null);
+<<<<<<< HEAD
   ok('the players\' chat still shows what the spectator wrote before (and nothing new can come)', texts(await view(A)).includes('cat: cat early') && texts(await view(B)).includes('cat: cat early') && !texts(await view(A)).includes('cat: cat again'), texts(await view(A)));
+=======
+  ok('both players\' chat views leave out the silenced spectator', !texts(await view(A)).some((t) => t.startsWith('cat')) && !texts(await view(B)).some((t) => t.startsWith('cat')), texts(await view(A)));
+>>>>>>> origin/main
   ok('other spectators and the silenced one still see everything', texts(await view(D)).includes('cat: cat early') && texts(await view(C)).includes('cat: cat early'), texts(await view(D)));
   ok('the history itself is untouched in the database', chatTexts(await store.get('gchat:' + code)).includes('cat: cat early'), null);
   function chatTexts(raw) { return ((raw && raw.list) || []).filter((m) => !m.sys).map((m) => m.n + ': ' + m.t); }
@@ -57,12 +61,20 @@ const age = async (code, ms) => { const r = await store.get('room:' + code); if 
   await age(code, 30000);
   r = await call('game_shutup_revoke', { code, target: 'cat' }, A);
   ok('one player revokes theirs: the other\'s restriction stays', r.status === 200 && r.shut.list.length === 1 && r.shut.list[0].by.join() === 'bob', r);
+<<<<<<< HEAD
   ok('the spectator is still silenced: nothing new appears in anyone\'s chat', (await say(C, 'sneaky')).status === 403 && !texts(await view(A)).includes('cat: sneaky'), null);
+=======
+  ok('the spectator is still silenced and still hidden from both players', (await say(C, 'sneaky')).status === 403 && !texts(await view(A)).some((t) => t.startsWith('cat')), null);
+>>>>>>> origin/main
   ok('and the revoke is announced', (await view(D)).some((m) => m.sys && /ann lifted their SHUT UP on cat\. They are still silenced/.test(m.t)), null);
   await age(code, 30000);
   r = await call('game_shutup_revoke', { code, target: 'cat' }, B);
   ok('when the second one is revoked too, the spectator can talk again', r.status === 200 && r.shut.list.length === 0 && (await say(C, 'back again')).status === 200, r);
+<<<<<<< HEAD
   ok('and their new messages show up for the players too, next to the old ones', texts(await view(A)).includes('cat: cat early') && texts(await view(B)).includes('cat: back again'), texts(await view(A)));
+=======
+  ok('and the players see their messages again, history included', texts(await view(A)).includes('cat: cat early') && texts(await view(B)).includes('cat: back again'), texts(await view(A)));
+>>>>>>> origin/main
 
   console.log('reconnecting');
   await age(code, 30000);
@@ -70,7 +82,11 @@ const age = async (code, ms) => { const r = await store.get('room:' + code); if 
   const re = (await call('sync', { code, v: null }, D)).full;
   ok('a reconnecting spectator gets the restriction from the server, with how long ago it happened', re.shut.list[0].n === 'dan' && re.shut.last.ago >= 0 && re.shut.last.ago < 5000, re.shut);
   ok('refreshing does not get around it', (await say(D, 'let me in')).status === 403, null);
+<<<<<<< HEAD
   ok('after a reload the players\' chat has the old messages and nothing new from the silenced spectator', texts(await view(B)).includes('dan: dan early') && !texts(await view(B)).includes('dan: let me in'), texts(await view(B)));
+=======
+  ok('the players\' chat after a reload still leaves the silenced spectator out', !texts(await view(B)).some((t) => t.startsWith('dan')), texts(await view(B)));
+>>>>>>> origin/main
 
   console.log('the game ends: nothing carries over');
   await call('resign', { code }, B);

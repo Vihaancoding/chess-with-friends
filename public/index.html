@@ -4293,7 +4293,12 @@ function suLive() { return !!snap && !isBot() && !isArchive() && gameCode && gam
 const suPlayer = () => suLive() && (snap.you === 'w' || snap.you === 'b');
 function suDecorate(row) {
   if (!row || row.dataset.s !== 's') return;
+<<<<<<< HEAD
   const n = row.dataset.n, e = suLive() ? suEntry(n) : null;                 // earlier messages stay for everybody; only new ones are refused
+=======
+  const n = row.dataset.n, e = suLive() ? suEntry(n) : null, hide = !!e && (snap.you === 'w' || snap.you === 'b');
+  row.hidden = hide;                                                 // the players' view leaves a silenced spectator out; everyone else sees it as before
+>>>>>>> origin/main
   const b = row.querySelector('.subadge');
   if (e && !b) row.querySelector('b').insertAdjacentHTML('afterend', ' <span class="subadge" title="Told to SHUT UP in this game">SHUT UP</span>');
   else if (!e && b) b.remove();
@@ -4306,7 +4311,11 @@ function paintShut() {
   // the full-screen moment: once per event, and not for old ones (a reconnect long after sees only the state)
   if (snap && snap.shut && snap.shut.last) {
     const k = gameCode + '|' + snap.shut.last.id, l = snap.shut.last;
+<<<<<<< HEAD
     if (!SU_SEEN.has(k)) { SU_SEEN.add(k); if (l.k !== 'revoke' && l.ago < 6000 && suLive() && snap.you === 's') suPlay(l); }   // the takeover is for the spectators; the players just see the chat and the bar
+=======
+    if (!SU_SEEN.has(k)) { SU_SEEN.add(k); if (l.k !== 'revoke' && l.ago < 6000 && suLive()) suPlay(l); }
+>>>>>>> origin/main
   }
   const sig = JSON.stringify([gameCode, sh && sh.list, snap && snap.spec, suPlayer(), snap && snap.you]);
   if (sig === suSig) return;
@@ -7320,7 +7329,11 @@ async function openStatsMoves(name, kind) {
   const body = !r.ok ? `<div class="muted">${esc(r.error || 'Could not load.')}</div>`
     : r.list.length ? `<div class="muted stpend">${r.total} counted in total. ${r.list.length < r.total ? `The latest ${r.list.length} are listed${statsPending ? '; older games are still being counted' : ''}.` : 'All are listed.'} Tap one to open the game at that move.</div>
       <div class="stmvs">${r.list.map((x) => `<button class="stmv" data-smg="${esc(x.g)}" data-smp="${x.p}"><span class="stmvn">${Math.ceil(x.p / 2)}${x.p % 2 ? '.' : '...'} <b>${esc(x.san)}</b></span><span class="muted">${x.c === 'w' ? 'White' : 'Black'} vs ${esc(x.o)} · ${new Date(x.t).toLocaleDateString()}${x.l >= 2 && kind !== 'brilliant' && kind !== 'best' && kind !== 'excellent' && kind !== 'good' ? ` · −${Math.round(x.l)}% win chance` : ''}</span></button>`).join('')}</div>`
+<<<<<<< HEAD
     : `<div class="muted">${r.total ? (statsPending ? 'The games behind this number are still being counted. Check back in a few minutes.' : 'These are in games from private rooms, which are counted but not listed.') : 'None yet.'}</div>`;
+=======
+    : `<div class="muted">${r.total ? 'These are in games from private rooms, which are counted but not listed, or in games still being checked.' : 'None yet.'}</div>`;
+>>>>>>> origin/main
   const h = box.querySelector('h2'), top = h ? h.parentElement : null;
   if (top) { while (top.nextSibling) top.nextSibling.remove(); top.insertAdjacentHTML('afterend', body); }
 }
