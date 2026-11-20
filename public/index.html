@@ -222,27 +222,41 @@
   .liverow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
   .liverow:first-child { border-top: 0; }
   .liverow .lv { flex: 1; min-width: 160px; } .liverow i { color: var(--muted); font-style: normal; font-size: .85rem; } .liverow .lm { font-size: .8rem; }
-  #reels { position: relative; height: 100vh; overflow: hidden; } #reels.hidden { display: none; }
-  #reels .rls-top { position: absolute; top: 0; left: 0; right: 0; z-index: 2; padding: 14px 18px; pointer-events: none; }
-  #reels .rls-filters { display: flex; gap: 6px; flex-wrap: wrap; pointer-events: auto; }
+  #reels { height: 100vh; overflow: hidden; } #reels.hidden { display: none; }
+  #reels .rls-top { height: 58px; display: flex; align-items: center; padding: 0 16px; box-sizing: border-box; }
+  #reels .rls-filters { display: flex; gap: 6px; flex-wrap: wrap; }
   #reels .rls-filters button.on { border-color: var(--green); color: #fff; }
-  #reels .rls-scroll { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; }
-  #reels .rls-slide { height: 100vh; scroll-snap-align: start; display: flex; align-items: center; justify-content: center; gap: 48px; padding: 64px 40px 40px; box-sizing: border-box; }
-  #reels .rls-boardwrap { flex: 0 0 auto; width: min(68vh, 560px); }
-  #reels .rls-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; }
+  #reels .rls-scroll { height: calc(100vh - 58px); overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; }
+  #reels .rls-scroll::-webkit-scrollbar { display: none; }
+  #reels .rls-slide { height: calc(100vh - 58px); scroll-snap-align: start; display: flex; align-items: center; justify-content: center; padding: 8px 16px; box-sizing: border-box; }
+  #reels .rls-card { width: min(440px, 100%); display: flex; flex-direction: column; gap: 10px; background: #262421; border-radius: 16px; padding: 14px; box-sizing: border-box; }
+  #reels .rls-boardbox { width: min(412px, calc(100vh - 430px)); min-width: 240px; align-self: center; }
+  #reels .rls-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border-radius: 4px; overflow: hidden; }
   #reels .rls-sq { display: flex; align-items: center; justify-content: center; }
   #reels .rls-sq.l { background: #e8dcc4; } #reels .rls-sq.d { background: #9aa6b0; }
   #reels .rls-sq.hot { box-shadow: inset 0 0 0 3px rgba(255,210,80,.85); }
   #reels .rls-sq img { width: 88%; height: 88%; }
-  #reels .rls-meta { width: min(380px, 100%); font-size: .95rem; }
-  #reels .rls-kind { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); font-weight: 700; }
-  #reels .rls-head { margin: 6px 0 10px; font-size: 2rem; font-weight: 800; line-height: 1.1; }
-  #reels .rls-line { color: var(--muted); margin: 4px 0 12px; }
-  #reels .rls-why { margin: 0 0 16px; color: #d6d4d2; line-height: 1.45; }
-  #reels .rls-ctl { display: flex; gap: 6px; align-items: center; }
-  #reels .rls-ctl input[type=range] { flex: 1; }
-  #reels .rls-pos { font-size: .8rem; margin: 6px 0 14px; color: var(--muted); }
-  #reels .rls-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  #reels .rls-ctl { display: flex; gap: 4px; align-items: center; }
+  #reels .rls-ctl button { min-width: 34px; padding: 6px 8px; }
+  #reels .rls-ctl input[type=range] { flex: 1; min-width: 60px; }
+  #reels .rls-play { min-width: 56px; }
+  #reels .rls-pos { font-size: .75rem; color: var(--muted); text-align: center; margin-top: -6px; }
+  #reels .rls-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #reels .rls-pill { display: flex; align-items: center; gap: 10px; background: #312e2b; border-radius: 999px; padding: 8px 14px; min-width: 0; }
+  #reels .rls-avwrap { position: relative; width: 36px; height: 36px; flex: 0 0 auto; }
+  #reels .rls-av { position: absolute; inset: 0; border-radius: 50%; background: #4a4641; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  #reels .rls-avwrap .avi { position: absolute; inset: 0; width: 36px !important; height: 36px !important; border-radius: 50%; object-fit: cover; }
+  #reels .rls-who { display: flex; flex-direction: column; min-width: 0; }
+  #reels .rls-who b { font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #reels .rls-who span { color: var(--muted); font-size: .85rem; }
+  #reels .rls-info { background: #312e2b; border-radius: 14px; padding: 12px 14px; }
+  #reels .rls-tags { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+  #reels .rls-kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); font-weight: 700; }
+  #reels .rls-badge { font-size: .72rem; padding: 3px 8px; border-radius: 6px; background: #3d3a36; color: #d6d4d2; }
+  #reels .rls-badge.live { background: #5a2a2a; color: #ffc4c4; }
+  #reels .rls-head { margin: 6px 0 4px; font-size: 1.25rem; font-weight: 800; line-height: 1.15; }
+  #reels .rls-why { margin: 0 0 10px; color: #bdbab6; font-size: .88rem; line-height: 1.4; }
+  #reels .rls-acts button { width: 100%; padding: 10px; border-radius: 10px; }
   #reels .rls-empty { padding: 140px 20px; text-align: center; color: var(--muted); }
   #tuneCard .tune-star { margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
   #tuneCard .tune-kicker { display: block; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
@@ -2834,7 +2848,7 @@ if (window.TuneIn) tuneReady = TuneIn.init(api, {
 
 // ---------- REELS (public/highlights.js): a full-screen feed of checked moments, on its own page ----------
 if (window.HighlightReels) window.reelsPage = HighlightReels.init(api, {
-  root: $('#reels'), tc: tcLabel, loggedIn: () => !!user,
+  root: $('#reels'), tc: tcLabel, loggedIn: () => !!user, avatar: (name) => avImg(name, 36),
   open: (gid) => enterArchive(gid),
   watch: async (code) => { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); else $('#err').textContent = r.error; },
 });

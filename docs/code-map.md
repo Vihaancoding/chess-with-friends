@@ -130,7 +130,7 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 4223 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/app.js` | 4252 | API handler shared by local server.js and the Vercel function (api/index.js). |
 | `lib/damage.js` | 391 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
@@ -140,7 +140,7 @@ flowchart LR
 | `lib/fairan.js` | 46 | The detector's plumbing: analyse a game with Stockfish (cached, resumable), assess each side with the statistical model |
 | `lib/fairmodel.js` | 215 | The fair-play statistical model. Pure functions: rows in (from lib/sfserver.js analyseGame), an assessment out. |
 | `lib/fairplay.js` | 68 | Fair play: how engine-like a player's moves are, for admins to review. Nothing here punishes anyone; it only flags. |
-| `lib/highlights.js` | 93 | HIGHLIGHT REELS: the moments worth replaying. Found from the same checked evaluations as LIVE TUNE-IN (lib/tunein.js) and |
+| `lib/highlights.js` | 105 | HIGHLIGHT REELS: the moments worth replaying. Found from the same checked evaluations as LIVE TUNE-IN (lib/tunein.js) and |
 | `lib/movestats.js` | 75 | Move stats (brilliant moves, blunders, accuracy...) for EVERY finished game, judged by Stockfish. |
 | `lib/puzzleai.js` | 116 | The AI side of the puzzle trainer. It only ever does two things, and application code checks both: |
 | `lib/puzzles.js` | 422 | Lichess puzzles: the local index, filters, verification, move checking, request parsing and the training maths. |
@@ -152,12 +152,12 @@ flowchart LR
 | `lib/streakhunt.js` | 98 | STREAK HUNT: ending someone's win streak is an event. Pure functions over the same archive rows as lib/streaks.js |
 | `lib/streaks.js` | 70 | Win streaks, from each player's very first completed game. Pure and deterministic: the stats are always rebuilt from the player's |
 | `lib/tribunal.js` | 74 | Fair-play tribunal: pure rules. When the engine check is sure enough a game is forfeited, a case opens, the community |
-| `lib/tunein.js` | 242 | LIVE TUNE-IN: how exciting is a live game, from Stockfish evaluations sent in by browsers. |
+| `lib/tunein.js` | 243 | LIVE TUNE-IN: how exciting is a live game, from Stockfish evaluations sent in by browsers. |
 | `public/bot.js` | 248 | Chess bot: alpha-beta search over the shared engine (chess.js) for the computer opponents, and the analysis engine |
 | `public/chess.js` | 197 | Chess engine shared by server (authoritative) and browser (move hints). |
 | `public/coachask.js` | 256 | "Ask the coach": answers questions like "teach me the Caro-Kann" or "what is a pin?" with a short explanation and |
 | `public/engine.js` | 533 | Analysis engine: game review, live move grades, the evaluation bar, the coach's grading and the playstyle models. |
-| `public/highlights.js` | 178 | REELS: a full-screen, vertical feed of highlight moments (lib/highlights.js decides what is worth one; the server stores them). |
+| `public/highlights.js` | 200 | REELS, in the browser: a centred vertical feed of highlight moments (lib/highlights.js decides what is worth one; the server |
 | `public/lessons.js` | 303 | Interactive lessons. Every move here is checked by scripts/check-lessons.js (legality + engine). |
 | `public/lounge.js` | 327 | Rooms (lounges): private rooms for a group of friends. Loaded the first time someone opens "Rooms". |
 | `public/match.js` | 90 | Head-to-head matches: two players play game after game in the same room until the format decides who is better. |
@@ -169,7 +169,7 @@ flowchart LR
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
 | `public/tunein.js` | 139 | LIVE TUNE-IN, in the browser. This browser analyses public live games with its own Stockfish (sfengine.js, in a Web Worker), |
-| `public/index.html` | 8165 |  |
+| `public/index.html` | 8179 |  |
 
 ## API routes (161, all in lib/app.js, called as POST /api?r=<name>)
 

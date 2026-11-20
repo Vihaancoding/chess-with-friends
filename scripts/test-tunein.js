@@ -89,6 +89,10 @@ const hOf = (u) => ({ from: sq(u.slice(0, 2)), to: sq(u.slice(2, 4)), promo: u[4
   const fresh = T.pickGame(live, [null, null, { ply: 40, at: now }], [null, null, null], now, 'zed');
   ok('a fresh, up-to-date analysis is not picked again', live[fresh].code !== 'CCCCC', fresh);
 
+  const fin = [{ code: 'FFFFF', w: { name: 'pia' }, b: { name: 'quin' }, moves: 30 }];
+  ok('a finished game that is fully analysed is never picked again', T.pickGame(fin, [{ over: true, ply: 30, at: now - 999999 }], [null], now, 'zed') == null);
+  ok('a finished game not yet analysed is still picked', T.pickGame(fin, [null], [null], now, 'zed') === 0);
+
   // the ranking: fresh only; the featured game needs samples and a long enough game
   const ents = [{ code: 'X', fresh: true, score: 70, sustain: 20 }, { code: 'Y', fresh: false, score: 99, sustain: 90 }, { code: 'Z', fresh: true, score: 50, sustain: 40 }];
   ok('the ranking leaves out games without a fresh analysis', T.rank(ents).map((e) => e.code).join() === 'X,Z', T.rank(ents));

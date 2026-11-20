@@ -19,7 +19,7 @@ Clients never submit highlights or scores.
 ## The feed
 
 - `highlight_feed` returns one reel per game (the strongest moment), for the chosen filter, plus a trending strip (last 48 h).
-- Reels is its own page in the sidebar: one reel per screen, scroll-snap between them. The reel on screen plays from 4 moves before the moment; the others stop. Step, scrub and play controls on each reel.
+- Reels is its own page in the sidebar: a centred vertical feed, one card per screen, scroll-snap between them. Each card: the board with step, scrub and play controls, the two players, then the moment with a status badge ("Live - Xm remaining" or "Completed - Decisive") and an action ("Watch live" or "View full game"). The card on screen plays from a few moves before its moment; the others stop.
 - "Open full game" opens the archive replay for finished games. "Watch live" joins ongoing ones.
 
 ## Limits
@@ -28,3 +28,9 @@ Clients never submit highlights or scores.
 - Only games that were analysed in a browser can produce reels. An unobserved game produces none.
 - Analysis stops when the game ends, so the final result is only recorded if a batch was sent after the last move.
 - The streak check is a simpler version of the breaker rule (no STREAK HUNT on this branch).
+
+## Finished games
+
+- A finished public game is added to a short list when it is archived (`tfin`, two days). Browsers analyse those too, so their moments get reels.
+- A reel is marked done when its game ends. Its result then comes from the room or the archive, and the button switches to "View full game".
+- Only games finished after this change are covered. Older games are not backfilled: there is no global index of old games to walk.

@@ -69,6 +69,12 @@ const base = { over: false, winner: null, w: { name: 'ann', elo: 1200 }, b: { na
   ok('the streak filter shows only streak breakers', HL.feedOf(list, 'streaks', Date.now(), 40).map((h) => h.code).join() === 'C');
   ok('trending keeps the last 48 hours only', HL.trending(list, Date.now()).every((h) => Date.now() - h.at < 48 * 3600e3));
 
+  console.log('finished games');
+  const recs = [{ id: 'X:swing:3', code: 'X', over: false, result: null }, { id: 'Y:swing:4', code: 'Y', over: false }];
+  const done = HL.finishRecords(recs, 'X', { result: 'w', reason: 'resignation', gid: 'X-abc' });
+  ok('a game that ends marks its reels done, with the result', done[0].over && done[0].result === 'w' && done[0].gid === 'X-abc' && !done[1].over);
+  ok('nothing changes while the game is still going', HL.finishRecords(recs, 'X', null) === recs);
+
   console.log('the API flow');
   const su = async (n) => { const r = await call('signup', { email: n + '@x.io', password: 'password1', username: n }); return { name: r.name, token: r.token }; };
   const P = {}; for (const n of ['ann', 'bob', 'cat']) P[n] = await su(n);
@@ -89,6 +95,13 @@ const base = { over: false, winner: null, w: { name: 'ann', elo: 1200 }, b: { na
   ok('an ongoing game has no result yet', reel && reel.result === null);
   ok('the upsets filter does not show it', !((await call('highlight_feed', { filter: 'upsets' }, P.bob)).feed || []).some((h) => h.code === g.code));
   ok('the trending strip shows the strong swing', ((await call('highlight_feed', { filter: 'all' }, P.bob)).trending || []).some((h) => h.code === g.code));
+
+  const rs = await call('resign', { code: g.code }, P.bob);
+  ok('a resignation ends the game', rs.status === 200 && rs.ok !== false, rs);
+  const after = await call('highlight_feed', { filter: 'all' }, P.bob);
+  const rr = (after.feed || []).find((h) => h.code === g.code);
+  ok('a reel of a game that has ended is marked done, with no time left', rr && rr.done === true && rr.left === null, rr && { done: rr.done, left: rr.left, over: rr.over });
+  ok('a finished reel records the result', rr && rr.over === true && rr.result === 'w', rr && { over: rr.over, result: rr.result });
 
   console.log('');
   console.log(`${passed} passed, ${failed} failed`);
