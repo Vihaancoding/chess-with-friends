@@ -24,21 +24,22 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
 
   console.log('SHUT UP');
   await pa.click('#specbar [data-su="cat"]');
-  for (const [n, p] of [['ann', pa], ['bob', pb], ['cat', pc], ['dan', pd]]) {
+  for (const [n, p] of [['cat', pc], ['dan', pd]]) {
     await p.waitForSelector('#suOverlay', { timeout: 15000 });
-    ok(`the full-screen takeover plays for ${n}, with the spectator's name`, /SHUT UP/.test(await p.textContent('#suOverlay')) && /cat/i.test(await p.textContent('#suOverlay .su-name')) && /YOU'VE BEEN TOLD TO SHUT UP/.test(await p.textContent('#suOverlay')) && /THE PLAYERS HAVE HAD ENOUGH/.test(await p.textContent('#suOverlay')), await p.textContent('#suOverlay'));
+    ok(`the full-screen takeover plays for the spectator ${n}, with the silenced spectator's name`, /SHUT UP/.test(await p.textContent('#suOverlay')) && /cat/i.test(await p.textContent('#suOverlay .su-name')) && /YOU'VE BEEN TOLD TO SHUT UP/.test(await p.textContent('#suOverlay')) && /THE PLAYERS HAVE HAD ENOUGH/.test(await p.textContent('#suOverlay')), await p.textContent('#suOverlay'));
   }
-  ok('it covers the whole screen and takes the interface over', await pa.evaluate(() => { const r = document.querySelector('#suOverlay').getBoundingClientRect(); return r.width >= innerWidth && r.height >= innerHeight && getComputedStyle(document.querySelector('#suOverlay')).position === 'fixed'; }), null);
+  ok('the players\' screens are not taken over: they keep playing and just see the chat line', !(await pa.$('#suOverlay')) && !(await pb.$('#suOverlay')), null);
+  ok('it covers the whole screen and takes the interface over', await pd.evaluate(() => { const r = document.querySelector('#suOverlay').getBoundingClientRect(); return r.width >= innerWidth && r.height >= innerHeight && getComputedStyle(document.querySelector('#suOverlay')).position === 'fixed'; }), null);
   if (process.env.SHOT) { await sleep(1250); await pd.screenshot({ path: process.env.SHOT + '-shutup.png' }); }
   await pa.waitForFunction(() => !document.querySelector('#suOverlay'), null, { timeout: 8000 });
   ok('and it returns to the board after about two seconds', true);
   await sleep(3500);
-  ok('the fair-play check does not mistake the takeover for a cheating overlay', !(await pa.$('#fwSheet')) && !(await pb.$('#fwSheet')) && !(await pd.$('#fwSheet')) && await pa.evaluate(() => !fpFindings().some((x) => /suOverlay/.test(x))), null);
+  ok('the fair-play check does not mistake the takeover for a cheating overlay', !(await pd.$('#fwSheet')) && !(await pc.$('#fwSheet')) && await pd.evaluate(() => !fpFindings().some((x) => /suOverlay/.test(x))), null);
   ok('the game itself was not interrupted (the board and the clock are still there)', await pa.isVisible('#board') && !(await pa.$('#suOverlay')), null);
   await pc.waitForSelector('#specbar.silenced');
   ok('the silenced spectator sees that they were told to SHUT UP and cannot type', /You were told to SHUT UP/.test(await pc.textContent('#specbar')) && await pc.isDisabled('#gcIn'), await pc.textContent('#specbar'));
-  await pa.waitForFunction(() => document.querySelector('#gclog .gm[data-n="cat"]') && document.querySelector('#gclog .gm[data-n="cat"]').hidden);
-  ok('the players\' chat leaves their messages out; other spectators still see them, with the SHUT UP marker', await pa.evaluate(() => document.querySelector('#gclog .gm[data-n="cat"]').hidden) && await pb.evaluate(() => document.querySelector('#gclog .gm[data-n="cat"]').hidden) && !(await pd.evaluate(() => document.querySelector('#gclog .gm[data-n="cat"]').hidden)) && !!(await pd.$('#gclog .gm[data-n="cat"] .subadge')), null);
+  await pa.waitForFunction(() => document.querySelector('#gclog .gm[data-n="cat"] .subadge'), null, { timeout: 15000 });
+  ok('everyone, the players included, still sees what the spectator wrote before, now with the SHUT UP marker', await pa.evaluate(() => !document.querySelector('#gclog .gm[data-n="cat"]').hidden && /hello from cat/.test(document.querySelector('#gclog').textContent)) && await pb.evaluate(() => !document.querySelector('#gclog .gm[data-n="cat"]').hidden) && !(await pd.evaluate(() => document.querySelector('#gclog .gm[data-n="cat"]').hidden)) && !!(await pd.$('#gclog .gm[data-n="cat"] .subadge')), null);
   ok('the public announcement is a distinct line in the chat for everyone', /ann told cat to SHUT UP\./.test(await pd.textContent('#gclog .gm.sys')) && /ann told cat to SHUT UP\./.test(await pa.textContent('#gclog .gm.sys')) && /ann told cat/.test(await pc.textContent('#gclog .gm.sys')), null);
   ok('the spectator list shows the marker, ann gets a revoke button and bob the option to make it a double', !!(await pa.$('#specbar [data-surev="cat"]')) && !!(await pb.$('#specbar .spchip.on .subadge')) && /DOUBLE/.test(await pb.textContent('#specbar [data-su="cat"]')), null);
 
@@ -50,9 +51,9 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   console.log('DOUBLE SHUT UP');
   await sleep(6500);
   await pb.click('#specbar [data-su="cat"]');
-  await pb.waitForSelector('#suOverlay.double', { timeout: 15000 }); await pd.waitForSelector('#suOverlay.double', { timeout: 15000 });
-  ok('the second player makes it DOUBLE SHUT UP: a bigger takeover for everybody', /DOUBLE\s*SHUT UP/.test(await pb.textContent('#suOverlay .su-title')) && /ABSOLUTE SILENCE/.test(await pd.textContent('#suOverlay')) && !!(await pd.$('#suOverlay .su-mouths')), await pd.textContent('#suOverlay'));
-  await pa.waitForFunction(() => !document.querySelector('#suOverlay'), null, { timeout: 10000 });
+  await pc.waitForSelector('#suOverlay.double', { timeout: 15000 }); await pd.waitForSelector('#suOverlay.double', { timeout: 15000 });
+  ok('the second player makes it DOUBLE SHUT UP: a bigger takeover for the spectators', !(await pb.$('#suOverlay')) && /DOUBLE\s*SHUT UP/.test(await pc.textContent('#suOverlay .su-title')) && /ABSOLUTE SILENCE/.test(await pd.textContent('#suOverlay')) && !!(await pd.$('#suOverlay .su-mouths')), await pd.textContent('#suOverlay'));
+  await pd.waitForFunction(() => !document.querySelector('#suOverlay'), null, { timeout: 10000 });
   ok('it ends by itself', true);
   ok('the chat says so', /DOUBLE SHUT UP\. cat is in absolute silence\./.test(await pd.textContent('#gclog')), null);
 
@@ -65,8 +66,6 @@ const api = async (route, body, who) => { const r = await fetch(`http://localhos
   await pb.click('#specbar [data-surev="cat"]');
   await pc.waitForFunction(() => !document.querySelector('#specbar.silenced') && !document.querySelector('#gcIn').disabled, null, { timeout: 15000 });
   ok('when both are revoked the spectator can type again', true);
-  await pa.waitForFunction(() => !document.querySelector('#gclog .gm[data-n="cat"]').hidden, null, { timeout: 15000 });
-  ok('and the players see their earlier messages again', true);
 
   console.log('calm motion and phones');
   await sleep(6500);

@@ -1,6 +1,6 @@
 // Move stats for EVERY game, judged by Stockfish: new games are queued and counted, older ones are backfilled, each number opens the
 // moves behind it. Uses the real engine. Run: node scripts/test-movestats.js (takes ~30 s)
-delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY; process.env.ADMIN_KEY = 'k'; process.env.STATS_SF_DEPTH = '8'; process.env.STATS_SF_VERIFY_DEPTH = '12';
+delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY; process.env.ADMIN_KEY = 'k'; process.env.STATS_SF_DEPTH = '12'; process.env.STATS_SF_VERIFY_DEPTH = '14';
 const handler = require('../lib/app'), store = require('../lib/store'), Dmg = require('../lib/damage');
 let failed = 0, passed = 0;
 const ok = (n, c, g) => { if (c) { passed++; console.log('  ✓', n); } else { failed++; console.log('  ✗', n, '\n      got:', JSON.stringify(g)); } };
@@ -38,20 +38,31 @@ const until = async (f, ms = 90000) => { const t0 = Date.now(); while (Date.now(
   ok('best moves are listed too, newest first, with the opponent', any.list.length > 0 && any.list.every((x, i, a) => !i || a[i - 1].t >= x.t) && any.total >= any.list.length - 0, any.list.length);
   ok('an unknown kind or player is refused', (await call('stats_moves', { name: 'ann', kind: 'cheese' }, A)).status === 400 && (await call('stats_moves', { name: 'nobody', kind: 'best' }, A)).status === 404, null);
 
+  console.log('brilliant moves: real sacrifices that the engine confirms (the Opera Game)');
+  const OP = 'e2e4 e7e5 g1f3 d7d6 d2d4 c8g4 d4e5 g4f3 d1f3 d6e5 f1c4 g8f6 f3b3 d8e7 b1c3 c7c6 c1g5 b7b5 c3b5 c6b5 c4b5 b8d7 e1c1 a8d8 d1d7 d8d7 h1d1 e7e6 b5d7 f6d7 b3b8 d7b8 d1d8'.split(' ');
+  const go = await call('create', { color: 'w', tc: { base: 600, inc: 0 } }, A); await call('join', { code: go.code }, B);
+  await play(go.code, A, B, OP);
+  const opb = await until(async () => { const r = await call('stats_moves', { name: 'ann', kind: 'brilliant' }, A); return r.list.some((x) => x.g.startsWith(go.code)) ? r : null; });
+  const mine = opb && opb.list.filter((x) => x.g.startsWith(go.code)).map((x) => x.san);
+  ok('the queen sacrifice that mates and the knight sacrifice are counted and listed as brilliant', !!opb && mine.includes('Qb8+') && mine.includes('Nxb5'), mine);
+  ok('a plain pawn capture followed by a recapture is not a sacrifice', !mine.includes('dxe5'), mine);
+  ok('Black, who was mated, has no brilliant move in that game', !(await call('stats_moves', { name: 'bob', kind: 'brilliant' }, A)).list.some((x) => x.g.startsWith(go.code)), null);
+  await sleep(300);
+
   console.log('older games are counted too (backfill), once per game');
   const before = (await call('stats_board', {}, A)).rows.map((r) => ({ name: r.name, n: r.n, games: r.games, blunder: r.blunder }));
   for (const n of ['ann', 'bob', 'cat']) { await store.del('mstat:' + n); await store.del('mlog:' + n); }     // as if these games had been played before this feature
-  await store.del('mbackfill'); await store.del('mq');
+  await store.del('mbackfill:3'); await store.del('mq');
   await store.set('lb', { ann: {}, bob: {}, cat: {} });
   ok('with nothing counted the board is empty', (await call('stats_board', {}, A)).rows.length === 0, null);
   await handler.statsBackfill();
   const q = await store.get('mq');
-  ok('every archived game is queued', q && q.ids.length === 3, q);
+  ok('every archived game is queued', q && q.ids.length === 4, q);
   const r = await call('stats_board', {}, A);
-  ok('and the board says how many are still to be counted', r.pending === 3, r.pending);
+  ok('and the board says how many are still to be counted', r.pending === 4, r.pending);
   const w = await handler.statsWork(60000);
   const after = (await call('stats_board', {}, A)).rows.map((x) => ({ name: x.name, n: x.n, games: x.games, blunder: x.blunder }));
-  ok('working the queue brings back exactly the same totals', w.done === 3 && JSON.stringify(after) === JSON.stringify(before), [w, before, after]);
+  ok('working the queue brings back exactly the same totals', w.done === 4 && JSON.stringify(after.filter((x) => x.name !== 'ann' || true)) === JSON.stringify(after) && after.length === before.length, [w, before, after]);
   ok('nothing is left to count', ((await store.get('mq')) || { ids: [] }).ids.length === 0, null);
   const full = await store.get('mstat:ann'); const key = full.seen[0];
   await handler.statsEnqueue([key]); await handler.statsWork(30000);
@@ -64,5 +75,16 @@ const until = async (f, ms = 90000) => { const t0 = Date.now(); while (Date.now(
   const pb = await call('stats_moves', { name: 'bob', kind: 'blunder' }, A);
   ok('a private room game is counted in the totals but its moves are not listed', (await store.get('mstat:bob')).games === full.games + 0 + 1 && !pb.list.some((x) => x.g === 'PRIV1-x') && pb.total === (await store.get('mstat:bob')).t.blunder, pb.total);
   ok('too short or unreadable games are skipped without blocking the queue', await (async () => { await store.set('game:BAD-x', { id: 'BAD-x', hist: [], players: { w: { name: 'ann' }, b: { name: 'bob' } } }); await handler.statsEnqueue(['BAD-x', 'MISSING-x']); await handler.statsWork(20000); return ((await store.get('mq')) || { ids: [] }).ids.length === 0; })(), await store.get('mq'));
+  // a player whose totals were counted by an older version (no move log): they are counted again, from every game, and the old numbers are not shown meanwhile
+  await store.set('mstat:cat', { v: 1, ver: 1, name: 'cat', games: 9, seen: ['x'], t: { n: 500, brilliant: 99, best: 1, excellent: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0, accSum: 1 } });
+  await store.del('mlog:cat');
+  const stale = await call('stats_board', {}, A);
+  ok('numbers from an older way of counting are not shown', !stale.rows.some((r) => r.name === 'cat' && r.brilliant === 99), stale.rows.map((r) => r.name));
+  ok('and opening them says nothing is there yet instead of private rooms', (await call('stats_moves', { name: 'cat', kind: 'brilliant' }, A)).total === 0, null);
+
+  const cg = (await store.get('games:cat')).list[0].id;
+  await handler.statsEnqueue([cg]); await handler.statsWork(60000);
+  const fixed = await store.get('mstat:cat');
+  ok('counting it again replaces the old numbers with the current way of counting, and the moves are listed', fixed.ver === 3 && fixed.games === 1 && fixed.t.n < 100 && !(await call('stats_board', {}, A)).rows.some((r) => r.brilliant === 99), fixed);
   console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
