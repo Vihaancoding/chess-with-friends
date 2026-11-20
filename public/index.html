@@ -707,6 +707,89 @@
   .who .badge { margin-left: 6px; } .who .muted { margin-left: 6px; }
   .idea { align-items: flex-start; } .idea .vt { align-self: flex-start; } .idea .acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } .idea .acts select { min-height: 36px; padding-top: 4px; padding-bottom: 4px; } .idea .acts input { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
   #statscard { margin-top: 16px; }
+
+  /* ---------- puzzle trainer ---------- */
+  #puzzles { max-width: 1180px; margin: 0 auto; padding: 28px 22px 56px; } #puzzles.hidden { display: none; }
+  .pzserif, .pzhead h1, .pzbig, .pzmid, .pzdelta { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+  .pzkicker { text-transform: uppercase; letter-spacing: .16em; font-size: .72rem; font-weight: 800; color: var(--green); }
+  .pzhead h1 { margin: 6px 0 8px; font-size: 2.3rem; line-height: 1.08; font-weight: 700; letter-spacing: -.012em; }
+  .pzhead p { margin: 0; color: var(--muted); max-width: 62ch; font-size: 1.02rem; }
+  .pzgrid { display: grid; grid-template-columns: minmax(0, 1fr) 316px; gap: 30px; margin-top: 28px; align-items: start; }
+  .pzmain { display: grid; gap: 22px; min-width: 0; }
+  .pzlabel { display: block; margin: 0 0 8px; font-size: .72rem; text-transform: uppercase; letter-spacing: .11em; color: var(--muted); font-weight: 800; }
+  .pzhint { text-transform: none; letter-spacing: 0; font-weight: 600; margin-left: 6px; }
+  .pzask { padding: 22px 22px 18px; background: linear-gradient(180deg, #2d2b28, #262522); border: 1px solid var(--line); border-radius: 14px; }
+  .pzaskrow { display: flex; gap: 10px; } .pzaskrow input { flex: 1; min-width: 0; min-height: 54px; padding: 0 18px; font-size: 1.08rem; background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; transition: border-color .15s, box-shadow .15s; }
+  .pzaskrow input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #81b64c33; } .pzaskrow button { min-width: 132px; }
+  .pzchips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .pzchip { min-height: 34px; padding: 5px 13px; font-size: .84rem; font-weight: 600; color: #d8d7d5; background: #ffffff0d; box-shadow: none; border: 1px solid var(--line); border-radius: 999px; transition: background .15s, border-color .15s; }
+  .pzchip:hover { background: #ffffff18; border-color: #ffffff22; }
+  .pznote { margin-top: 12px; font-size: .8rem; color: var(--muted); }
+  .pzres { margin-top: 16px; padding: 14px 16px; border-radius: 11px; background: #ffffff08; border: 1px solid var(--line); animation: pzin .25s ease; } .pzres.bad { border-color: #fa412d66; }
+  .pzres-h { font-weight: 700; margin-bottom: 8px; } .pzmatchline { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+  .pzpill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #81b64c24; color: #cfe8b6; font-size: .8rem; font-weight: 700; }
+  .pzlim { margin: 8px 0; padding-left: 18px; color: #e9c46a; font-size: .86rem; } .pzlim li { margin: 3px 0; }
+  .pzgo { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 14px; } .pzbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pzcount { color: var(--muted); font-size: .95rem; } .pzcount b { color: #fff; font-size: 1.15rem; font-family: "Iowan Old Style", Georgia, serif; }
+  .pzmodes { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px 22px 22px; }
+  .pztabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 0 -22px 18px; padding: 0 22px; }
+  .pztabs button { background: none; box-shadow: none; border-radius: 0; padding: 14px 14px 12px; min-height: 0; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 700; }
+  .pztabs button.on { color: #fff; border-bottom-color: var(--green); } .pztabs button:hover { color: #fff; }
+  .pzblock { margin-bottom: 20px; } .pzp { color: #cfcecc; margin: 0 0 12px; max-width: 60ch; }
+  .pzseg { display: flex; flex-wrap: wrap; gap: 6px; } .pzseg button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 52px; padding: 8px 14px; background: #ffffff0a; box-shadow: none; border: 1px solid var(--line); border-radius: 10px; font-weight: 700; transition: background .15s, border-color .15s; }
+  .pzseg button small { font-size: .7rem; font-weight: 600; color: var(--muted); } .pzseg button:hover { background: #ffffff14; }
+  .pzseg button.on { background: #81b64c26; border-color: var(--green); } .pzseg button.on small { color: #cfe8b6; }
+  .pzseg.small button { min-height: 36px; flex-direction: row; padding: 4px 13px; font-size: .86rem; }
+  .pzrange { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; } .pzrange label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; }
+  .pzrange input { width: 96px; min-height: 40px; padding: 0 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; }
+  .pzrel { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+  .pzcheck { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-weight: 600; } .pzcheck input { width: 18px; height: 18px; min-height: 0; accent-color: var(--green); }
+  .pzths { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+  .pzth { min-height: 36px; padding: 5px 14px; font-size: .88rem; font-weight: 600; color: #dcdbd9; background: #ffffff0a; box-shadow: none; border: 1px solid var(--line); border-radius: 999px; transition: background .15s, border-color .15s, color .15s; }
+  .pzth:hover { background: #ffffff16; } .pzth.on { background: #81b64c2e; border-color: var(--green); color: #fff; }
+  .pzlink { min-height: 0; padding: 0; background: none; box-shadow: none; color: #9ccc65; font-size: .84rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; border-radius: 0; }
+  .pzgroup { margin-top: 12px; } .pzglabel { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; }
+  .pzmatch { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pzstart { border-top: 1px solid var(--line); padding-top: 16px; }
+  .pzweak { display: grid; gap: 8px; margin-bottom: 4px; } .pzwrow { display: grid; grid-template-columns: minmax(0, 1fr) 90px 62px; align-items: center; gap: 10px; font-size: .88rem; } .pzwl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pzbar { height: 6px; border-radius: 3px; background: #ffffff14; overflow: hidden; display: block; } .pzbar i { display: block; height: 100%; background: var(--green); border-radius: 3px; transition: width .4s ease; } .pzbar.low i { background: #e9843c; }
+  .pzside { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; position: sticky; top: 16px; }
+  .pzbig { font-size: 3.2rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; } .pzmid { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+  .pzspark { display: block; width: 100%; height: 46px; margin: 10px 0 2px; color: #9ccc65; } .pztrend { font-size: .78rem; font-weight: 700; } .pztrend.up { color: #9ccc65; } .pztrend.down { color: #e9843c; }
+  .pzfacts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 10px; margin: 20px 0 6px; } .pzfacts dt { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; font-weight: 800; } .pzfacts dd { margin: 2px 0 0; font-size: 1.3rem; font-weight: 700; font-family: "Iowan Old Style", Georgia, serif; }
+  .pzdays { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin: 16px 0 4px; } .pzdays i { flex: 1; background: #81b64c88; border-radius: 2px; min-height: 3px; }
+  .pzside .pzlabel { margin-top: 20px; } .pzside .pzrating .pzlabel { margin-top: 0; } .pzsm { font-size: .84rem; }
+  .pzmiss { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: .86rem; } .pzmiss:first-of-type { border-top: 0; }
+  .pzcredit { margin-top: 30px; color: var(--muted); font-size: .78rem; } .pzcredit a, .pzsrc a { color: #9ccc65; }
+  .pzempty { padding: 40px 10px; text-align: center; }
+  .pzthink { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: .9rem; } .pzthink i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pzdot 1s infinite ease-in-out; } .pzthink i:nth-child(2) { animation-delay: .15s; } .pzthink i:nth-child(3) { animation-delay: .3s; margin-right: 6px; }
+  @keyframes pzdot { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1.1); } } @keyframes pzin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  /* the play screen: the board is the page */
+  .pzbar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; } .pzsession { display: flex; gap: 14px; align-items: center; font-size: .9rem; color: var(--muted); } .pzsession b { color: #fff; } .pzstreak { color: #9ccc65; font-weight: 700; }
+  .pzplay { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 30px; align-items: start; }
+  .pzboardcol { width: min(100%, calc(100vh - 150px)); min-width: 280px; justify-self: center; }
+  .pzplayer { display: flex; align-items: center; gap: 9px; padding: 8px 2px; font-weight: 700; font-size: .95rem; } .pzpc { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 1px solid #0006; } .pzpc.w { background: #f2f2f0; } .pzpc.b { background: #1a1a19; border-color: #ffffff44; }
+  .pzdots { margin-left: auto; display: flex; gap: 6px; } .pzdots i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #ffffff3a; transition: background .25s, border-color .25s; } .pzdots i.done { background: var(--green); border-color: var(--green); } .pzdots i.now { border-color: #fff; }
+  .pzboardwrap { position: relative; } .pzboard { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; border-radius: 6px; overflow: hidden; user-select: none; touch-action: none; box-shadow: 0 10px 30px -12px #000a; transition: opacity .25s; } .pzboard.dim { opacity: .45; }
+  .pzboard .sq.mine { cursor: grab; } .pzboard .sq.hint { cursor: pointer; } .pzboard .sq.pzhintsq { box-shadow: inset 0 0 0 4px #4aa3ffcc; } .pzboard .sq.pzwrong { box-shadow: inset 0 0 0 100px #fa412d66; transition: box-shadow .3s; }
+  .pzghost { position: fixed; z-index: 9999; width: 72px; height: 72px; margin: -36px 0 0 -36px; pointer-events: none; } .pzghost img { width: 100%; height: 100%; }
+  .pzflash { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 5rem; font-weight: 800; pointer-events: none; opacity: 0; } .pzflash.show { animation: pzflash .9s ease; } .pzflash.good { color: #9ccc65; } .pzflash.bad { color: #fa7c6d; }
+  @keyframes pzflash { 0% { opacity: 0; transform: scale(.6); } 25% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.15); } }
+  .pzpromo { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: #000a; border-radius: 6px; } .pzpromo-in { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 16px; background: var(--panel); border-radius: 12px; max-width: 90%; } .pzpromo-in .pzlabel { width: 100%; text-align: center; } .pzpromo-in button { width: 64px; height: 64px; padding: 4px; background: #ffffff10; } .pzpromo-in button img { width: 100%; height: 100%; } .pzpromo-in .small { width: auto; height: auto; }
+  .pzpanel { display: grid; gap: 14px; min-width: 0; }
+  .pzcard { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; animation: pzin .25s ease; }
+  .pzprompt-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; } .pzwho { font-family: "Iowan Old Style", Georgia, serif; font-size: 1.45rem; font-weight: 700; }
+  .pzmsg { margin-top: 6px; } .pzmsg.good b { color: #9ccc65; } .pzmsg.bad b { color: #fa7c6d; } .pzfilterline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .pzpanel .pzbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .pzpanel .pzbtns button { min-height: 46px; } .pzpanel .pzbtns .primary { grid-column: 1 / -1; min-height: 52px; font-size: 1.05rem; }
+  .pzresult .pzrow { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-end; } .pzdelta { font-size: 2rem; font-weight: 700; line-height: 1; } .pzdelta.up { color: #9ccc65; } .pzdelta.down { color: #fa7c6d; } .pzthemes { margin-top: 14px; margin-bottom: 0; }
+  .pzsect { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); } .pzsect-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 800; margin-bottom: 8px; }
+  .pzchipv { font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #81b64c26; color: #cfe8b6; } .pzchipv.eng { background: #4aa3ff22; color: #a9d2ff; } .pzchipv.ai { background: #b08cff22; color: #d6c4ff; }
+  .pzline { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 1.02rem; display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; } .pzline .you { color: #fff; font-weight: 700; } .pzline .opp { color: var(--muted); }
+  .pzfactlist { margin: 6px 0; padding-left: 18px; color: #d4d3d1; font-size: .9rem; } .pzfactlist li { margin: 5px 0; } .pzthemedefs { font-size: .84rem; display: grid; gap: 5px; margin-top: 10px; }
+  .pzmini { margin-top: 12px; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; } .pzexplain { margin: 0; line-height: 1.55; } .pzsrc { margin-top: 18px; font-size: .78rem; color: var(--muted); }
+  @media (max-width: 1000px) { .pzgrid { grid-template-columns: 1fr; } .pzside { position: static; } .pzplay { grid-template-columns: 1fr; gap: 16px; } .pzboardcol { width: 100%; } }
+  @media (max-width: 560px) { #puzzles { padding: 16px 12px 40px; } .pzhead h1 { font-size: 1.75rem; } .pzaskrow { flex-direction: column; } .pzaskrow button { min-height: 50px; } .pzseg button { flex: 1 1 calc(50% - 6px); } .pzmodes, .pzask { padding-left: 16px; padding-right: 16px; } .pztabs { margin: 0 -16px 16px; padding: 0 16px; } .pzbig { font-size: 2.6rem; } }
+  @media (prefers-reduced-motion: reduce) { .pzflash.show, .pzres, .pzcard, .pzthink i { animation: none; } .pzbar i, .pzboard { transition: none; } }
   #sandbox { max-width: 1260px; margin: 0 auto; padding: 14px 18px 30px; } #sandbox.hidden { display: none; }
   .sbgrid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; justify-content: center; } .sbboard { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; width: min(100%, calc(100vh - 150px)); margin: 0 auto; border-radius: 5px; overflow: hidden; user-select: none; touch-action: manipulation; box-shadow: 0 8px 24px -10px #0009; } .sbboard .sq { cursor: pointer; } .sbboard .sq.sel::before { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 0, .42); } .sbboard .sq.tgt:not(.hint)::after { display: none; }
   .sbpal { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; } .sbp { width: 48px; height: 48px; min-height: 0; padding: 4px; background: #ffffff10; box-shadow: none; border-radius: 8px; } .sbp img { width: 100%; height: 100%; } .sbp.on { outline: 2px solid var(--accent, #81b64c); background: #81b64c33; } .sbp.wide { width: auto; padding: 0 14px; font-weight: 700; }
@@ -1223,6 +1306,7 @@
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
+    <button id="navPuzzles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H7a2 2 0 0 0-2 2v3a2 2 0 1 1 0 4v3a2 2 0 0 0 2 2h3a2 2 0 1 1 4 0h3a2 2 0 0 0 2-2v-3a2 2 0 1 0 0-4V5a2 2 0 0 0-2-2h-3a2 2 0 1 0-4 0z"/></svg> Puzzles</button>
     <button id="navCoach" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
     <button id="navTour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg> Tournaments</button>
     <button id="navIdeas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg> Ideas</button>
@@ -1471,6 +1555,7 @@
 </div>
 
 <div id="lounge" class="hidden"></div>
+<div id="puzzles" class="hidden"></div>
 <div id="sandbox" class="hidden"></div>
 <div id="tours" class="hidden">
   <div id="tourHome">
@@ -1814,7 +1899,7 @@ function pieceHTML(p) {
 }
 // The Coach is archived: hidden from the menu, and ?coach links open the main page. Set to false to bring it back.
 const COACH_ARCHIVED = true;
-const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge', 'sandbox'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge', 'sandbox', 'puzzles'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -1831,7 +1916,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['cam_signal', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal', 'cam_poll']);   // background work or already shown instantly
+const QUIET = new Set(['cam_signal', 'puzzle_move', 'puzzle_hint', 'puzzle_count', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal', 'cam_poll']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 const API_TIMEOUT = { sync: 5000, ping: 5000, move: 6000 };   // heartbeats are tiny and a move is quick: retry sooner (move retries are safe)
@@ -2196,6 +2281,7 @@ async function boot() {
 async function start() {
   ensureSessionSubs();
   const params = new URLSearchParams(location.search);
+  if (params.has('puzzles')) return enterPuzzles();
   if (params.has('learn')) return enterLearn();
   if (!COACH_ARCHIVED && params.get('coach') === 'game') { const b = botLoad('chess:coachgame'); if (b) return enterBot(b); }
   if (!COACH_ARCHIVED && params.has('coach')) return enterCoach();
@@ -4784,6 +4870,9 @@ $('#lNext').onclick = () => {
   else enterLearn(LS.cid);
 };
 $('#navLearn').onclick = () => enterLearn();
+let puzzlesP = null;
+async function enterPuzzles(opts) { try { await (puzzlesP || (puzzlesP = loadScript('/puzzles.js'))); } catch (e) { puzzlesP = null; throw e; } Puzzles.enter(opts); }
+$('#navPuzzles').onclick = () => enterPuzzles();
 
 
 // ---------- game review: rate every move (runs the engine in a background worker) ----------

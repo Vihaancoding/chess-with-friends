@@ -112,9 +112,13 @@ The server is authoritative: every move is validated with the shared engine, and
 - No opening explorer yet. Games finished before the archive existed show in the list without a replay (their moves were never stored).
 - Abandoned untimed games are never cleaned up automatically.
 
+## Puzzle trainer
+
+**Puzzles** in the menu: authentic puzzles from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0), filtered by theme and difficulty, with an AI search ("difficult knight forks"), weakness and mixed training, hints, an engine-checked review and progress tracking. The puzzles live in a local index (`data/puzzles.tsv.gz`, built by `scripts/build-puzzles.js`); solutions stay on the server until a puzzle is finished. Setup, data, AI and configuration: [docs/puzzles.md](docs/puzzles.md).
+
 ## Credits
 
-Piece images are the Cburnett set, loaded from the [lichess](https://github.com/lichess-org/lila) repository via jsDelivr (see their license). Fonts: Noto Sans.
+Puzzles are from the Lichess puzzle database (CC0). Piece images are the Cburnett set, loaded from the [lichess](https://github.com/lichess-org/lila) repository via jsDelivr (see their license). Fonts: Noto Sans.
 
 ## License
 
