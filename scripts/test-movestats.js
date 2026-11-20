@@ -54,7 +54,7 @@ const until = async (f, ms = 90000) => { const t0 = Date.now(); while (Date.now(
   console.log('older games are counted too (backfill), once per game');
   const before = (await call('stats_board', {}, A)).rows.map((r) => ({ name: r.name, n: r.n, games: r.games, blunder: r.blunder }));
   for (const n of ['ann', 'bob', 'cat']) { await store.del('mstat:' + n); await store.del('mlog:' + n); }     // as if these games had been played before this feature
-  await store.del('mbackfill:3'); await store.del('mq');
+  await store.del('mbackfill:4'); await store.del('mq');
   await store.set('lb', { ann: {}, bob: {}, cat: {} });
   ok('with nothing counted the board is empty', (await call('stats_board', {}, A)).rows.length === 0, null);
   await handler.statsBackfill();
@@ -87,6 +87,6 @@ const until = async (f, ms = 90000) => { const t0 = Date.now(); while (Date.now(
   const cg = (await store.get('games:cat')).list[0].id;
   await handler.statsEnqueue([cg]); await handler.statsWork(60000);
   const fixed = await store.get('mstat:cat');
-  ok('counting it again replaces the old numbers with the current way of counting, and the moves are listed', fixed.ver === 3 && fixed.games === 1 && fixed.t.n < 100 && !(await call('stats_board', {}, A)).rows.some((r) => r.brilliant === 99), fixed);
+  ok('counting it again replaces the old numbers with the current way of counting, and the moves are listed', fixed.ver === 4 && fixed.games === 1 && fixed.t.n < 100 && !(await call('stats_board', {}, A)).rows.some((r) => r.brilliant === 99), fixed);
   console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
