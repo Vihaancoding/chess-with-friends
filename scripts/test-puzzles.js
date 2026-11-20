@@ -5,6 +5,8 @@ const handler = require('../lib/app'), PZ = require('../lib/puzzles'), AI = requ
 let failed = 0, passed = 0;
 const ok = (n, c, g) => { if (c) { passed++; console.log('  ✓', n); } else { failed++; console.log('  ✗', n, '\n      got:', JSON.stringify(g)); } };
 const call = (route, body, who) => new Promise((resolve) => handler({ method: 'POST', url: '/api?r=' + route, headers: who ? { 'x-name': who.name, 'x-token': who.token } : {}, body }, { setHeader() {}, writeHead(c) { this.code = c; }, end(b) { let j = {}; try { j = JSON.parse(b || '{}'); } catch {} resolve({ status: this.code, ...j }); } }));
+const store = require('../lib/store');
+const serve = async (u, row) => { const key = 'pz:' + u.name.toLowerCase(), p = (await store.get(key)) || PZ.newProgress(); p.cur = { id: row.id, t0: Date.now() - 5000, hints: 0, wrong: 0, recorded: false, done: false, gaveUp: false }; p.v = (p.v || 0) + 1; await store.set(key, p); };
 const nf = (raw) => PZ.normalizeFilter(raw).filter;
 (async () => {
   const D = PZ.load();
@@ -96,6 +98,7 @@ const nf = (raw) => PZ.normalizeFilter(raw).filter;
   ok('nothing in the response contains the solution moves', row.mv.slice(1).every((m) => !body.includes(m)) && !/"solution"|"moves"|"rating"/.test(body) && !('themes' in n.puzzle), body.slice(0, 200));
   ok('the solver plays the side that was not on move in the FEN (the opponent moves first)', n.puzzle.setup === row.mv[0], n.puzzle.setup);
   ok('the review is refused until the puzzle is finished', (await call('puzzle_review', { id: row.id }, U)).status === 403 && (await call('puzzle_explain', { id: row.id }, U)).status === 403, null);
+  ok('moves for a puzzle that was not served are refused (no probing other puzzles)', (await call('puzzle_move', { id: D.rows[7].id, step: 1, move: D.rows[7].mv[1] }, U)).status === 409 && (await call('puzzle_solution', { id: D.rows[7].id }, U)).status === 409 && (await call('puzzle_hint', { id: D.rows[7].id, step: 1 }, U)).status === 409, null);
   ok('an illegal move is an error, not a wrong answer', (await call('puzzle_move', { id: row.id, step: 1, move: 'a1a1' }, U)).status === 400, null);
   const wrong = (() => { const st = PZ.stateAfter(row, 1); return Chess.legalMoves(st).map((m) => Chess.sqName(m.from) + Chess.sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '')).find((u) => u !== row.mv[1] && Chess.status(Chess.apply(st, Chess.findUci(st, u))).reason !== 'checkmate'); })();
   let m = await call('puzzle_move', { id: row.id, step: 1, move: wrong }, U);
@@ -118,18 +121,20 @@ const nf = (raw) => PZ.normalizeFilter(raw).filter;
   // a clean solve of a one-move mate; an alternative mating move is accepted too
   const alt = D.rows.find((r) => r.themes.includes('mateIn1') && (() => { const st = PZ.stateAfter(r, 1); return Chess.legalMoves(st).filter((x) => Chess.status(Chess.apply(st, x)).reason === 'checkmate').length > 1; })());
   U.alt = alt;
-  await call('puzzle_next', { mode: 'custom', filter: { themes: ['mateIn1'] } }, U);   // (starts some puzzle; the next call switches to the one under test)
+  await serve(U, alt);
   const st1 = PZ.stateAfter(alt, 1), mates = Chess.legalMoves(st1).filter((x) => Chess.status(Chess.apply(st1, x)).reason === 'checkmate').map((x) => Chess.sqName(x.from) + Chess.sqName(x.to) + (x.promo ? x.promo.toLowerCase() : ''));
   const other = mates.find((x) => x !== alt.mv[1]);
   m = await call('puzzle_move', { id: alt.id, step: 1, move: other }, U);
   ok('any move that gives checkmate is accepted, like on Lichess', m.correct === true && m.done === true && m.alt === true && m.mate === true, m);
 
   const clean = D.rows.find((r) => r.themes.includes('mateIn1') && r.id !== alt.id && r.rating < 1000);
+  await serve(U, clean);
   m = await call('puzzle_move', { id: clean.id, step: 1, move: clean.mv[1] }, U);
   ok('a clean solve is counted and raises the rating', m.done && m.clean === true && m.counted === true && m.delta > 0, m);
 
   console.log('hints and the solution');
   const h = D.rows.find((r) => r.themes.includes('fork') && r.len === 2);
+  await serve(U, h);
   let hint = await call('puzzle_hint', { id: h.id, step: 1, level: 1 }, U);
   ok('hint 1 names the piece to move (the square), not the target', hint.hint.from === h.mv[1].slice(0, 2) && !hint.hint.to, hint);
   hint = await call('puzzle_hint', { id: h.id, step: 1, level: 2 }, U);
@@ -138,14 +143,14 @@ const nf = (raw) => PZ.normalizeFilter(raw).filter;
   m = await call('puzzle_move', { id: h.id, step: 3, move: h.mv[3] }, U);
   ok('solving with hints is a finished puzzle but not a clean one', m.done && m.clean === false, m);
   const g = D.rows.find((r) => r.themes.includes('pin') && r.len === 2 && r.id !== h.id);
-  await call('puzzle_next', { mode: 'custom', filter: { themes: ['pin'] } }, U);
+  await serve(U, g);
   const sol = await call('puzzle_solution', { id: g.id }, U);
   ok('"show the solution" reveals the line and counts as a failed puzzle', sol.facts.solution.length === 2 && sol.counted === true && sol.delta < 0, sol);
   ok('afterwards the review is open', (await call('puzzle_review', { id: g.id }, U)).facts.id === g.id, null);
 
   console.log('progress tracking');
   const st = await call('puzzle_stats', {}, U);
-  ok('attempts, solved, accuracy and average time are tracked', st.n === 5 && st.ok === 2 && Math.abs(st.accuracy - 0.4) < 1e-9 && (st.avgMs == null || st.avgMs >= 0), st);
+  ok('attempts, solved, accuracy and average time are tracked', st.n === 5 && st.solved === 2 && Math.abs(st.accuracy - 0.4) < 1e-9 && (st.avgMs == null || st.avgMs >= 0), st);
   ok('performance by theme is tracked', st.themes.some((t) => t.id === 'mateIn1') && st.themes.find((t) => t.id === 'mate').n >= 3, st.themes.map((t) => t.id + ':' + t.n));
   ok('recent mistakes are listed and can be loaded again', st.misses.length >= 2 && (await call('puzzle_load', { id: st.misses[0].id }, U)).puzzle.id === st.misses[0].id, st.misses);
   ok('only a missed puzzle can be loaded again (no peeking at others)', (await call('puzzle_load', { id: D.rows[5].id }, U)).status === 403, null);
