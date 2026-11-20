@@ -152,7 +152,7 @@ flowchart LR
 | `public/sfengine.js` | 123 | Stockfish as an alternative analysis engine (Stockfish 19 lite, single-threaded WebAssembly, in public/stockfish/; |
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
-| `public/index.html` | 8038 |  |
+| `public/index.html` | 8031 |  |
 
 ## API routes (155, all in lib/app.js, called as POST /api?r=<name>)
 
@@ -208,6 +208,6 @@ flowchart LR
 - **decline** (1): `decline`
 - **cancel** (1): `cancel`
 
-## Tests (62)
+## Tests (60)
 
-`test-access-ui.js`, `test-access.js`, `test-archive-ui.js`, `test-archive.js`, `test-board-room.js`, `test-brilliant.js`, `test-camera-poll-ui.js`, `test-camera-ui.js`, `test-coach-ask.js`, `test-damage-ui.js`, `test-damage.js`, `test-damagechat.js`, `test-drag.js`, `test-engine.js`, `test-extras-ui.js`, `test-extras.js`, `test-fair-quadrant-ui.js`, `test-fairdetect.js`, `test-fairmodel.js`, `test-fairplay-ui.js`, `test-fairplay.js`, `test-fairworker.js`, `test-gamechat-private.js`, `test-ideas-ui.js`, `test-lounge-ui.js`, `test-lounge.js`, `test-match-ui.js`, `test-match.js`, `test-mentions-ui.js`, `test-mentions.js`, `test-movestats-browser.js`, `test-movestats.js`, `test-pass-play.js`, `test-premoves.js`, `test-presence-ui.js`, `test-puzzles-ui.js`, `test-puzzles.js`, `test-rival-away.js`, `test-rivalries-ui.js`, `test-rivalries.js`, `test-sandbox-ui.js`, `test-server-switch-ui.js`, `test-server-switch.js`, `test-servers.js`, `test-sfserver.js`, `test-shutup-ui.js`, `test-shutup.js`, `test-splash-arrows-ui.js`, `test-stockfish-ui.js`, `test-streaks-ui.js`, `test-streaks.js`, `test-study-ui.js`, `test-style-ui.js`, `test-style.js`, `test-sync-stall.js`, `test-tour-add.js`, `test-tour-host.js`, `test-tour-reverse.js`, `test-tournament-ui.js`, `test-tournament.js`, `test-tribunal-ui.js`, `test-tribunal.js`
+`test-access-ui.js`, `test-access.js`, `test-archive-ui.js`, `test-archive.js`, `test-board-room.js`, `test-brilliant.js`, `test-camera-poll-ui.js`, `test-camera-ui.js`, `test-coach-ask.js`, `test-damage-ui.js`, `test-damage.js`, `test-damagechat.js`, `test-drag.js`, `test-engine.js`, `test-extras.js`, `test-fair-quadrant-ui.js`, `test-fairdetect.js`, `test-fairmodel.js`, `test-fairplay-ui.js`, `test-fairplay.js`, `test-fairworker.js`, `test-gamechat-private.js`, `test-ideas-ui.js`, `test-lounge-ui.js`, `test-lounge.js`, `test-match-ui.js`, `test-match.js`, `test-mentions-ui.js`, `test-mentions.js`, `test-movestats.js`, `test-pass-play.js`, `test-premoves.js`, `test-presence-ui.js`, `test-puzzles-ui.js`, `test-puzzles.js`, `test-rival-away.js`, `test-rivalries-ui.js`, `test-rivalries.js`, `test-sandbox-ui.js`, `test-server-switch-ui.js`, `test-server-switch.js`, `test-servers.js`, `test-sfserver.js`, `test-shutup-ui.js`, `test-shutup.js`, `test-splash-arrows-ui.js`, `test-stockfish-ui.js`, `test-streaks-ui.js`, `test-streaks.js`, `test-study-ui.js`, `test-style-ui.js`, `test-style.js`, `test-sync-stall.js`, `test-tour-add.js`, `test-tour-host.js`, `test-tour-reverse.js`, `test-tournament-ui.js`, `test-tournament.js`, `test-tribunal-ui.js`, `test-tribunal.js`
