@@ -7404,24 +7404,29 @@ const uciH = (h) => 'abcdefgh'[h.from & 7] + (8 - (h.from >> 3)) + 'abcdefgh'[h.
 function statsSearch(job) {
   const hist = job.hist, states = [Chess.initial()];
   for (let k = 0; k < hist.length; k++) states.push(Chess.apply(states[k], Chess.findUci(states[k], uciH(hist[k]))));
-  return new Promise((resolve, reject) => {
-    const w = new StockfishWorker(), id = 'st' + Math.random().toString(36).slice(2), out = [], total = job.need.length;
-    const to = setTimeout(() => { w.terminate(); reject(new Error('timeout')); }, 20000 + total * (job.verify ? 3000 : 800));
-    w.onmessage = (e) => {
-      const d = e.data; if (d.id !== id) return;
-      if (d.done) { clearTimeout(to); w.terminate(); return resolve(out); }
-      out.push({ i: d.i, s: d.bestScore }); statsRun = { at: out.length, of: total }; paintStatsStatus();
-    };
+  const one = (i) => new Promise((resolve, reject) => {
+    const w = new StockfishWorker(), id = 'st' + Math.random().toString(36).slice(2), to = setTimeout(() => { w.terminate(); reject(new Error('timeout')); }, 15000);
+    let got = null;
+    w.onmessage = (e) => { const d = e.data; if (d.id !== id) return; if (d.done) { clearTimeout(to); w.terminate(); got ? resolve(got) : reject(new Error('no result')); } else got = { i: d.i, s: d.bestScore }; };
     w.onerror = (e) => { clearTimeout(to); w.terminate(); reject(new Error(e.message || 'engine error')); };
-    w.postMessage({ type: 'analyze', id, states, hist, order: job.need, ms: job.verify ? 900 : 220 });
+    w.postMessage({ type: 'analyze', id, states, hist, order: [i], ms: job.verify ? 900 : 220 });
   });
+  return (async () => {
+    const out = [];
+    for (const i of job.need) {
+      out.push(await one(i)); statsRun = { at: out.length, of: job.need.length }; paintStatsStatus();
+      // in the background of a game (or any other page) it goes slowly, so it never competes with the player for the processor
+      await new Promise((r) => setTimeout(r, view === 'lobby' && !document.hidden ? 0 : 900));
+    }
+    return out;
+  })();
 }
 function paintStatsStatus() { const el = $('#statsBody .stprog'); if (el) el.outerHTML = statsStatusHTML(); }
 async function statsCount() {
   if (statsBusy || !user || !window.StockfishWorker) return;
   statsBusy = true;
   try {
-    while (view === 'lobby' && !document.hidden) {
+    while (user) {
       const r = await api('stats_job'); if (!r.ok || !r.job) break;
       statsRun = { at: 0, of: r.job.need.length }; paintStatsStatus();
       let res; try { res = await statsSearch(r.job); } catch (e) { console.warn('move stats search failed', e && e.message); break; }
@@ -7432,6 +7437,8 @@ async function statsCount() {
     }
   } finally { statsBusy = false; statsRun = null; paintStatsStatus(); }
 }
+setInterval(() => { if (user && !statsBusy) statsCount(); }, 90000);               // in the background, whatever the player is doing (a game, another page): the lobby does not have to be open
+setTimeout(() => { if (user) statsCount(); }, 20000);
 async function loadStats(force) {
   if (!$('#statscard') || (!force && Date.now() - statsAt < 120000)) return paintStats();
   statsAt = Date.now();
