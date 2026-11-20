@@ -229,6 +229,33 @@
   #tuneCard .tune-foot { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: .85rem; }
   #tuneCard .tune-foot label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
   #tuneCard .tune-status { font-size: .78rem; margin-top: 8px; }
+  #reelsCard .rl-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  #reelsCard .rl-filters button.on { border-color: var(--green); color: #fff; }
+  #reelsCard .rl-trend { margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font-size: .85rem; }
+  #reelsCard .rl-kicker { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  #reelsCard .rl-trow { padding: 3px 0; }
+  #reelsCard .rl-tk { color: var(--gold); font-weight: 700; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; margin-right: 4px; }
+  #reelsCard .rl-list { max-height: 640px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px; }
+  #reelsCard .rl-reel { border-top: 1px solid var(--line); padding-top: 12px; }
+  #reelsCard .rl-reel:first-child { border-top: 0; padding-top: 0; }
+  #reelsCard .rl-kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); font-weight: 700; }
+  #reelsCard .rl-head { margin: 2px 0 4px; font-size: 1.05rem; font-weight: 800; }
+  #reelsCard .rl-players, #reelsCard .rl-line { font-size: .85rem; }
+  #reelsCard .rl-line { color: var(--muted); margin-bottom: 8px; }
+  #reelsCard .rl-body { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  #reelsCard .rl-boardwrap { width: 240px; flex: 0 0 240px; }
+  #reelsCard .rl-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border-radius: 4px; overflow: hidden; }
+  #reelsCard .rl-sq { display: flex; align-items: center; justify-content: center; }
+  #reelsCard .rl-sq.l { background: #e8dcc4; } #reelsCard .rl-sq.d { background: #9aa6b0; }
+  #reelsCard .rl-sq.hot { box-shadow: inset 0 0 0 3px rgba(255,210,80,.8); }
+  #reelsCard .rl-sq img { width: 88%; height: 88%; }
+  #reelsCard .rl-side { flex: 1; min-width: 180px; font-size: .85rem; }
+  #reelsCard .rl-why { margin-bottom: 8px; }
+  #reelsCard .rl-ctl { display: flex; gap: 6px; align-items: center; }
+  #reelsCard .rl-ctl input[type=range] { flex: 1; }
+  #reelsCard .rl-pos { font-size: .78rem; margin: 4px 0 8px; }
+  #reelsCard .rl-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  #reelsCard .rl-note { font-size: .75rem; margin-top: 8px; }
   /* each player: a chip in their piece colour; the side to move gets a softly pulsing green ring, the other is dimmed */
   .lp { white-space: nowrap; transition: opacity .3s; } .lp.wait { opacity: .55; }
   .pc { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-shadow: inset 0 0 0 1px #0005; }
@@ -1445,6 +1472,10 @@
       <div class="panel hidden" id="dmgcard" role="region" aria-label="The Damage Report"><h2 class="ph"><span class="dmgttl">The <i>Damage</i> Report</span><span class="dmgtools"><button class="small" id="dmgHide" title="Hide the Damage Report (Shift+D). Saved to your account." aria-keyshortcuts="Shift+D">Hide</button></span></h2><div id="dmgbody"><div class="dmgskel"></div></div></div>
       <div class="panel hidden" id="rvwatch"><h2 class="ph"><span>Rivalries to watch</span><button class="small" id="rvwAll">See all</button></h2><div id="rvwlist"></div></div>
       <div class="panel" id="tourcard"><h2 class="ph"><span>Tournaments</span><button class="small" id="tcAll">See all</button></h2><div id="tourmini"><div class="muted">Loading…</div></div></div>
+      <div class="panel" id="reelsCard"><h2 class="ph"><span>Highlight reels<span class="rtnote" id="reelsCount"></span></span></h2>
+      <div class="rl-filters" id="reelsFilters"></div><div id="reelsTrend" class="rl-trend"></div>
+      <div class="rl-list" id="reelsList"><div class="muted empty">Finding moments…</div></div>
+      <div class="muted rl-note">Brilliant-move and checkmate reels are not found yet. They need deeper checks than the live analysis gives.</div></div>
       <div class="panel" id="tuneCard"><h2 class="ph"><span>Live TUNE-IN<span class="rtnote" id="tuneCount"></span></span></h2>
       <div id="tuneStar"></div><div id="tuneList"><div class="muted empty">Finding exciting games…</div></div>
       <div class="tune-foot"><label><input type="checkbox" id="tuneHelp"> Analyse games in this browser</label><label><input type="checkbox" id="tuneNotify"> Notify me of sacrifices, comebacks and time scrambles</label></div>
@@ -1921,6 +1952,7 @@
 <script src="tournament.js"></script>
 <script src="sfengine.js"></script>
 <script src="tunein.js"></script>
+<script src="highlights.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
@@ -1974,7 +2006,7 @@ let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
 
-const QUIET = new Set(['tunein_claim', 'tunein_submit', 'tunein_feed', 'cam_signal', 'puzzle_move', 'puzzle_hint', 'puzzle_count', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal', 'cam_poll']);   // background work or already shown instantly
+const QUIET = new Set(['highlight_feed', 'tunein_claim', 'tunein_submit', 'tunein_feed', 'cam_signal', 'puzzle_move', 'puzzle_hint', 'puzzle_count', 'sync', 'ping', 'me', 'room', 'config', 'move', 'chat_send', 'profile', 'games', 'game_get', 'admin_overview', 'admin_servers', 'admin_fair', 'fair_report', 'game_chat', 'game_chat_send', 'rtc_signal', 'cam_poll']);   // background work or already shown instantly
 let busyCount = 0, busyTimer = null, lastBtn = null, lastBtnAt = 0;
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) { lastBtn = b; lastBtnAt = Date.now(); } }, true);
 const API_TIMEOUT = { sync: 5000, ping: 5000, move: 6000 };   // heartbeats are tiny and a move is quick: retry sooner (move retries are safe)
@@ -2789,6 +2821,14 @@ if (window.TuneIn) tuneReady = TuneIn.init(api, {
   star: $('#tuneStar'), list: $('#tuneList'), count: $('#tuneCount'),
   tc: tcLabel, watching: () => gameCode, loggedIn: () => !!user,
   notify: (e) => showToast('♞', '<b>' + esc(tuneKind[e.kind] || 'Game') + '</b> · ' + esc(e.w) + ' vs ' + esc(e.b), esc(e.why), e.code),
+  watch: async (code) => { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); else $('#err').textContent = r.error; },
+});
+
+// ---------- HIGHLIGHT REELS (public/highlights.js): moments the server checked, each a small replay ----------
+if (window.HighlightReels) HighlightReels.init(api, {
+  list: $('#reelsList'), filters: $('#reelsFilters'), trend: $('#reelsTrend'), count: $('#reelsCount'),
+  tc: tcLabel, loggedIn: () => !!user,
+  open: (gid) => enterArchive(gid),
   watch: async (code) => { const r = await api('join', { code }); if (r.ok) enterGame(r.code, r.snap); else $('#err').textContent = r.error; },
 });
 

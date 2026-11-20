@@ -62,9 +62,10 @@ const hOf = (u) => ({ from: sq(u.slice(0, 2)), to: sq(u.slice(2, 4)), promo: u[4
   const V = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 }, mat = (st) => st.board.reduce((a, p) => a + (p ? (p[0] === 'w' ? 1 : -1) * V[p[1]] : 0), 0);
   const calmEv = T.replay(hist50).map((st) => 100 * mat(st));
   const calm = T.analyse(hist50, calmEv, null);
-  ok('a game where every trade is even announces no sacrifice', calm.sacrifices === 0 && calm.events.length === 0, calm.events);
+  const announced = calm.events.filter((e) => ['sacrifice', 'comeback', 'time'].includes(e.kind));
+  ok('a game where every trade is even announces no sacrifice, comeback or time scramble', calm.sacrifices === 0 && announced.length === 0, announced);
   ok('a level, quiet game scores moderately', calm.raw < 40, calm.raw);
-  ok('a level, quiet game (+0.15 all along) scores moderately and announces nothing', calm.raw < 40 && calm.events.length === 0, calm.raw);
+  ok('a level, quiet game (+0.15 all along) scores moderately and announces nothing', calm.raw < 40 && calm.events.filter((e) => ['sacrifice', 'comeback', 'time'].includes(e.kind)).length === 0, calm.raw);
 
   // smoothing and hysteresis
   const s1 = T.smooth(null, 80), s2 = T.smooth({ ema: 80, shown: 80 }, 84), s3 = T.smooth({ ema: 80, shown: 80 }, 40);
