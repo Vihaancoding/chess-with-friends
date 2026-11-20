@@ -1,6 +1,6 @@
 // Move stats for EVERY game, judged by Stockfish: new games are queued and counted, older ones are backfilled, each number opens the
 // moves behind it. Uses the real engine. Run: node scripts/test-movestats.js (takes ~30 s)
-delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY; process.env.ADMIN_KEY = 'k'; process.env.STATS_SF_DEPTH = '12'; process.env.STATS_SF_VERIFY_DEPTH = '14';
+delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY; process.env.ADMIN_KEY = 'k'; process.env.STATS_SERVER = '1'; process.env.STATS_SF_DEPTH = '12'; process.env.STATS_SF_VERIFY_DEPTH = '14';
 const handler = require('../lib/app'), store = require('../lib/store'), Dmg = require('../lib/damage');
 let failed = 0, passed = 0;
 const ok = (n, c, g) => { if (c) { passed++; console.log('  ✓', n); } else { failed++; console.log('  ✗', n, '\n      got:', JSON.stringify(g)); } };

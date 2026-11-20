@@ -3,8 +3,8 @@
   "outputDirectory": "public",
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
-      "includeFiles": "{data/**,public/stockfish/**}"
+      "maxDuration": 10,
+      "includeFiles": "data/**"
     },
     "api/fairplay.js": {
       "maxDuration": 60,

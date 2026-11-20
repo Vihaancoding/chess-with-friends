@@ -7378,8 +7378,9 @@ function statsStatusHTML() {
   const st = statsStatus; if (!st) return '';
   const done = Math.max(0, statsTotal - statsPending), pct = statsTotal ? Math.round((100 * done) / statsTotal) : 0;
   const ago = st.lastAt ? (() => { const m = Math.round((st.now - st.lastAt) / 60000); return m < 1 ? 'a moment ago' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; })() : null;
-  const head = st.state === 'off' ? 'Stockfish: not set up on this server. The checks cannot run until an admin sets FAIR_SECRET.' : st.state === 'working' ? `Stockfish: checking games now, ${done} of ${statsTotal} done (${pct}%).${st.current ? ` The current game is at position ${st.current.done} of ${st.current.total}.` : ''}` : st.state === 'waiting' ? `Stockfish: ${statsPending} game${statsPending === 1 ? '' : 's'} waiting for the next batch (${done} of ${statsTotal} done).${st.current ? ` The current game is at position ${st.current.done} of ${st.current.total}.` : ''} Batches start while someone has the lobby open.` : 'Stockfish: every finished game has been checked.';
-  return `<div class="stprog" role="status">${statsPending ? `<div class="stprogbar"><i style="width:${pct}%"></i></div>` : ''}<div class="muted stpend">${esc(head)}${st.done ? ` ${st.done} game${st.done === 1 ? '' : 's'} checked in this round of counting.` : ''}${ago ? ` Last game finished ${ago}.` : ''}</div>${st.diag && (st.diag.ping || st.diag.run) ? `<div class="stpend muted">${st.diag.ping ? `Last request to the worker: ${esc(ago2(st.diag.ping.at, st.now))}, ${esc(st.diag.ping.res)}. ` : ''}${st.diag.run ? `Worker run: ${esc(ago2(st.diag.run.at, st.now))}, ${esc(st.diag.run.res)}.` : 'The worker has not reported a run yet.'}</div>` : ''}${st.error ? `<div class="stpend" style="color:var(--bad)">The last check failed: ${esc(st.error.msg)}</div>` : ''}</div>`;
+  const cur = statsRun ? `Checking a game in your browser now (position ${statsRun.at} of ${statsRun.of}).` : st.current ? `A game is being checked (position ${st.current.done} of ${st.current.total}).` : '';
+  const head = statsPending ? `Stockfish runs in the browsers of players who have the lobby open: ${done} of ${statsTotal} games checked (${pct}%). ${cur || 'Leave this page open and it will keep going.'}` : 'Stockfish: every finished game has been checked.';
+  return `<div class="stprog" role="status">${statsPending ? `<div class="stprogbar"><i style="width:${pct}%"></i></div>` : ''}<div class="muted stpend">${esc(head)}${st.done ? ` ${st.done} game${st.done === 1 ? '' : 's'} checked in this round of counting.` : ''}${ago ? ` Last game finished ${ago}.` : ''}</div>${st.error ? `<div class="stpend" style="color:var(--bad)">The last check failed: ${esc(st.error.msg)}</div>` : ''}</div>`;
 }
 // ----- stats leaderboard: most brilliant moves, blunders, … from the games the engine has checked -----
 const STAT_TABS = [['brilliant', 'Brilliant', 'brilliant moves'], ['blunder', 'Blunders', 'blunders'], ['mistake', 'Mistakes', 'mistakes'], ['inaccuracy', 'Inaccuracies', 'inaccuracies'], ['best', 'Best moves', 'best moves'], ['acc', 'Accuracy', 'average accuracy'], ['clean', 'Cleanest', 'blunders per 100 moves']];
@@ -7397,10 +7398,44 @@ function paintStats() {
     : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Every finished game is checked by Stockfish${statsPending ? `; ${statsPending} are still being counted` : ''}.</div>`);
   if (!rows.length) box.insertAdjacentHTML('beforeend', statsStatusHTML());
 }
+// Counting in this browser: ask for a game, search the positions the server names with Stockfish (public/sfengine.js), send the scores back.
+let statsRun = null, statsBusy = false;
+const uciH = (h) => 'abcdefgh'[h.from & 7] + (8 - (h.from >> 3)) + 'abcdefgh'[h.to & 7] + (8 - (h.to >> 3)) + (h.promo ? String(h.promo).toLowerCase() : '');
+function statsSearch(job) {
+  const hist = job.hist, states = [Chess.initial()];
+  for (let k = 0; k < hist.length; k++) states.push(Chess.apply(states[k], Chess.findUci(states[k], uciH(hist[k]))));
+  return new Promise((resolve, reject) => {
+    const w = new StockfishWorker(), id = 'st' + Math.random().toString(36).slice(2), out = [], total = job.need.length;
+    const to = setTimeout(() => { w.terminate(); reject(new Error('timeout')); }, 20000 + total * (job.verify ? 3000 : 800));
+    w.onmessage = (e) => {
+      const d = e.data; if (d.id !== id) return;
+      if (d.done) { clearTimeout(to); w.terminate(); return resolve(out); }
+      out.push({ i: d.i, s: d.bestScore }); statsRun = { at: out.length, of: total }; paintStatsStatus();
+    };
+    w.onerror = (e) => { clearTimeout(to); w.terminate(); reject(new Error(e.message || 'engine error')); };
+    w.postMessage({ type: 'analyze', id, states, hist, order: job.need, ms: job.verify ? 900 : 220 });
+  });
+}
+function paintStatsStatus() { const el = $('#statsBody .stprog'); if (el) el.outerHTML = statsStatusHTML(); }
+async function statsCount() {
+  if (statsBusy || !user || !window.StockfishWorker) return;
+  statsBusy = true;
+  try {
+    while (view === 'lobby' && !document.hidden) {
+      const r = await api('stats_job'); if (!r.ok || !r.job) break;
+      statsRun = { at: 0, of: r.job.need.length }; paintStatsStatus();
+      let res; try { res = await statsSearch(r.job); } catch (e) { console.warn('move stats search failed', e && e.message); break; }
+      const s = await api('stats_submit', { id: r.job.id, res });
+      if (!s.ok) break;
+      if (s.pending != null) { statsPending = s.pending; statsTotal = s.total || statsTotal; }
+      if (s.done) { statsAt = 0; loadStats(true); }
+    }
+  } finally { statsBusy = false; statsRun = null; paintStatsStatus(); }
+}
 async function loadStats(force) {
   if (!$('#statscard') || (!force && Date.now() - statsAt < 120000)) return paintStats();
   statsAt = Date.now();
-  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; statsTotal = r.total || 0; statsStatus = r.status || null; paintStats(); clearTimeout(statsT); if (statsPending) statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); }
+  const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; statsTotal = r.total || 0; statsStatus = r.status || null; paintStats(); clearTimeout(statsT); if (statsPending) { statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); statsCount(); } }
 }
 $('#statscard').addEventListener('click', (e) => {
   const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); return; }
