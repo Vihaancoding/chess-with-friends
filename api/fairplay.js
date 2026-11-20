@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
   const secret = process.env.FAIR_SECRET;
   if (!secret || !same(req.headers['x-fair-secret'] || '', secret)) return send(res, 401, { error: 'No.' });
   const b = await readBody(req), code = b.code ? String(b.code).toUpperCase() : '';
-  const what = code ? { code, srv: b.srv } : b.post && /^[A-Z0-9]{3,12}-[a-z0-9]{1,12}$/.test(String(b.post)) ? { post: String(b.post), srv: b.srv } : b.sweep ? { sweep: true, srv: b.srv } : null;
+  const what = code ? { code, srv: b.srv } : b.post && /^[A-Z0-9]{3,12}-[a-z0-9]{1,12}$/.test(String(b.post)) ? { post: String(b.post), srv: b.srv } : b.sweep ? { sweep: true, srv: b.srv } : b.stats ? { stats: true, srv: b.srv } : null;
   if (!what || (code && !/^[A-Z0-9]{3,12}$/.test(code))) return send(res, 400, { error: 'Bad request.' });
   const bg = app.fairBackground(what);                            // registers the background work first, then answers
   send(res, 202, { ok: true });

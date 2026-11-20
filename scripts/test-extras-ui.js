@@ -31,6 +31,15 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   await p.click('[data-st="acc"]');
   ok('Accuracy needs enough moves, and says so', /at least 40/.test(await p.textContent('#statsBody')), null);
 
+  console.log('a number opens the games and moves behind it');
+  await p.click('[data-st="blunder"]');
+  await p.click('#statsBody tbody tr:has-text("bob") .stnum');
+  await p.waitForSelector('#sheet .stmv');
+  ok('tapping a number lists the games and moves, with the move number, the move and the opponent', /3\.\.\. Nf6/.test(await p.textContent('#sheet .stmv')) && /vs ann/.test(await p.textContent('#sheet .stmv')), await p.textContent('#sheet'));
+  await p.click('#sheet .stmv'); await p.waitForFunction(() => view === 'game' && archive && archive.id === 'AAAAA-z1');
+  ok('and each one opens that game (at that move)', !(await p.$('#sheet')), null);
+  await p.click('#navPlay'); await p.waitForSelector('#statsBody table');
+
   console.log('chat gifs');
   await p.fill('#chatIn', 'hello'); await p.click('#chatForm button.primary'); await p.waitForFunction(() => /hello/.test(document.querySelector('#chatlog').textContent));
   await sleep(800);
