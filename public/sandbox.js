@@ -80,7 +80,7 @@
       <div><div class="panel sbside">
         <div class="authtabs" role="tablist"><button data-sbmode="setup" class="${play ? '' : 'on'}" role="tab" aria-selected="${!play}">Place pieces</button><button data-sbmode="play" class="${play ? 'on' : ''}" role="tab" aria-selected="${play}">Play</button></div>
         ${play ? `<div class="sbstatus" role="status">${esc(status)}</div><div class="acts"><button data-sbundo ${S.hist.length ? '' : 'disabled'}>Undo</button><button data-sbflip>Flip board</button></div>${ml}<div class="muted" style="font-size:.85rem;font-weight:600;margin-top:8px">Move by clicking a piece, then where it goes. Pawns that reach the last row become queens. Go back to Place pieces to change the position.</div>`
-        : `<div class="label" style="margin-top:10px">Pick a piece, then click squares</div>${pal}<div class="label" style="margin-top:10px">Who moves first</div><div class="authtabs"><button data-sbturn="w" class="${S.turn === 'w' ? 'on' : ''}">White</button><button data-sbturn="b" class="${S.turn === 'b' ? 'on' : ''}">Black</button></div><div class="acts" style="margin-top:12px"><button data-sbstd>Starting position</button><button data-sbclear>Clear the board</button><button data-sbflip>Flip board</button></div><div class="muted" style="font-size:.82rem;font-weight:600;margin-top:8px">Drag a piece to move it, or drag it off the board to remove it. Right-click a square to empty it.</div>`}
+        : `<div class="label" style="margin-top:10px">Pick a piece, then click squares</div>${pal}<div class="label" style="margin-top:10px">Who moves first</div><div class="authtabs"><button data-sbturn="w" class="${S.turn === 'w' ? 'on' : ''}">White</button><button data-sbturn="b" class="${S.turn === 'b' ? 'on' : ''}">Black</button></div><div class="acts" style="margin-top:12px"><button data-sbstd>Starting position</button><button data-sbclear>Clear the board</button><button data-sbflip>Flip board</button></div><div class="muted" style="font-size:.82rem;font-weight:600;margin-top:8px">Drag a piece to move it, or drag it off the board to remove it. Right-click a square to empty it. Press Play to play from this position on the usual game board.</div>`}
       </div>${nt}</div></div></div>`;
     // a repaint (someone else's move, a message) keeps what I was typing, where the keyboard was and the chat scroll
     const keep = $('#sbNoteIn') ? $('#sbNoteIn').value : '', keepC = $('#sbIn') ? $('#sbIn').value : '', a = document.activeElement, fid = a && el().contains(a) ? a.id || (a.dataset.sq != null ? 'sq' + a.dataset.sq : '') : '';
@@ -93,6 +93,15 @@
   // the squares work from the keyboard too (Tab to a square, Enter or Space)
   document.addEventListener('keydown', (e) => { const q = e.target.closest && e.target.closest('#sandbox [data-sq]'); if (q && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); q.click(); } });
 
+  // "Play" goes to the standard game player (the usual board, move list, clocks-off pass & play) with this position;
+  // its Leave button brings you back to this room
+  S.play = function () {
+    const start = { board: S.board.slice(), turn: S.turn }, id = S.room;
+    S.err = '';
+    if (!start.board.some(Boolean)) { S.err = 'Place some pieces first.'; return S.paint(); }
+    S.leaveRoom(); if (window.Lounge) Lounge.stop();
+    enterBot(makeLocal({ w: 'White', b: 'Black' }, false, null, start, 'lounge:' + id));
+  };
   S.start = function () {
     S.st = state(); S.hist = []; S.sel = null; S.last = null; S.mode = 'play'; S.paint();
   };
@@ -136,7 +145,7 @@
       if (q('[data-sbstd]')) return act('standard');
       if (q('[data-sbclear]')) return act('clear');
       if ((b = q('[data-sbturn]'))) return act('turn', { turn: b.dataset.sbturn });
-      if ((b = q('[data-sbmode]'))) return act('mode', { mode: b.dataset.sbmode });
+      if ((b = q('[data-sbmode]'))) { if (b.dataset.sbmode !== 'play') return act('mode', { mode: 'setup' }); return S.play(); }
       if (q('[data-sbundo]')) return act('undo');
       if ((b = q('[data-sq]'))) {
         const i = +b.dataset.sq;

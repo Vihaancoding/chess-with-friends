@@ -1824,7 +1824,9 @@ let gameCode = null, snap = null, snapAt = 0, sig = '';
 let selected = null, legal = [];
 let viewPly = null;                       // null = live position; otherwise ply index being reviewed
 const CAM = { tab: 'chat', on: false, starting: false, stream: null, pc: null, peerOn: false, peerSeq: 0, peerConn: null, nid: 0, lastN: 0, oid: 0, seq: 0, state: 'idle', failN: 0, retryT: null, remote: null, early: [] };   // the camera (see "camera" below)
-let stCache = { hist: [], states: [Chess.initial()], caps: [null] };
+// a game that starts from a hand-made position (a sandbox room's Play) carries it as `start` ({ board, turn }); no castling there
+const startState = (s) => (s ? { board: s.board.slice(), turn: s.turn, castle: { wK: false, wQ: false, bK: false, bQ: false }, ep: null, half: 0, full: 1 } : Chess.initial());
+let stCache = { start: null, hist: [], states: [Chess.initial()], caps: [null] };
 let prevMoves = null, prevOver = false, prevCode = null;
 let drag = null, lastDragEnd = 0, myElo = 1200, myRatings = null, lbCat = 'blitz', curMuted = false;
 let pollGen = 0, sending = false, pending = null, sendSeq = 0;
@@ -3533,7 +3535,7 @@ async function checkAway(code) {
   if (!awayGame || awayGame.code !== code || view === 'game') return;
   if (r.status === 404 || (r.full && r.full.status && r.full.status.over)) roomUnsubscribe();   // a network blip keeps watching
 }
-$('#leave').onclick = () => (isArchive() && archive.back && archive.back.startsWith('lounge:') ? enterLounge(archive.back.slice(7)) : isArchive() && archive.back && archive.back.startsWith('rivalry:') ? enterRivals(null, { a: archive.back.slice(8).split('~')[0], b: archive.back.slice(8).split('~')[1] }) : isArchive() && archive.back && archive.back.startsWith('rival:') ? enterRivals(archive.back.slice(6) || null) : isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : enterLobby());
+$('#leave').onclick = () => (isArchive() && archive.back && archive.back.startsWith('lounge:') ? enterLounge(archive.back.slice(7)) : isArchive() && archive.back && archive.back.startsWith('rivalry:') ? enterRivals(null, { a: archive.back.slice(8).split('~')[0], b: archive.back.slice(8).split('~')[1] }) : isArchive() && archive.back && archive.back.startsWith('rival:') ? enterRivals(archive.back.slice(6) || null) : isArchive() ? enterProfile(archive.back || user.name, { archive: true }) : isCoach() ? enterCoach() : isBot() && botGame.local && botGame.local.back && botGame.local.back.startsWith('lounge:') ? enterLounge(botGame.local.back.slice(7)) : enterLobby());
 ['#top', '#bottom'].forEach((id) => $(id).addEventListener('click', (e) => { const n = e.target.closest('.plink'); if (n && n.dataset.name) enterProfile(n.dataset.name); }));
 $('#copyCode').onclick = () => copy(gameCode, '#copyCode');
 $('#copyLink').onclick = () => copy(location.origin + '/?game=' + gameCode, '#copyLink');
@@ -5083,7 +5085,8 @@ function ensureOpenings() {
 
 // ---------- move history / review ----------
 function buildStates(hist) {
-  const c = stCache;
+  const c = stCache, want = (snap && snap.start) || null;
+  if (c.start !== want) { c.start = want; c.hist = []; c.states = [startState(want)]; c.caps = [null]; }
   let n = 0;
   while (n < hist.length && n < c.hist.length && hist[n].from === c.hist[n].from && hist[n].to === c.hist[n].to && hist[n].promo === c.hist[n].promo) n++;
   c.states.length = n + 1; c.caps.length = n + 1; c.hist = hist.slice(0, n);
@@ -5640,10 +5643,10 @@ const isBot = () => botGame !== null && gameCode === 'BOT';
 // pass & play: two people on one device. A bot game with no computer, where "you" is always the side to move.
 const isLocal = () => isBot() && !!botGame.local;
 const other = (c) => (c === 'w' ? 'b' : 'w');
-function makeLocal(names, flip, tc) { const b = makeBot(2, 'w', tc); b.local = { w: names.w, b: names.b, flip, gid: newGid() }; return b; }
+function makeLocal(names, flip, tc, start, back) { const b = makeBot(2, 'w', tc, start); b.local = { w: names.w, b: names.b, flip, gid: newGid(), ...(start ? { start } : {}), ...(back ? { back } : {}) }; b.you = b.state.turn; return b; }
 // the next pass & play game: colours swap; in a match the score carries over (or a new match starts after a finished one)
 function nextLocal(L, tc) {
-  const n = makeLocal({ w: L.b, b: L.w }, L.flip, tc);
+  const n = makeLocal({ w: L.b, b: L.w }, L.flip, tc, L.start, L.back);
   if (L.rate) n.local.rate = { me: other(L.rate.me), opp: L.rate.opp };
   if (L.match) {
     n.local.match = L.match.done ? Match.again(L.match) : L.match;
@@ -5666,9 +5669,9 @@ function localMatchEnd() {
 }
 
 const newGid = () => Math.random().toString(36).slice(2, 12);             // a client-made game id
-function makeBot(level, you, tc) {
-  const st = Chess.initial();
-  return { level, you, tc, state: st, moves: [], hist: [], last: null, positions: { [Chess.key(st)]: 1 }, rep: false, override: null, thinking: false,
+function makeBot(level, you, tc, start) {
+  const st = startState(start);
+  return { level, you, tc, ...(start ? { start } : {}), state: st, moves: [], hist: [], last: null, positions: { [Chess.key(st)]: 1 }, rep: false, override: null, thinking: false,
     clock: tc ? { w: tc.base * 1000, b: tc.base * 1000, ts: Date.now() } : null };
 }
 function botStatusOf(b) {
@@ -5697,7 +5700,7 @@ function botSnap() {
   const me = { name: user.name, elo: myElo }, cpu = b.coach ? { name: 'Coach', elo: coachRating(b.coach.s) } : b.clone ? { name: cloneLabel(b.clone.name), elo: b.clone.P.rating, bot: true } : { name: 'Computer', elo: BOT_LEVELS[b.level].name };
   const players = b.local ? { w: { name: b.local.w, elo: 'White', local: true }, b: { name: b.local.b, elo: 'Black', local: true } } : b.you === 'w' ? { w: me, b: cpu } : { w: cpu, b: me };
   return {
-    code: 'BOT', you: b.you, state: b.state, moves: b.moves, last: b.last, status: st, local: !!b.local,
+    code: 'BOT', start: b.start || null, you: b.you, state: b.state, moves: b.moves, last: b.last, status: st, local: !!b.local,
     pov: b.local ? (!b.local.flip ? 'w' : st.over && !b.override ? other(b.state.turn) : b.state.turn) : undefined,   // the board stays put after the final move
     players, present: { w: true, b: true },
     tc: b.tc, clock: b.clock ? { w: left('w'), b: left('b'), running: run } : null,
@@ -5837,7 +5840,7 @@ function botSave() {
   const b = botGame; if (!b || !b.hist.length || botStatusOf(b).over) return;
   let clock = null;
   if (b.clock) { clock = { w: b.clock.w, b: b.clock.b }; if (b.moves.length >= 2) clock[b.state.turn] -= Date.now() - b.clock.ts; }
-  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, speed: b.clone.speed, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch { return; }
+  try { localStorage.setItem(botKey(b), JSON.stringify({ v: 1, level: b.level, you: b.you, tc: b.tc, start: b.start || undefined, hist: b.hist, clock, coach: b.coach || undefined, local: b.local || undefined, clone: b.clone ? { name: b.clone.name, diff: b.clone.diff, speed: b.clone.speed, gid: b.clone.gid } : undefined, startedAt: b.startedAt })); } catch { return; }
   if (b.local && b.local.match && b.hist.length === 1) localMatchSave(null);   // saved with the game now: drop the between-games copy
 }
 function botClear(key = botKey(botGame)) { try { localStorage.removeItem(key); } catch {} }
@@ -5845,7 +5848,7 @@ function botLoad(key = 'chess:bot') {
   try {
     const d = JSON.parse(localStorage.getItem(key));
     if (!d || d.v !== 1 || !BOT_LEVELS[d.level]) return null;
-    const b = makeBot(d.level, d.you, d.tc);
+    const b = makeBot(d.level, d.you, d.tc, d.start);
     if (d.coach) { b.coach = d.coach; b.coach.wait = false; }
     if (d.local) { b.local = d.local; b.you = b.state.turn; }
     if (d.clone) { const P = cloneCached(d.clone.name); if (!P) return null; b.clone = { name: d.clone.name, diff: Style.DIFF[d.clone.diff] ? d.clone.diff : 'true', P, gid: d.clone.gid || newGid(), speed: CLONE_SPEEDS.includes(d.clone.speed) ? d.clone.speed : 'real' }; }
