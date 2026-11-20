@@ -39,6 +39,7 @@ flowchart LR
     public_chess_js["chess.js"]
     public_coachask_js["coachask.js"]
     public_engine_js["engine.js"]
+    public_highlights_js["highlights.js"]
     public_lessons_js["lessons.js"]
     public_lounge_js["lounge.js"]
     public_match_js["match.js"]
@@ -119,6 +120,7 @@ flowchart LR
   public_index_html --> public_tournament_js
   public_index_html --> public_sfengine_js
   public_index_html --> public_tunein_js
+  public_index_html --> public_highlights_js
 ```
 
 ## Files
@@ -155,6 +157,7 @@ flowchart LR
 | `public/chess.js` | 197 | Chess engine shared by server (authoritative) and browser (move hints). |
 | `public/coachask.js` | 256 | "Ask the coach": answers questions like "teach me the Caro-Kann" or "what is a pin?" with a short explanation and |
 | `public/engine.js` | 533 | Analysis engine: game review, live move grades, the evaluation bar, the coach's grading and the playstyle models. |
+| `public/highlights.js` | 134 | HIGHLIGHT REELS, in the browser: the feed of moments the server found in TUNE-IN analyses (lib/highlights.js). Each reel is a |
 | `public/lessons.js` | 303 | Interactive lessons. Every move here is checked by scripts/check-lessons.js (legality + engine). |
 | `public/lounge.js` | 327 | Rooms (lounges): private rooms for a group of friends. Loaded the first time someone opens "Rooms". |
 | `public/match.js` | 90 | Head-to-head matches: two players play game after game in the same room until the format decides who is better. |
@@ -166,7 +169,7 @@ flowchart LR
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
 | `public/tunein.js` | 139 | LIVE TUNE-IN, in the browser. This browser analyses public live games with its own Stockfish (sfengine.js, in a Web Worker), |
-| `public/index.html` | 8124 |  |
+| `public/index.html` | 8167 |  |
 
 ## API routes (161, all in lib/app.js, called as POST /api?r=<name>)
 

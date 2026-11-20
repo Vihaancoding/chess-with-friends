@@ -109,7 +109,7 @@
         <button class="small" data-watch="${esc(g.code)}">Watch</button></div>`;
       const star = r.featured;
       opts.star.innerHTML = star ? `<div class="tune-star"><span class="muted tune-kicker">Match of the moment</span>${row(star)}</div>` : '';
-      opts.list.innerHTML = r.ranked.length ? r.ranked.map(row).join('') : '<div class="muted empty">No games with a fresh analysis yet. Turn on analysis in this browser to help find them.</div>';
+      opts.list.innerHTML = r.ranked.length ? r.ranked.map(row).join('') : '<div class="muted empty">No games analysed yet. Logged-in browsers analyse live games in the background.</div>';
       opts.count.textContent = r.analysed || r.waiting ? `${r.analysed} analysed · ${r.waiting} waiting for an analyser` : '';
     };
     return {
