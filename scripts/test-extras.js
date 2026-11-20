@@ -32,8 +32,8 @@ const get = (url) => new Promise((resolve) => handler({ method: 'GET', url, head
   await new Promise((r) => setTimeout(r, 800));
   ok('a file that is not really a GIF is refused', (await call('avatar_set', { img: 'data:image/gif;base64,' + Buffer.from('not a gif at all, just text').toString('base64') }, A)).status === 400, null);
   await new Promise((r) => setTimeout(r, 800));
-  const big = 'data:image/gif;base64,' + Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(450 * 1024, 1)]).toString('base64');
-  ok('an animation over 400 KB is refused with a clear message', /400 KB/.test((await call('avatar_set', { img: big }, A)).error), null);
+  const big = 'data:image/gif;base64,' + Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(11 * 1048576, 1)]).toString('base64');
+  ok('an animation over 10 MB is refused with a clear message', /10 MB/.test((await call('avatar_set', { img: big }, A)).error), null);
   await new Promise((r) => setTimeout(r, 800));
   ok('a PNG pretending to be a GIF is refused', (await call('avatar_set', { img: 'data:image/gif;base64,' + Buffer.from(png.split(',')[1], 'base64').toString('base64') }, A)).status === 400, null);
 
