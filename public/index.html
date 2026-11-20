@@ -1562,7 +1562,6 @@
     <table id="strkBody"><thead><tr><th>#</th><th>Player</th><th class="r">Streak</th><th class="r">Best</th><th class="r">Win rate</th><th class="r">Wins</th><th class="r">Games</th></tr></thead><tbody id="strkLb"><tr><td colspan="7" class="muted" style="padding:16px 10px">Loading…</td></tr></tbody></table>
     <div id="strkNote"></div>
   </div>
-  <div id="statscard" class="panel stcard"><div class="head"><h2>Move stats</h2></div><div class="sttabs lbtabs" id="statsTabs"></div><div id="statsBody"><div class="muted">Loading…</div></div></div>
 </div>
 
 <!-- learn -->
@@ -7508,17 +7507,11 @@ async function statsCount() {
     }
   } finally { statsBusy = false; statsRun = null; paintStatsStatus(); }
 }
-setInterval(() => { if (user && !statsBusy) statsCount(); }, 90000);               // in the background, whatever the player is doing (a game, another page): the lobby does not have to be open
-setTimeout(() => { if (user) statsCount(); }, 20000);
 async function loadStats(force) {
   if (!$('#statscard') || (!force && Date.now() - statsAt < 120000)) return paintStats();
   statsAt = Date.now();
   const r = await api('stats_board'); if (r.ok) { statsRows = r.rows; statsPending = r.pending || 0; statsTotal = r.total || 0; statsStatus = r.status || null; paintStats(); clearTimeout(statsT); if (statsPending) { statsT = setTimeout(() => { if (view === 'lobby') loadStats(true); }, 60000); statsCount(); } }
 }
-$('#statscard').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-st]'); if (b) { statsTab = b.dataset.st; paintStats(); return; }
-  const n = e.target.closest('[data-stp]'); if (n) openStatsMoves(n.dataset.stp, n.dataset.stk);
-});
 // the games and moves behind a number on the stats board; each one opens the game at that move
 const STAT_NAMES = { brilliant: 'Brilliant moves', blunder: 'Blunders', mistake: 'Mistakes', inaccuracy: 'Inaccuracies', best: 'Best moves', excellent: 'Excellent moves', good: 'Good moves' };
 async function openStatsMoves(name, kind) {
