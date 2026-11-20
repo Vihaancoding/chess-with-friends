@@ -1709,7 +1709,7 @@
     <h2 class="ph">Profile picture</h2>
     <div class="row" style="align-items:center"><span id="pfPhotoPrev" style="width:64px;height:64px;border-radius:50%;overflow:hidden;display:inline-block"></span>
       <label class="small btn" style="cursor:pointer"><input type="file" id="pfPhotoIn" accept="image/png,image/jpeg,image/webp,image/gif" hidden>Choose a picture</label><button class="small" id="pfPhotoDel">Remove</button></div>
-    <div class="muted" id="pfPhotoMsg" style="font-size:.85rem;font-weight:600;margin-top:6px">Pictures are shrunk to a small square. A GIF (up to 400 KB) stays animated. Everyone on your server can see it.</div>
+    <div class="muted" id="pfPhotoMsg" style="font-size:.85rem;font-weight:600;margin-top:6px">Pictures are shrunk to a small square. A GIF or animated WebP (up to 10 MB) stays animated. Everyone on your server can see it.</div>
   </div>
 </div>
 
@@ -7280,9 +7280,20 @@ $('#pfPhotoIn').addEventListener('change', async (e) => {
   const msg = $('#pfPhotoMsg'); msg.textContent = 'Saving…';
   try {
     const anim = f.type === 'image/gif' || (f.type === 'image/webp' && (await isAnimatedWebp(f)));
-    if (anim && f.size > 400 * 1024) { msg.textContent = `That animation is ${Math.round(f.size / 1024)} KB. Keep it under 400 KB (a shorter or smaller one).`; return; }
-    const img = anim ? await readDataUrl(f) : await squarePhoto(f); if (!img) { msg.textContent = 'That picture is too detailed. Try another one.'; return; }
-    const r = await api('avatar_set', { img }); if (!r.ok) { msg.textContent = r.error || 'Could not save it.'; return; }
+    if (anim && f.size > 10 * 1024 * 1024) { msg.textContent = `That animation is ${(f.size / 1048576).toFixed(1)} MB. Keep it under 10 MB.`; return; }
+    let r;
+    if (anim && f.size > 400 * 1024) {
+      // a big animation goes straight to file storage, then the server checks it
+      const up = await api('avatar_upload', { type: f.type, size: f.size }); if (!up.ok) { msg.textContent = up.error || 'Could not start the upload.'; return; }
+      if (up.direct) {
+        msg.textContent = 'Uploading…';
+        const fd = new FormData(); fd.append('cacheControl', '3600'); fd.append('', f);
+        const put = await fetch(up.url, { method: 'PUT', body: fd, headers: { 'x-upsert': 'false' } }).catch(() => null);
+        if (!put || !put.ok) { msg.textContent = 'The upload failed. Try again.'; return; }
+        r = await api('avatar_commit', { path: up.path });
+      }
+    }
+    if (!r) { const img = anim ? await readDataUrl(f) : await squarePhoto(f); if (!img) { msg.textContent = 'That picture is too detailed. Try another one.'; return; } r = await api('avatar_set', { img }); } if (!r.ok) { msg.textContent = r.error || 'Could not save it.'; return; }
     user.avAt = r.at; msg.textContent = anim ? 'Saved. Your animated picture is on.' : 'Saved.'; setHTML($('#pfPhotoPrev'), avImg(user.name, 64)); $('#pfAvatar').innerHTML = esc((user.name[0] || '?').toUpperCase()) + avImg(user.name, 64); $('#meAv').src = avSrc(user.name);
   } catch { msg.textContent = 'That file could not be read as a picture.'; }
 });
