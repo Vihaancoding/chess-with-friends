@@ -109,3 +109,9 @@ Why the old rule flagged nothing: it needs 94% or more engine moves, but an assi
 ## Cursor to the extension area
 
 Engine extensions sit in the browser toolbar, top right, outside the page. During their own turn in a live online game the page counts each time the cursor leaves the window through the top edge on the right 40% of the width. Once that has happened on at least 5 of their turns and on 35% or more of the turns so far (at least 8), it is sent once per game as a browser trace (`fair_report`), like the other extension findings: admins see it, and the engine check counts it as a trace for that game.
+
+## Top-left quadrant, and the notice over the board
+
+A second cursor trace: leaving the window through the top or left edge inside the top-left quadrant (tabs, another window) on the player's own turns. It uses the same thresholds as the toolbar trace (5 turns, 35%, at least 8 own turns) and is reported once per game as "cursor left through the top-left quadrant".
+
+The first `fair_report` in a live game also sets `room.fw` (`{ by, at, kind }`, `kind` is `toolbar`, `quadrant` or `layer`), which `snapshot` passes to both players and spectators. The page lays a notice (`#fwSheet`, inside `#boardwrap`) over the board: the flagged player is told it was recorded for the admins, the opponent that the admins will take a look. Play goes on; "OK" closes it for that game. The page's own layers (`#fwSheet`, the bottom sheet `#sheet`) are not counted as foreign layers. Test: `scripts/test-fair-quadrant-ui.js`.
