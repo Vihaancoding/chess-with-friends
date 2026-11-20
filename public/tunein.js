@@ -7,9 +7,6 @@
   const BATCH = 8;                     // positions per submission
   const MAX_PLIES = 400;               // same cap as the server
   const IDLE_MS = 10000, FEED_MS = 8000, HIDDEN_MS = 5000;
-  const K_HELP = 'tunein.help', K_NOTIFY = 'tunein.notify';
-  const pref = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1'; } catch (e) { return d; } };
-  const setPref = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) { /* private window: the choice lasts for this page */ } };
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const withTimeout = (run, ms) => new Promise((res, rej) => {
@@ -31,7 +28,7 @@
   class Observer {
     constructor(api, opts) { this.api = api; this.opts = opts; this.on = false; this.gen = 0; this.failures = 0; this.until = 0; this.cancelRun = null; }
     start() { if (!this.on) { this.on = true; this.loop(); } }
-    stop() { this.on = false; this.gen++; if (this.cancelRun) this.cancelRun(); this.opts.status('off', 'Off. Turn on “Analyse games in this browser” to help find exciting games.'); }
+    stop() { this.on = false; this.gen++; if (this.cancelRun) this.cancelRun(); this.opts.status('off', 'Log in to help find exciting games.'); }
     fail(e) {
       this.failures++;
       this.until = Date.now() + Math.min(60000, 2000 * 2 ** Math.min(5, this.failures));
@@ -123,19 +120,11 @@
   }
 
   // Wire the panel. opts: { status(kind, text), star, list, count, tc(tc), watching(), loggedIn(), notifyOn(), notify(event), watch(code) }
+  // No switch on the page: a logged-in browser helps by default. Notifications have no control, so they stay off.
   function init(api, opts) {
     const obs = new Observer(api, opts), feed = Feed(api, opts);
-    const help = pref(K_HELP, true), notify = pref(K_NOTIFY, false);
-    const ck = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; return el; };
-    const helpEl = ck('tuneHelp', help), notifyEl = ck('tuneNotify', notify);
-    const sync = () => {
-      const want = helpEl ? helpEl.checked && opts.loggedIn() : false;
-      if (want) obs.start(); else if (obs.on) obs.stop();
-      if (!want && helpEl && !helpEl.checked) opts.status('off', 'Off. Turn on “Analyse games in this browser” to help find exciting games.');
-    };
-    if (helpEl) helpEl.addEventListener('change', () => { setPref(K_HELP, helpEl.checked); sync(); });
-    if (notifyEl) notifyEl.addEventListener('change', () => setPref(K_NOTIFY, notifyEl.checked));
-    opts.notifyOn = () => !!(notifyEl && notifyEl.checked);
+    opts.notifyOn = () => false;
+    const sync = () => { if (opts.loggedIn()) obs.start(); else if (obs.on) obs.stop(); };
     opts.list.addEventListener('click', (e) => { const b = e.target.closest('[data-watch]'); if (b) opts.watch(b.dataset.watch); });
     opts.star.addEventListener('click', (e) => { const b = e.target.closest('[data-watch]'); if (b) opts.watch(b.dataset.watch); });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { sync(); feed.poll(); } });
