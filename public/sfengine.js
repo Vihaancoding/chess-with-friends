@@ -119,4 +119,11 @@
   }
   root.StockfishWorker = StockfishWorker;
   root.Stockfish = { fen, available: typeof WebAssembly === 'object' && typeof Worker === 'function' };
+  // One position, one search, for LIVE TUNE-IN (public/tunein.js): the score for the side to move. cancel() ends it early.
+  root.Stockfish.analyse = (fenStr, moves, ms) => {
+    const e = take();
+    const promise = e.search({ fen: fenStr, moves }, ms, 1).then((lines) => { give(e); return lines[0] ? { cp: lines[0].s, depth: lines[0].depth } : null; },
+      (err) => { e.dead = true; give(e); throw err; });
+    return { promise, cancel: () => e.stop() };
+  };
 })(typeof self !== 'undefined' ? self : this);
