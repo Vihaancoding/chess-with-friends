@@ -130,7 +130,7 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 4252 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/app.js` | 4278 | API handler shared by local server.js and the Vercel function (api/index.js). |
 | `lib/damage.js` | 391 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
@@ -157,7 +157,7 @@ flowchart LR
 | `public/chess.js` | 197 | Chess engine shared by server (authoritative) and browser (move hints). |
 | `public/coachask.js` | 256 | "Ask the coach": answers questions like "teach me the Caro-Kann" or "what is a pin?" with a short explanation and |
 | `public/engine.js` | 533 | Analysis engine: game review, live move grades, the evaluation bar, the coach's grading and the playstyle models. |
-| `public/highlights.js` | 200 | REELS, in the browser: a centred vertical feed of highlight moments (lib/highlights.js decides what is worth one; the server |
+| `public/highlights.js` | 317 | REELS, in the browser: a centred vertical feed of highlight moments, with a move list and evaluation graph on the left and |
 | `public/lessons.js` | 303 | Interactive lessons. Every move here is checked by scripts/check-lessons.js (legality + engine). |
 | `public/lounge.js` | 327 | Rooms (lounges): private rooms for a group of friends. Loaded the first time someone opens "Rooms". |
 | `public/match.js` | 90 | Head-to-head matches: two players play game after game in the same room until the format decides who is better. |
@@ -169,9 +169,9 @@ flowchart LR
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
 | `public/tunein.js` | 139 | LIVE TUNE-IN, in the browser. This browser analyses public live games with its own Stockfish (sfengine.js, in a Web Worker), |
-| `public/index.html` | 8179 |  |
+| `public/index.html` | 8201 |  |
 
-## API routes (161, all in lib/app.js, called as POST /api?r=<name>)
+## API routes (163, all in lib/app.js, called as POST /api?r=<name>)
 
 - **admin** (32): `admin_access_list`, `admin_access_decide`, `admin_avatar_clear`, `admin_feat_set`, `admin_claim`, `admin_overview`, `admin_fair`, `admin_unban`, `admin_mute`, `admin_reset`, `admin_reset_link`, `admin_delete`, `admin_servers`, `admin_dmg_server`, `admin_server_new`, `admin_server_edit`, `admin_server_access`, `admin_move`, `admin_abort`, `admin_clear_chat`, `admin_delete_msg`, `admin_fair_case`, `admin_fair_apply`, `admin_fair_decide`, `admin_fair_inv`, `admin_fair_inv_act`, `admin_fair_flag`, `admin_fair_phrases`, `admin_fair_exempt`, `admin_dmg_targets`, `admin_dmg_target`, `admin_announce`
 - **lounge** (18): `lounge_mine`, `lounge_create`, `lounge_get`, `lounge_invite`, `lounge_reply`, `lounge_leave`, `lounge_kick`, `lounge_rename`, `lounge_delete`, `lounge_chat`, `lounge_msgs`, `lounge_table`, `lounge_sit`, `lounge_board`, `lounge_study_pick`, `lounge_study_note`, `lounge_study_del`, `lounge_chat_delete`
@@ -185,6 +185,7 @@ flowchart LR
 - **feat** (4): `feat_list`, `feat_add`, `feat_vote`, `feat_delete`
 - **draw** (3): `draw_offer`, `draw_accept`, `draw_decline`
 - **tunein** (3): `tunein_claim`, `tunein_submit`, `tunein_feed`
+- **highlight** (3): `highlight_feed`, `highlight_detail`, `highlight_react`
 - **result** (3): `result_send`, `result_answer`, `result_dismiss`
 - **cam** (2): `cam_signal`, `cam_poll`
 - **pause** (2): `pause_request`, `pause_respond`
@@ -219,7 +220,6 @@ flowchart LR
 - **presence** (1): `presence`
 - **mentions** (1): `mentions`
 - **mention** (1): `mention_seen`
-- **highlight** (1): `highlight_feed`
 - **gif** (1): `gif_search`
 - **server** (1): `server_switch`
 - **challenge** (1): `challenge`

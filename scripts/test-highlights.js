@@ -103,6 +103,19 @@ const base = { over: false, winner: null, w: { name: 'ann', elo: 1200 }, b: { na
   ok('a reel of a game that has ended is marked done, with no time left', rr && rr.done === true && rr.left === null, rr && { done: rr.done, left: rr.left, over: rr.over });
   ok('a finished reel records the result', rr && rr.over === true && rr.result === 'w', rr && { over: rr.over, result: rr.result });
 
+  const det = await call('highlight_detail', { id: reel ? reel.id : '' }, P.bob);
+  ok('a reel carries the evaluations of its game for the bar and sparkline', det.status === 200 && Array.isArray(det.evals) && det.evals.length === 13, det.evals && det.evals.length);
+  const rx = await call('highlight_react', { id: reel ? reel.id : '', on: true }, P.bob);
+  ok('a reaction counts once per person', rx.count === 1 && rx.mine === true, rx);
+  const rx2 = await call('highlight_react', { id: reel ? reel.id : '', on: true }, P.bob);
+  ok('reacting twice still counts once', rx2.count === 1, rx2);
+  const fd = await call('highlight_feed', { filter: 'all' }, P.bob);
+  const rr2 = (fd.feed || []).find((h) => h.id === (reel && reel.id));
+  ok('the feed shows the reaction count and whether it is yours', rr2 && rr2.reacts === 1 && rr2.mine === true, rr2 && { reacts: rr2.reacts, mine: rr2.mine });
+  ok('the feed lists the live games for Happening Live', Array.isArray(fd.live));
+  const off = await call('highlight_react', { id: reel ? reel.id : '', on: false }, P.bob);
+  ok('removing a reaction takes it back off', off.count === 0 && off.mine === false, off);
+
   console.log('');
   console.log(`${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
