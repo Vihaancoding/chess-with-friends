@@ -89,7 +89,7 @@ const H = (ucis) => ucis.map((u) => ({ from: sq(u.slice(0, 2)), to: sq(u.slice(2
   let t = await toast(ev('sac', 'AAA'));
   ok('an alert with WATCH LIVE', /THINGS JUST GOT INTERESTING/.test(t) && /WATCH LIVE/.test(t) && await p.evaluate(() => $('#chatToast').dataset.watch) === 'AAA', t);
   ok('the same event is not shown twice', !(await toast(ev('sac', 'AAA'))));
-  ok('cooldown: no second alert within 2 minutes, even for another game', !(await toast(ev('comeback', 'BBB', 'comeback'))));
+  ok('cooldown: no second alert within 75 seconds, even for another game', !(await toast(ev('comeback', 'BBB', 'comeback'))));
   await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('chess:tuneSeen')); s._last = 0; localStorage.setItem('chess:tuneSeen', JSON.stringify(s)); TP.cats.scramble = 0; });
   ok('a category you switched off stays quiet', !(await toast(ev('scramble', 'CCC', 'scramble'))));
   await p.evaluate(() => { view = 'game'; gameCode = 'DDD'; });

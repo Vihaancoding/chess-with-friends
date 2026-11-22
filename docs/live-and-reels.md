@@ -47,13 +47,13 @@ new runs Stockfish on the server.
   sacrifices (material down after the reply and the mover's next move, engine still happy), forced mate on the board,
   king attacks (repeated checks), tactics (captures and checks), close games late on, time scrambles (server clocks),
   a 5+ win streak under threat, and a little for ratings and viewers (never enough on their own).
-- **Stability**: exponential smoothing; a game becomes "hot" at 40 and stays hot until 28 (hysteresis). The page only moves
+- **Stability**: exponential smoothing; a game becomes "hot" at 36 and stays hot until 26 (hysteresis). The page only moves
   a game above another when it is 8+ points ahead.
 - **Match of the Moment**: the hot game with the best slow average; it changes only when it ends, goes stale, or is beaten
   by 12+ after holding the spot for 2 minutes.
-- **Alerts**: pushed on the existing lobby channel (`tune`), once per game and kind per 10 minutes and at most one per game
-  per 45 s (server); each browser applies the player's categories (tactics, comebacks, time scrambles, brilliant moves,
-  high-rated games, people from your rooms, streaks, Match of the Moment), shows at most one alert per 2 minutes, never
+- **Alerts**: pushed on the existing lobby channel (`tune`), once per game and kind per 6 minutes and at most one per game
+  per 30 s (server); each browser applies the player's categories (tactics, comebacks, time scrambles, brilliant moves,
+  high-rated games, people from your rooms, streaks, Match of the Moment), shows at most one alert per 75 seconds, never
   while playing or for the game being watched. Shown in the site toast with WATCH LIVE, and as a system notification
   when the tab is in the background and notifications are allowed.
 

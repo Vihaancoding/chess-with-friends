@@ -115,7 +115,7 @@
   }
 
   // Smoothing and hysteresis: a single spike can't throw a game to the top, and a game doesn't flicker in and out.
-  const ENTER = 40, LEAVE = 28;
+  const ENTER = 36, LEAVE = 26;
   function smooth(prev, raw) {
     const s = prev && Number.isFinite(prev.s) ? prev.s * 0.7 + raw * 0.3 : raw * 0.4;
     const sus = prev && Number.isFinite(prev.sus) ? prev.sus * 0.85 + s * 0.15 : s * 0.3;      // the slow average: MATCH OF THE MOMENT

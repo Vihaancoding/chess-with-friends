@@ -7513,7 +7513,7 @@ function paintTunePrefs() {
   setHTML($('#tnPrefs'), `<div class="head"><h2>Alerts</h2></div>
     <label class="tnopt"><input type="checkbox" data-tp="on" ${TP.on ? 'checked' : ''}> Tell me when something big happens in a live game</label>
     <div class="tncats">${TUNE_CATS.map(([k, l]) => `<label class="tnopt"><input type="checkbox" data-tpc="${k}" ${TP.cats[k] ? 'checked' : ''} ${TP.on ? '' : 'disabled'}> ${l}</label>`).join('')}</div>
-    <div class="muted tnnote">Alerts show on the page wherever you are on the site${perm === 'granted' ? ', and as a system notification when this tab is in the background' : perm === 'default' ? '. <button class="small" data-tp="perm">Also notify me when the tab is in the background</button>' : ''}. Never while you're playing, never for a game you're already watching, at most one every 2 minutes.</div>
+    <div class="muted tnnote">Alerts show on the page wherever you are on the site${perm === 'granted' ? ', and as a system notification when this tab is in the background' : perm === 'default' ? '. <button class="small" data-tp="perm">Also notify me when the tab is in the background</button>' : ''}. Never while you're playing, never for a game you're already watching, at most one every 75 seconds.</div>
     <label class="tnopt"><input type="checkbox" data-tp="help" ${HELP.on ? 'checked' : ''}> Help analyse live games and highlights with Stockfish in this browser (only while the tab is open and you're not playing)</label>`);
 }
 $('#tnPrefs').addEventListener('change', (e) => {
@@ -7540,7 +7540,7 @@ async function onTune(e) {
   if (!want && TP.cats.friends) { const ppl = await roomPeople(); want = ppl.has(e.w.name) || ppl.has(e.b.name); }
   if (!want) return;
   const seen = (() => { try { return JSON.parse(localStorage.getItem('chess:tuneSeen')) || {}; } catch { return {}; } })(), now = Date.now();
-  if (seen[e.code + e.type] || now - (seen._last || 0) < 120e3) return;                    // once per game and kind; one alert per 2 minutes
+  if (seen[e.code + e.type] || now - (seen._last || 0) < 75e3) return;                     // once per game and kind; one alert per 75 seconds
   seen[e.code + e.type] = now; seen._last = now;
   for (const k of Object.keys(seen)) if (k !== '_last' && now - seen[k] > 86400e3) delete seen[k];
   try { localStorage.setItem('chess:tuneSeen', JSON.stringify(seen)); } catch {}
