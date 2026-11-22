@@ -76,6 +76,30 @@ function client(id) {
   ok('two games ending together are both applied (compare-and-swap)', d2.v === v0 + 2 && d2.seen.length >= 2, [v0, d2.v]);
   ok('the crown is unchanged by unrelated games', d2.king.name === 'dan');
 
+  console.log('banned players: no crown, last place everywhere');
+  const kings0 = A.kings().length, falls0 = A.falls().length;
+  const du = await store.get('user:dan'); await store.set('user:dan', { ...du, banUntil: Date.now() + 86400e3 });
+  await handler.banChanged({ ...du, banUntil: Date.now() + 86400e3 });
+  s = await call('king_state', {}, P.gus);
+  ok('a banned King loses the crown', !s.king || s.king.name !== 'dan', s.king);
+  ok('...quietly: an update, not the cinematic', A.kings().length === kings0 + 1 && A.falls().length === falls0);
+  ok('the reign is recorded as disqualified', s.hist[0].name === 'dan' && s.hist[0].type === 'disqualified' && s.hist[0].by === null, s.hist[0]);
+  const me = await call('me', {}, P.gus), rapid = me.leaderboards && me.leaderboards.rapid;
+  ok('the rating leaderboard puts dan last, marked banned, whatever his rating', rapid && rapid[rapid.length - 1].name === 'dan' && rapid[rapid.length - 1].banned && rapid.slice(0, -1).every((r) => !r.banned), rapid && rapid.map((r) => [r.name, r.r, !!r.banned]));
+  const sb = await call('streak_board', {}, P.gus), sh = await call('streak_hunt', {}, P.gus), st = await call('stats_board', {}, P.gus);
+  ok('the Win streaks rows mark dan as banned (the page sorts him last)', sb.rows.find((r) => r.name === 'dan').banned && sb.rows.filter((r) => r.banned).length === 1, sb.rows.filter((r) => r.banned));
+  ok('the Streak Hunt lists dan last', sh.hunted.length && sh.hunted[sh.hunted.length - 1].name === 'dan' && sh.hunted[sh.hunted.length - 1].banned, sh.hunted.map((r) => r.name));
+  ok('the stats rows mark dan as banned', st.rows.every((r) => !!r.banned === (r.name === 'dan')), st.rows.map((r) => [r.name, !!r.banned]));
+  await handler.kingRecheck('dan');
+  ok('checking again changes nothing', A.kings().length === kings0 + 1);
+  await handler.kingReset(); s = await call('king_state', {}, P.gus);
+  ok('a rebuild from history leaves the banned player out', !s.king || s.king.name !== 'dan', s.king);
+  await store.set('user:dan', { ...du }); await handler.banChanged({ ...du });
+  s = await call('king_state', {}, P.gus);
+  ok('unbanned: the streak counts again and dan is King', s.king && s.king.name === 'dan', s.king);
+  const me2 = await call('me', {}, P.gus);
+  ok('...and he is back in his real place on the leaderboard', !me2.leaderboards.rapid.some((r) => r.banned) && me2.leaderboards.rapid[me2.leaderboards.rapid.length - 1].name !== 'dan', me2.leaderboards.rapid.map((r) => [r.name, r.r]));
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

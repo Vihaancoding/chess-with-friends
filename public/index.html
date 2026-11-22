@@ -2821,7 +2821,7 @@ function renderBoardTable() {
   if (ls === lbSig) return;
   lbSig = ls;
   $('#lb').innerHTML = rows.length ? rows.map((p, i) => `<tr class="${p.name === user.name ? 'you' : ''}">
-      <td>${i + 1}</td><td><span class="who">${avImg(p.name, 28)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span></span></td><td class="r">${ratingTxt(p.r, p.prov)}</td><td class="r muted">${p.n}</td>
+      <td>${i + 1}</td><td><span class="who">${avImg(p.name, 28)}<span class="plink" data-name="${esc(p.name)}">${esc(p.name)}</span>${p.banned ? ' <span class="badge red">Banned</span>' : ''}</span></td><td class="r">${ratingTxt(p.r, p.prov)}</td><td class="r muted">${p.n}</td>
       <td class="r">${p.name === user.name ? '' : `<button class="small" data-ch="${esc(p.name)}">Challenge</button>`}</td></tr>`).join('')
     : `<tr><td colspan="5" class="muted" style="padding:16px 10px">No rated ${CAT_NAME[lbCat].toLowerCase()} games yet.</td></tr>`;
   paintChallengeButtons();
@@ -7476,10 +7476,10 @@ function strkLine(rows) {
 }
 function paintStreaks() {
   const body = $('#strkBody'); if (!body) return;
-  const rows = strkRows.filter((r) => r.n > 0 && (strkTab !== 'rate' || r.n >= strkMin) && (strkTab !== 'cur' || r.cur > 0)).sort((a, b) => STRK_SORT[strkTab](a, b) || (a.name < b.name ? -1 : 1)).slice(0, 15);
+  const rows = strkRows.filter((r) => r.n > 0 && (strkTab !== 'rate' || r.n >= strkMin) && (strkTab !== 'cur' || r.cur > 0)).sort((a, b) => (!!a.banned - !!b.banned) || STRK_SORT[strkTab](a, b) || (a.name < b.name ? -1 : 1)).slice(0, 15);   // banned players last
   setHTML($('#strkTabs'), STRK_TABS.map(([k, l]) => `<button data-sk="${k}" class="${k === strkTab ? 'on' : ''}">${l}</button>`).join(''));
   const col = (k) => (k === strkTab ? ' class="r sel"' : ' class="r muted"');
-  setHTML($('#strkLb'), rows.length ? rows.map((r, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span>${r.cur >= 3 ? ` <span class="badge gold" title="${r.cur} wins in a row">${esc(r.tier)}</span>` : ''}</span></td><td${col('cur')}>${r.cur}</td><td${col('best')}>${r.best}</td><td${col('rate')}>${pctOf(r.rate)}</td><td${col('wins')}>${r.w}</td><td${col('games')}>${r.n}</td></tr>`).join('')
+  setHTML($('#strkLb'), rows.length ? rows.map((r, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span>${r.banned ? ' <span class="badge red">Banned</span>' : ''}${r.cur >= 3 ? ` <span class="badge gold" title="${r.cur} wins in a row">${esc(r.tier)}</span>` : ''}</span></td><td${col('cur')}>${r.cur}</td><td${col('best')}>${r.best}</td><td${col('rate')}>${pctOf(r.rate)}</td><td${col('wins')}>${r.w}</td><td${col('games')}>${r.n}</td></tr>`).join('')
     : `<tr><td colspan="7" class="muted" style="padding:16px 10px">${strkTab === 'cur' ? 'Nobody is on a winning streak right now.' : strkTab === 'rate' ? `Needs at least ${strkMin} completed games.` : 'No games yet.'}</td></tr>`);
   setHTML($('#strkNote'), `<div class="muted strknote">${strkLine(rows)}</div>`);
 }
@@ -7805,7 +7805,7 @@ function paintHunt() {
   const mine = me.cur >= hunt.min ? `<span>You are on <b>${me.cur}</b>.${me.line ? ' Your streak is <b>on the line</b>.' : ' Willing to defend it?'}</span><button class="small${me.line ? '' : ' primary'}" data-shline="${me.line ? 0 : 1}">${me.line ? 'Take it off the line' : 'Put it on the line'}</button>` : '';
   const rec = st.total ? `<span>You have ended <b>${st.total}</b> streak${st.total === 1 ? '' : 's'}${st.biggest ? `, the biggest <b>${st.biggest}</b> (${esc(st.biggestOf.victim)})` : ''}.${st.title ? ` <span class="badge gold">${esc(st.title)}</span>` : ''}</span>` : '';
   setHTML($('#shMe'), mine || rec ? `<div class="shme">${mine || rec}</div>${mine && rec ? `<div class="shme">${rec}</div>` : ''}` : '');
-  setHTML($('#shLb'), h.length ? h.map((r, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span><span class="badge gold">${esc(r.tier)}</span>${r.line ? '<span class="badge red" title="They put this streak on the line">On the line</span>' : ''}</span></td>
+  setHTML($('#shLb'), h.length ? h.map((r, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span>${r.banned ? ' <span class="badge red">Banned</span>' : ''}<span class="badge gold">${esc(r.tier)}</span>${r.line ? '<span class="badge red" title="They put this streak on the line">On the line</span>' : ''}</span></td>
     <td class="r big">${r.cur}</td><td class="r muted sh-opt">${r.best}</td><td class="r muted sh-opt">${esc(huntAgo(r.lastTs))}</td><td class="r act">${r.name === user.name ? '' : `<button class="small" data-ch="${esc(r.name)}">Challenge</button>`}</td></tr>`).join('')
     : '');
   $('#shTable').classList.toggle('hidden', !h.length);
@@ -7931,7 +7931,7 @@ function pfKingCards(k) {
   if (!k || (!k.crown && !k.slayer && !k.reigns.length)) return '';
   const day = (t) => (t ? new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '');
   const best = k.reigns.reduce((m, h) => Math.max(m, h.best || 0), 0);
-  return (k.crown || k.reigns.length ? `<div class="rcard static"><div class="rc-l">King of the Server</div><div class="rc-r" style="font-size:1.15rem">${k.crown ? 'Reigning' : 'Former'}</div><div class="rc-s">${k.crown ? `${k.crown.streak} in a row and holding the crown` : `Best reign: ${best} in a row, ended by ${esc(k.reigns[0].by || 'a draw')}`}</div></div>` : '')
+  return (k.crown || k.reigns.length ? `<div class="rcard static"><div class="rc-l">King of the Server</div><div class="rc-r" style="font-size:1.15rem">${k.crown ? 'Reigning' : 'Former'}</div><div class="rc-s">${k.crown ? `${k.crown.streak} in a row and holding the crown` : `Best reign: ${best} in a row, ${k.reigns[0].type === 'disqualified' ? 'disqualified' : `ended by ${esc(k.reigns[0].by || 'a draw')}`}`}</div></div>` : '')
     + (k.slayer ? `<div class="rcard static"><div class="rc-l">Kingslayer</div><div class="rc-r">${k.slayer.n}</div><div class="rc-s">Took down ${esc(k.slayer.last.victim)}'s ${k.slayer.last.streak}-game reign without a streak, ${esc(day(k.slayer.last.at))}</div></div>` : '');
 }
 function pfHuntCards(s) {
@@ -7989,10 +7989,10 @@ function paintStats() {
   const val = { acc: (r) => (r.n ? r.accSum / r.n : 0), clean: (r) => rate(r, 'blunder') };
   const rows = statsRows.filter((r) => (statsTab === 'acc' || statsTab === 'clean' ? r.n >= 40 : r[statsTab] > 0 || true))
     .map((r) => ({ r, v: val[statsTab] ? val[statsTab](r) : r[statsTab] }))
-    .sort((a, b) => (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);
+    .sort((a, b) => (!!a.r.banned - !!b.r.banned) || (statsTab === 'clean' ? a.v - b.v : b.v - a.v) || b.r.n - a.r.n).slice(0, 15);   // banned players last
   const fmt = (x) => (statsTab === 'acc' ? x.toFixed(1) + '%' : statsTab === 'clean' ? x.toFixed(2) : String(x));
   setHTML($('#statsTabs'), STAT_TABS.map(([k, l]) => `<button data-st="${k}" class="${k === statsTab ? 'on' : ''}">${l}</button>`).join(''));
-  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span></span></td><td class="r">${statsTab === 'acc' ? `<b>${fmt(v)}</b>` : `<button class="stnum" data-stp="${esc(r.name)}" data-stk="${statsTab === 'clean' ? 'blunder' : statsTab}" title="Show the games and moves" aria-label="${esc(r.name)}: ${fmt(v)} ${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}. Show the games and moves">${fmt(v)}</button>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>${statsStatusHTML()}<div class="muted stpend">Tap a number to see where those moves happened.</div>`
+  setHTML(box, rows.length ? `<table><thead><tr><th>#</th><th>Player</th><th class="r">${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}</th><th class="r">Moves checked</th></tr></thead><tbody>${rows.map(({ r, v }, i) => `<tr class="${r.name === user.name ? 'you' : ''}"><td>${i + 1}</td><td><span class="who">${avImg(r.name, 28)}<span class="plink" data-name="${esc(r.name)}">${esc(r.name)}</span>${r.banned ? ' <span class="badge red">Banned</span>' : ''}</span></td><td class="r">${statsTab === 'acc' ? `<b>${fmt(v)}</b>` : `<button class="stnum" data-stp="${esc(r.name)}" data-stk="${statsTab === 'clean' ? 'blunder' : statsTab}" title="Show the games and moves" aria-label="${esc(r.name)}: ${fmt(v)} ${esc(STAT_TABS.find((x) => x[0] === statsTab)[2])}. Show the games and moves">${fmt(v)}</button>`}</td><td class="r muted">${r.n}</td></tr>`).join('')}</tbody></table>${statsStatusHTML()}<div class="muted stpend">Tap a number to see where those moves happened.</div>`
     : `<div class="muted">${statsTab === 'acc' || statsTab === 'clean' ? 'Needs at least 40 checked moves.' : 'Nothing yet.'} Every finished game is checked by Stockfish${statsPending ? `; ${statsPending} are still being counted` : ''}.</div>`);
   if (!rows.length) box.insertAdjacentHTML('beforeend', statsStatusHTML());
 }

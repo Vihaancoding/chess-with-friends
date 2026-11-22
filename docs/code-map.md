@@ -135,7 +135,7 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 4551 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/app.js` | 4587 | API handler shared by local server.js and the Vercel function (api/index.js). |
 | `lib/damage.js` | 391 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
