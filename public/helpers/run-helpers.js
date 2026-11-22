@@ -9,7 +9,7 @@
 // Runs until you stop it (Ctrl+C). Every minute it prints what the browsers did. Needs Playwright (npm i playwright).
 const { chromium } = require('playwright');
 const URL_ = (process.env.HELPER_URL || 'http://localhost:3000').replace(/\/$/, '');
-const accounts = String(process.env.HELPER_ACCOUNTS || '').split(',').map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf(':'); return { email: x.slice(0, i), password: x.slice(i + 1) }; });
+const accounts = String(process.env.HELPER_ACCOUNTS || '').split(',').map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf(':'); return { email: x.slice(0, i).trim(), password: x.slice(i + 1).trim() }; });   // stray spaces from typing are ignored
 if (accounts.length < 1 || accounts.some((a) => !a.email || !a.password)) {
   console.error("Set HELPER_ACCOUNTS='email:password,email:password' (2 or more different accounts) and HELPER_URL.");
   process.exit(1);
