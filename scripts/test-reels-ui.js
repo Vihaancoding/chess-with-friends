@@ -69,6 +69,11 @@ const H = (ucis) => ucis.map((u) => ({ from: sq(u.slice(0, 2)), to: sq(u.slice(2
   await p.click('#rlLeft .rlmv button[data-rp="1"]'); await sleep(200);
   ok('a move in the list jumps the board there', await p.evaluate(() => RL.ply[RL.items[0].id]) === 1);
 
+  console.log('eval bar');
+  const withEv = await p.evaluate(() => { const it = RL.items[0]; return { stored: it.ev[reelPly(it)], label: document.querySelector('#rlFeed .reel[data-i="0"] .rlbar span').textContent }; });
+  ok('with stored evaluations the bar shows them', Number.isFinite(withEv.stored) && withEv.label !== '', withEv);
+  const noEv = await p.evaluate(async () => { const it = RL.items[0]; it.ev = null; it.evL = null; repaintReel(0); for (let k = 0; k < 60 && !(it.evL && it.evL[reelPly(it)] != null); k++) await new Promise((r) => setTimeout(r, 250)); await new Promise((r) => setTimeout(r, 100)); return { v: it.evL && it.evL[reelPly(it)], label: $('#rlFeed .reel[data-i="0"] .rlbar span').textContent }; });
+  ok('a reel whose game is not analysed yet: this browser evaluates the position and the bar shows it', Number.isFinite(noEv.v) && noEv.label !== '', noEv);
   console.log('filters and sorting');
   await p.click('#rlCats [data-rc="checkmates"]'); await sleep(900);
   ok('checkmates only', await p.evaluate(() => RL.items.length > 0 && RL.items.every((x) => x.k === 'mate')));

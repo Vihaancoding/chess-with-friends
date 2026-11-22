@@ -7615,7 +7615,8 @@ function reelHL(it, ply) { const u = String(it.moves || '').split(' ')[ply - 1];
 function reelHTML(it, i) {
   const flip = RL.flip, ply = reelPly(it);
   const board = it.live ? miniBoardHTML(it.board || '', { flip }) : miniBoardHTML(reelStates(it)[Math.min(ply, reelStates(it).length - 1)].board, { flip, hl: reelHL(it, ply) });
-  const cp = it.live ? it.evNow : it.ev ? it.ev[ply] : null;
+  const cp = it.live ? it.evNow : it.ev && it.ev[ply] != null ? it.ev[ply] : it.evL && it.evL[ply] != null ? it.evL[ply] : null;
+  if (!it.live && cp == null && i === RL.cur) setTimeout(() => reelLocalEval(i), 0);
   const pill = (p) => `<button class="rlpill" data-pf="${esc(p.name)}">${avImg(p.name, 28)}<span class="rlpn">${esc(p.name)}</span><span class="muted">${p.elo || ''}</span></button>`;
   const status = it.live ? '<span class="badge red">Live</span>' : `<span class="badge">Completed · ${it.result === 'draw' ? 'Draw' : 'Decisive'}</span>`;
   const date = it.at ? new Date(it.at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }) : '';
@@ -7692,6 +7693,21 @@ async function reelsLive() {
   // a live reel on screen keeps its board and bar current
   RL.items.forEach((it, i) => { if (!it.live) return; const row = r.rows.find((x) => x.code === it.code); if (row && (row.board !== it.board || row.ev !== it.evNow)) { it.board = row.board; it.evNow = row.ev; repaintReel(i); } });
   paintSides();
+}
+// A reel whose game hasn't been analysed yet (still in the backfill queue): this browser evaluates the position on screen
+// with Stockfish so the bar still works. Shown only, never sent or stored.
+const RL_EVAL = { busy: false };
+async function reelLocalEval(i) {
+  const it = RL.items[i]; if (!it || it.live || RL_EVAL.busy || !window.StockfishWorker || !(window.Stockfish && Stockfish.available)) return;
+  const ply = reelPly(it); if ((it.ev && it.ev[ply] != null) || (it.evL && it.evL[ply] != null)) return;
+  RL_EVAL.busy = true;
+  try {
+    const hist = String(it.moves || '').split(' ').filter(Boolean).slice(0, ply).map((u) => ({ from: 'abcdefgh'.indexOf(u[0]) + (8 - +u[1]) * 8, to: 'abcdefgh'.indexOf(u[2]) + (8 - +u[3]) * 8, ...(u[4] ? { promo: u[4].toUpperCase() } : {}) }));
+    const [r] = await sfEval({ hist, need: [ply], ms: 400 }, HELP.cancel);
+    it.evL = { ...(it.evL || {}), [ply]: Math.round((ply % 2 ? -1 : 1) * r.s) };
+  } catch (e) { /* no engine here, or cancelled: the bar stays empty */ }
+  finally { RL_EVAL.busy = false; }
+  if (view === 'reels' && RL.items[i] === it) { repaintReel(i); if (i === RL.cur && reelPly(it) !== ply) reelLocalEval(i); }
 }
 // replay the moment: from the start of its sequence to its end, one move at a time
 function reelStop() { clearInterval(RL.playing); RL.playing = null; }
