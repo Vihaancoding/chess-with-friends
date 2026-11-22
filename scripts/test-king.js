@@ -41,4 +41,9 @@ assert.deepStrictEqual([r.ev.type, r.king.name], ['ended', 'ann']); assert(!K.ci
 r = K.decide({ name: 'Bob', streak: 7, since: 1 }, c('Bob', 8, 9), { id: 'g8', winner: 'BOB', loser: 'q', winnerPrevCur: 7 }, 800);
 assert.strictEqual(r.ev, null);
 
+// the Streak Hunt and the crown agree on a tie: the King is the top row
+const SH = require('../lib/streakhunt');
+const tie = [{ name: 'Nimzz', cur: 5, best: 7, lastTs: 200 }, { name: 'LingDiren', cur: 5, best: 5, lastTs: 100 }];
+assert.strictEqual(SH.hunted(tie)[0].name, K.pick(Object.fromEntries(tie.map((d) => [d.name.toLowerCase(), { name: d.name, cur: d.cur, ts: d.lastTs }]))).name);
+
 console.log('king: all tests passed');

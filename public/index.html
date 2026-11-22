@@ -7452,7 +7452,8 @@ addGifButton('#chatForm', '#chatIn'); addGifButton('#gcForm', '#gcIn'); addGifBu
 
 // ----- win streaks (career statistics, counted from each player's first game; server: lib/streaks.js). Same patterns as the leaderboard and the profile rating cards. -----
 const STRK_TABS = [['cur', 'Streak'], ['best', 'Best streak'], ['rate', 'Win rate'], ['wins', 'Wins'], ['games', 'Games']];
-const STRK_SORT = { cur: (a, b) => b.cur - a.cur || b.best - a.best || b.w - a.w, best: (a, b) => b.best - a.best || b.cur - a.cur || b.w - a.w, rate: (a, b) => b.rate - a.rate || b.n - a.n, wins: (a, b) => b.w - a.w || b.rate - a.rate, games: (a, b) => b.n - a.n || b.w - a.w };
+const STRK_SORT = { cur: (a, b) => b.cur - a.cur || (a.lastTs || 0) - (b.lastTs || 0) || b.w - a.w,   // a tie goes to whoever got there first, as for the crown
+   best: (a, b) => b.best - a.best || b.cur - a.cur || b.w - a.w, rate: (a, b) => b.rate - a.rate || b.n - a.n, wins: (a, b) => b.w - a.w || b.rate - a.rate, games: (a, b) => b.n - a.n || b.w - a.w };
 let strkRows = [], strkTab = 'cur', strkMin = 10, strkAt = 0;
 const pctOf = (x) => Math.round(100 * x) + '%';
 const sentence = (t) => String(t).toLowerCase().replace(/(^|[.!?]\s+)([a-z])/g, (m, a, b) => a + b.toUpperCase());
