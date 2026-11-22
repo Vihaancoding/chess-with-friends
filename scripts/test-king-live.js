@@ -100,6 +100,16 @@ function client(id) {
   const me2 = await call('me', {}, P.gus);
   ok('...and he is back in his real place on the leaderboard', !me2.leaderboards.rapid.some((r) => r.banned) && me2.leaderboards.rapid[me2.leaderboards.rapid.length - 1].name !== 'dan', me2.leaderboards.rapid.map((r) => [r.name, r.r]));
 
+  console.log('a ban made the old way (no recheck) still loses the crown');
+  const k0 = A.kings().length;
+  await store.set('user:dan', { ...du, banUntil: Date.now() + 86400e3 });            // banned without banChanged, as before this check existed
+  s = await call('king_state', {}, P.gus);
+  ok('reading the crown drops the banned King', !s.king || s.king.name !== 'dan', s.king);
+  ok('...recorded as disqualified, announced quietly once', s.hist[0].name === 'dan' && s.hist[0].type === 'disqualified' && A.kings().length === k0 + 1 && A.falls().length === falls0, s.hist[0]);
+  await call('king_state', {}, P.gus);
+  ok('reading it again changes nothing', A.kings().length === k0 + 1);
+  await store.set('user:dan', { ...du });
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
