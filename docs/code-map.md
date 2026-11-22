@@ -26,6 +26,7 @@ flowchart LR
     lib_rating_js["rating.js"]
     lib_realtime_js["realtime.js"]
     lib_reels_js["reels.js"]
+    lib_reelstory_js["reelstory.js"]
     lib_rivalry_js["rivalry.js"]
     lib_sfserver_js["sfserver.js"]
     lib_store_js["store.js"]
@@ -75,12 +76,14 @@ flowchart LR
   lib_app_js --> lib_streaks_js
   lib_app_js --> lib_streakhunt_js
   lib_app_js --> lib_reels_js
+  lib_app_js --> lib_reelstory_js
   lib_app_js --> public_excite_js
   lib_app_js --> lib_tribunal_js
   lib_app_js --> lib_sfserver_js
   lib_app_js --> lib_fairan_js
   lib_app_js --> lib_fairmodel_js
   lib_app_js --> public_openings_js
+  lib_app_js --> lib_damagetext_js
   lib_damage_js --> public_chess_js
   lib_damageeng_js --> public_engine_js
   lib_damageeng_js --> public_chess_js
@@ -101,6 +104,7 @@ flowchart LR
   lib_realtime_js --> lib_store_js
   lib_reels_js --> public_excite_js
   lib_reels_js --> lib_damage_js
+  lib_reelstory_js --> public_excite_js
   lib_sfserver_js --> public_chess_js
   lib_sfserver_js --> lib_fairplay_js
   lib_streakhunt_js --> lib_streaks_js
@@ -129,7 +133,7 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 4434 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/app.js` | 4481 | API handler shared by local server.js and the Vercel function (api/index.js). |
 | `lib/damage.js` | 391 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
@@ -144,7 +148,8 @@ flowchart LR
 | `lib/puzzles.js` | 422 | Lichess puzzles: the local index, filters, verification, move checking, request parsing and the training maths. |
 | `lib/rating.js` | 91 | Ratings: Glicko-2 (Glickman, "Example of the Glicko-2 system"), one game per rating period like lichess. |
 | `lib/realtime.js` | 73 | Push events to browsers so opponents see moves immediately instead of waiting for a poll. |
-| `lib/reels.js` | 146 | REELS: the remarkable moments of finished games, for the vertical highlight feed. Pure functions. |
+| `lib/reels.js` | 154 | REELS: the remarkable moments of finished games, for the vertical highlight feed. Pure functions. |
+| `lib/reelstory.js` | 124 | REELS commentary: what actually happened in the moment, in plain words. "THE ROOK SACRIFICE CHANGED EVERYTHING" says |
 | `lib/rivalry.js` | 302 | Rivalries: head-to-head records, tiers, streaks, moments and seasons between two players. |
 | `lib/sfserver.js` | 173 | Stockfish 19 (lite, single thread, WebAssembly: the same files the browser uses, in public/stockfish/) running on the |
 | `lib/store.js` | 137 | Tiny JSON key-value store. Uses Supabase (PostgREST) when SUPABASE_URL + SUPABASE_SERVICE_KEY are set, |
@@ -166,7 +171,7 @@ flowchart LR
 | `public/sfengine.js` | 123 | Stockfish as an alternative analysis engine (Stockfish 19 lite, single-threaded WebAssembly, in public/stockfish/; |
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
-| `public/index.html` | 8478 |  |
+| `public/index.html` | 8480 |  |
 
 ## API routes (167, all in lib/app.js, called as POST /api?r=<name>)
 
