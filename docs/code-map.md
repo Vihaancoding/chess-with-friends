@@ -129,7 +129,7 @@ flowchart LR
 | `api/fairplay.js` | 29 | The fair-play check, in its own function so that Stockfish never runs where moves and chat are served. |
 | `api/index.js` | 2 |  |
 | `server.js` | 38 | Local dev server: node server.js  (on Vercel, api/index.js + public/ are used instead) |
-| `lib/app.js` | 4433 | API handler shared by local server.js and the Vercel function (api/index.js). |
+| `lib/app.js` | 4434 | API handler shared by local server.js and the Vercel function (api/index.js). |
 | `lib/damage.js` | 391 | The Damage Report: how brutal was this one game? Everything here is deterministic and runs on the server, from a |
 | `lib/damagebank.js` | 636 | The fallback bank for The Damage Report: lines used when the AI is down, slow or rejected. Each one is a template |
 | `lib/damagecard.js` | 140 | The Damage Report share card: a broadcast-style stat card drawn on the server from a stored card, so it cannot be |
@@ -144,7 +144,7 @@ flowchart LR
 | `lib/puzzles.js` | 422 | Lichess puzzles: the local index, filters, verification, move checking, request parsing and the training maths. |
 | `lib/rating.js` | 91 | Ratings: Glicko-2 (Glickman, "Example of the Glicko-2 system"), one game per rating period like lichess. |
 | `lib/realtime.js` | 73 | Push events to browsers so opponents see moves immediately instead of waiting for a poll. |
-| `lib/reels.js` | 135 | REELS: the remarkable moments of finished games, for the vertical highlight feed. Pure functions. |
+| `lib/reels.js` | 146 | REELS: the remarkable moments of finished games, for the vertical highlight feed. Pure functions. |
 | `lib/rivalry.js` | 302 | Rivalries: head-to-head records, tiers, streaks, moments and seasons between two players. |
 | `lib/sfserver.js` | 173 | Stockfish 19 (lite, single thread, WebAssembly: the same files the browser uses, in public/stockfish/) running on the |
 | `lib/store.js` | 137 | Tiny JSON key-value store. Uses Supabase (PostgREST) when SUPABASE_URL + SUPABASE_SERVICE_KEY are set, |
@@ -166,7 +166,7 @@ flowchart LR
 | `public/sfengine.js` | 123 | Stockfish as an alternative analysis engine (Stockfish 19 lite, single-threaded WebAssembly, in public/stockfish/; |
 | `public/style.js` | 507 | Play against a style: reads how someone plays from their archived games, and plays like them. |
 | `public/tournament.js` | 278 | Server-wide tournaments: sign-ups, then group stages and/or a knockout bracket. |
-| `public/index.html` | 8474 |  |
+| `public/index.html` | 8478 |  |
 
 ## API routes (167, all in lib/app.js, called as POST /api?r=<name>)
 
