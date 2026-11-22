@@ -65,6 +65,13 @@ const flipEv = (ev) => ev.map((x) => -x);
   const tsg = game(opera, { tc: { base: 180, inc: 0 }, ck: opera.ucis.map((_, i) => (i === 32 ? 4000 : 60000)) });
   ok('time-scramble win from the clocks', R.fromRecord(tsg).some((h) => h.k === 'scramble' && /4 SECONDS LEFT/.test(h.head)), R.fromRecord(tsg));
   ok('private-room and local games never become reels', !R.fromRecord(game(opera, { lounge: 'x' })).length && !R.fromEngine(game(opera, { lounge: 'x' }), opera.ev).length && !R.fromEngine(game(opera, { local: true }), opera.ev).length);
+  const om = hs.find((h) => h.k === 'mate');
+  ok('a mate reel opens on the checkmate itself (the bar shows #), replaying from where the forced mate began', om.ply === 33 && om.seq[1] === 33 && om.seq[0] < 33 && E.isMate(opera.ev[om.seq[0]]), om);
+  const slow = opera.ev.slice(); slow[om.seq[0]] = E.MATE - 7;                      // Stockfish saw mate in 4 there, but it took 2 moves
+  const sm = R.fromEngine(game(opera), slow).find((h) => h.k === 'mate');
+  ok('when the moves played differ from what Stockfish saw, the title does not claim "mate in N"; the text says both', sm.head === 'NO WAY OUT.' && /mate in 4/.test(sm.text) && /2 moves later/.test(sm.text), sm);
+  ok("the server's Stockfish path (mate in MOVES) is converted to plies like the browser's", JSON.stringify(R.mateToPlies([30, E.MATE - 2, -(E.MATE - 2)])) === JSON.stringify([30, E.MATE - 3, -(E.MATE - 4)]));
+  ok('stored evaluations from the server are read in plies; browser ones are left alone', R.evFrom({ ev: [E.MATE - 1], by: ['server'] })[0] === E.MATE - 1 && R.evFrom({ ev: [E.MATE - 2], by: ['server'] })[0] === E.MATE - 3 && R.evFrom({ ev: [E.MATE - 2], by: ['ann'] })[0] === E.MATE - 2 && R.evFrom({ ev: [E.MATE - 2], by: ['server'], plies: 1 })[0] === E.MATE - 2);
   const mh = hs.find((h) => h.k === 'mate');
   ok('verification: agreeing evaluations confirm', R.verifyCheck(mh, opera.ev, Object.fromEntries(mh.check.map((i) => [i, opera.ev[i]]))));
   ok('verification: a browser that disagrees rejects it', !R.verifyCheck(hs.find((h) => h.k === 'brilliant'), opera.ev, { 30: 0, 31: -400, 32: -400 }));
