@@ -118,7 +118,7 @@ const flipEv = (ev) => ev.map((x) => -x);
   feed = await call('reels_feed', { sort: 'saved' }, P.cat);
   ok('save: it appears under Saved for that account only', r.saved && feed.reels.length === 1 && feed.reels[0].saved && !(await call('reels_feed', { sort: 'saved' }, P.bob)).reels.length, feed.reels.map((x) => x.id));
   r = await call('reel_get', { id: 'OPERA-1:brilliant' }, P.bob);
-  ok('a shared link opens the reel', r.reel && r.reel.head === 'THE QUEEN SACRIFICE CHANGED EVERYTHING.', r);
+  ok('a shared link opens the reel', r.reel && r.reel.head === 'THE QUEEN SACRIFICE THAT FORCED MATE.', r);
   ok('a reaction to an unverified or unknown reel is refused', (await call('reel_react', { id: 'nope:x' }, P.bob)).status === 404);
 
   console.log('ratings on reels: the game\'s time control, at the time of the game');
@@ -142,6 +142,28 @@ const flipEv = (ev) => ev.map((x) => -x);
   r = await call('reel_get', { id: 'RAPID-2:brilliant' }, P.cat);
   ok('highlights stored before this fix are corrected from the game record', r.reel.w.elo === 1333 && r.reel.b.elo === 1222, [r.reel.w, r.reel.b]);
   await store.del('hlpend');                                              // their other moments would otherwise queue checks ahead of the backfill below
+
+  console.log('commentary: what actually happened');
+  const S = require('../lib/reelstory');
+  const bh = hs.find((h) => h.k === 'brilliant'), bf = S.facts(bh, opera.ev);
+  ok('the explanation says the move, what followed and how it ended', /16\. Qb8\+/.test(S.plain(bh, bf)) && /16\.\.\. Nxb8 17\. Rd8#/.test(S.plain(bh, bf)) && /checkmate/.test(S.plain(bh, bf)), S.plain(bh, bf));
+  ok('the headline says what it led to', S.headline(bh, bf) === 'THE QUEEN SACRIFICE THAT FORCED MATE.', S.headline(bh, bf));
+  const good = await S.write(bh, opera.ev, async () => ({ text: 'Morphy threw his queen away with 16. Qb8+, and after 16... Nxb8 the rook landed on d8: 17. Rd8# was checkmate.' }));
+  ok('AI commentary that sticks to the facts is used', good.src === 'ai' && /Rd8#/.test(good.text), good);
+  for (const [why, text] of [['a move that was never played', 'Morphy sacrificed with 16. Qb8+ and then 17. Qh7# ended it.'], ['a number that is not in the facts', 'Morphy sacrificed the queen on move 16 and mated 9 moves later with Rd8#.'], ['an ending that did not happen', 'Morphy sacrificed the queen with 16. Qb8+ and Duke resigned on the spot.']]) {
+    const bad = await S.write(bh, opera.ev, async () => ({ text }));
+    ok(`AI commentary with ${why} is rejected; the plain explanation is kept`, bad.src === 'plain' && bad.text === S.plain(bh, bf), bad);
+  }
+  const down = await S.write(bh, opera.ev, async () => null);
+  ok('AI down: the plain explanation', down.src === 'plain' && /checkmate/.test(down.text));
+  handler.storyAsk = async () => ({ text: 'Morphy threw his queen away with 16. Qb8+, and after 16... Nxb8 the rook landed on d8: 17. Rd8# was checkmate.' });
+  await store.del('hlai:OPERA-1:brilliant');
+  r = await call('reel_get', { id: 'OPERA-1:brilliant' }, P.cat);
+  ok('a reel without commentary shows the plain explanation at once', /After 16\.\.\. Nxb8 17\. Rd8#, it was checkmate/.test(r.reel.text) && r.reel.head === 'THE QUEEN SACRIFICE THAT FORCED MATE.', r.reel);
+  await new Promise((x) => setTimeout(x, 200));
+  r = await call('reel_get', { id: 'OPERA-1:brilliant' }, P.cat);
+  ok('...and the AI commentary, written in the background, is stored and shown after that', /the rook landed on d8/.test(r.reel.text) && (await store.get('hl:OPERA-1:brilliant')).story.src === 'ai', r.reel.text);
+  delete handler.storyAsk;
 
   console.log('historical backfill (browser jobs, resumable)');
   const hg = { ...game(legal), id: 'LEGAL-OLD', players: { w: { name: 'ann', elo: 1100 }, b: { name: 'bob', elo: 1350 } }, endedAt: 1000 };
