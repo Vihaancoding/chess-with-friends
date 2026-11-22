@@ -7594,7 +7594,7 @@ function enterReels(opts = {}) {
   clearInterval(RL.timer); RL.timer = setInterval(() => { if (view !== 'reels') { clearInterval(RL.timer); RL.timer = null; return; } if (!document.hidden) reelsLive(); }, 6000);
 }
 async function reelsReset(firstId) {
-  Object.assign(RL, { items: [], more: true, next: 0, cur: 0, ply: {} });
+  Object.assign(RL, { items: [], more: true, next: 0, cur: 0, ply: {}, seed: 1 + Math.floor(Math.random() * 2147483646) });   // a new random mix each visit
   setHTML($('#rlFeed'), '<div class="reel"><div class="muted" style="padding:40px 0;text-align:center">Loading…</div></div>');
   if (firstId) { const r = await api('reel_get', { id: firstId }); if (r.ok) RL.items.push(r.reel); }
   await reelsMore(); paintReels(); reelsLive();
@@ -7603,7 +7603,7 @@ async function reelsMore() {
   if (RL.loading || !RL.more) return;
   RL.loading = true;
   try {
-    const r = await api('reels_feed', { cat: RL.cat, sort: RL.sort, off: RL.next, n: 6 });
+    const r = await api('reels_feed', { cat: RL.cat, sort: RL.sort, off: RL.next, n: 6, seed: RL.seed });
     if (!r.ok) return;
     const have = new Set(RL.items.map((x) => x.id));
     RL.items.push(...r.reels.filter((x) => !have.has(x.id))); RL.more = r.more; RL.next = r.next; RL.backfill = r.backfill;
