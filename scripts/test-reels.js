@@ -118,6 +118,28 @@ const flipEv = (ev) => ev.map((x) => -x);
   ok('a shared link opens the reel', r.reel && r.reel.head === 'THE QUEEN SACRIFICE CHANGED EVERYTHING.', r);
   ok('a reaction to an unverified or unknown reel is refused', (await call('reel_react', { id: 'nope:x' }, P.bob)).status === 404);
 
+  console.log('ratings on reels: the game\'s time control, at the time of the game');
+  const T0 = Date.now() - 30 * 86400e3;
+  const uk = (n) => 'user:' + n;
+  const da = await store.get(uk('ann')), db = await store.get(uk('bob'));
+  da.ratings = { rapid: { r: 1610, rd: 60, vol: 0.06, n: 30, hist: [[T0 - 9e6, 1290], [T0 - 1e6, 1310], [T0 + 5e6, 1450]] }, blitz: { r: 1900, rd: 60, vol: 0.06, n: 40, hist: [[T0 - 2e6, 1880]] } };
+  db.ratings = { rapid: { r: 1500, rd: 60, vol: 0.06, n: 10, hist: [[T0 + 1e6, 1230]] } };
+  await store.set(uk('ann'), da); await store.set(uk('bob'), db);
+  const rg = { ...game(opera), id: 'RAPID-1', tc: { base: 900, inc: 10 }, startedAt: T0, endedAt: T0 + 1200e3, players: { w: { name: 'ann', elo: 1500 }, b: { name: 'bob', elo: 1500 } } };
+  await store.set('game:' + rg.id, rg); await handler.reelsFromEval(rg, opera.ev, ['zed']);
+  const rd = await store.get('hl:RAPID-1:brilliant'); rd.ver = 'verified'; await store.set('hl:RAPID-1:brilliant', rd);
+  r = await call('reel_get', { id: 'RAPID-1:brilliant' }, P.cat);
+  ok('an unrated rapid game shows each player\'s RAPID rating just before it (not blitz, not today\'s, not the stored overall number)', r.reel && r.reel.w.elo === 1310 && r.reel.b.elo === 1200, r.reel && [r.reel.w, r.reel.b]);
+  const rr = { ...rg, id: 'RAPID-2', ratings: { w: { before: 1333, after: 1340 }, b: { before: 1222, after: 1215 } } };
+  await store.set('game:' + rr.id, rr); await handler.reelsFromEval(rr, opera.ev, ['zed']);
+  const rd2 = await store.get('hl:RAPID-2:brilliant'); rd2.ver = 'verified'; await store.set('hl:RAPID-2:brilliant', rd2);
+  r = await call('reel_get', { id: 'RAPID-2:brilliant' }, P.cat);
+  ok('a rated game uses its own before-ratings', r.reel.w.elo === 1333 && r.reel.b.elo === 1222, [r.reel.w, r.reel.b]);
+  const old2 = await store.get('hl:RAPID-2:brilliant'); delete old2.rsrc; old2.w.elo = 1500; old2.b.elo = 1500; await store.set('hl:RAPID-2:brilliant', old2);
+  r = await call('reel_get', { id: 'RAPID-2:brilliant' }, P.cat);
+  ok('highlights stored before this fix are corrected from the game record', r.reel.w.elo === 1333 && r.reel.b.elo === 1222, [r.reel.w, r.reel.b]);
+  await store.del('hlpend');                                              // their other moments would otherwise queue checks ahead of the backfill below
+
   console.log('historical backfill (browser jobs, resumable)');
   const hg = { ...game(legal), id: 'LEGAL-OLD', players: { w: { name: 'ann', elo: 1100 }, b: { name: 'bob', elo: 1350 } }, endedAt: 1000 };
   await store.set('game:' + hg.id, hg);
