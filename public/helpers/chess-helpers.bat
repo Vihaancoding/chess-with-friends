@@ -32,9 +32,9 @@ if errorlevel 1 goto fail
 
 if not exist accounts.txt (
   echo.
-  echo Enter 2 or more DIFFERENT helper accounts, as  email:password,email:password
+  echo Enter 2 or more DIFFERENT helper accounts, as  email:password,email:password  (spaces are ignored)
   echo Use accounts that will not be playing while this runs. They are saved only on this computer.
-  powershell -NoProfile -Command "$a = Read-Host 'Accounts'; Set-Content -Encoding ASCII -NoNewline accounts.txt $a.Trim()"
+  powershell -NoProfile -Command "$a = Read-Host 'Accounts'; [IO.File]::WriteAllText((Join-Path (Get-Location) 'accounts.txt'), ($a -replace '\s',''))"
 )
 set /p HELPER_ACCOUNTS=<accounts.txt
 set "HELPER_URL=%SITE%"
