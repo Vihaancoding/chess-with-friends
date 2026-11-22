@@ -359,6 +359,54 @@
   #lbcard .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
   #lbcard .head h2 { margin: 0; }
   .plink { cursor: pointer; } .plink:hover { text-decoration: underline; }
+/* KING OF THE SERVER (the crown and Kingslayer marks after player names are rules written into #kingCss) */
+#navFrenzy { color: var(--gold); font-weight: 800; } #navFrenzy .fz-t { margin-left: auto; font-variant-numeric: tabular-nums; }
+.shev.kpin { border: 1px solid var(--gold); border-radius: 8px; padding: 8px 10px; } .shev.kpin.ks { border-color: var(--bad); } .shev.kpin .shk { color: var(--gold); } .shev.kpin.ks .shk { color: var(--bad); }
+#kingFx { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; overflow: hidden; background: radial-gradient(circle at 50% 38%, rgba(60, 45, 8, .9), rgba(0, 0, 0, .95) 70%); color: var(--text); font-family: var(--font); text-align: center; cursor: pointer; animation: kfIn .3s ease-out; }
+#kingFx.out { opacity: 0; transition: opacity .4s; }
+#kingFx.ks { background: radial-gradient(circle at 50% 38%, rgba(90, 10, 4, .92), rgba(0, 0, 0, .96) 70%); }
+#kingFx .kf-stage { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#kingFx.fall .kf-stage { animation: kfQuake .55s ease-out 1.3s; } #kingFx.ks .kf-stage { animation: kfQuake .6s ease-out 2.3s, kfQuake .4s ease-out .5s; }
+#kingFx .kf-art { position: relative; display: flex; align-items: center; justify-content: center; width: 220px; height: 150px; }
+#kingFx .kf-rays { position: absolute; width: 520px; height: 520px; left: 50%; top: 50%; margin: -260px 0 0 -260px; border-radius: 50%; opacity: 0;
+  background: repeating-conic-gradient(rgba(247, 198, 49, .22) 0 8deg, transparent 8deg 22deg); -webkit-mask: radial-gradient(circle, #000 15%, transparent 65%); mask: radial-gradient(circle, #000 15%, transparent 65%);
+  animation: kfRays 6s linear .9s forwards; }
+#kingFx.ks .kf-rays { background: repeating-conic-gradient(rgba(250, 65, 45, .28) 0 6deg, transparent 6deg 18deg); animation-delay: 2.2s; }
+#kingFx .kf-crown { position: relative; width: 112px; height: 112px; color: var(--gold); filter: drop-shadow(0 0 22px rgba(247, 198, 49, .7)); }
+#kingFx.fall .kf-crown { animation: kfDrop 1.15s cubic-bezier(.55, 0, .85, .3) .15s both, kfBounce .45s ease-out 1.3s, kfTip .6s cubic-bezier(.5, 0, .5, 1.4) 1.8s forwards; }
+#kingFx.ks .kf-crown { animation: kfSlam .45s cubic-bezier(.2, 1.6, .4, 1) .1s both, kfShake .5s ease-in-out 2.3s, kfSplit .5s ease-in 2.6s forwards; }
+#kingFx .kf-slash { position: absolute; width: 240px; height: 6px; background: linear-gradient(90deg, transparent, #fff 30%, var(--bad) 70%, transparent); border-radius: 3px; transform: rotate(-35deg) scaleX(0); box-shadow: 0 0 18px var(--bad), 0 0 40px var(--bad); animation: kfSlash .22s ease-out 2.3s forwards; }
+#kingFx .kf-ring { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 4px solid var(--gold); opacity: 0; animation: kfRing .8s ease-out 1.3s; }
+#kingFx .kf-ring.r2 { animation-delay: 1.45s; border-width: 2px; }
+#kingFx.ks .kf-ring { border-color: var(--bad); animation-delay: 2.3s; } #kingFx.ks .kf-ring.r2 { animation-delay: 2.45s; }
+#kingFx .kf-shard { position: absolute; left: 50%; top: 50%; width: 8px; height: 14px; background: var(--gold); clip-path: polygon(50% 0, 100% 100%, 0 100%); opacity: 0; animation: kfShard .9s cubic-bezier(.1, .7, .3, 1) 1.3s; }
+#kingFx.ks .kf-shard { background: var(--bad); animation-delay: 2.3s; }
+#kingFx .kf-flash { position: absolute; inset: 0; background: #fff6d0; opacity: 0; pointer-events: none; animation: kfFlash .5s ease-out 1.3s; }
+#kingFx.ks .kf-flash { background: #ffd2c8; animation: kfFlash .18s ease-out .5s, kfFlash .5s ease-out 2.3s; }
+#kingFx .kf-l { opacity: 0; animation: kfLine .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+#kingFx .kf-big { font-size: 2.9rem; font-weight: 900; letter-spacing: .05em; text-shadow: 0 0 24px rgba(247, 198, 49, .45); animation-name: kfStamp; }
+#kingFx .kf-mid { font-size: 1.3rem; font-weight: 700; } #kingFx .kf-mid b { color: var(--gold); }
+#kingFx .kf-rise { color: var(--gold); background: linear-gradient(90deg, var(--gold) 0 40%, #fff 50%, var(--gold) 60% 100%) 200% 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation-name: kfStamp, kfShine; animation-duration: .45s, 1.4s; animation-timing-function: cubic-bezier(.2, 1.4, .4, 1), linear; }
+#kingFx.ks .kf-big { color: var(--bad); text-shadow: 0 0 28px rgba(250, 65, 45, .6); }
+#kingFx .kf-title { font-size: 2.2rem; font-weight: 900; color: var(--bad); letter-spacing: .18em; text-shadow: 0 0 26px rgba(250, 65, 45, .8); animation-name: kfStamp; }
+#kingFx .kf-skip { position: absolute; bottom: 24px; right: 24px; }
+@keyframes kfIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kfDrop { from { transform: translateY(-70vh) rotate(-25deg) scale(1.3); opacity: 0; } 12% { opacity: 1; } to { transform: translateY(0) rotate(0) scale(1); } }
+@keyframes kfBounce { 30% { transform: translateY(0) scaleX(1.25) scaleY(.75); } 65% { transform: translateY(-26px) scaleX(.95) scaleY(1.08); } }
+@keyframes kfTip { from { transform: none; } to { transform: translate(26px, 30px) rotate(105deg); opacity: .6; filter: grayscale(.6) drop-shadow(0 0 4px rgba(247, 198, 49, .2)); } }
+@keyframes kfSlam { from { transform: scale(2.4); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes kfShake { 20% { transform: translateX(-9px) rotate(-6deg); } 40% { transform: translateX(8px) rotate(5deg); } 60% { transform: translateX(-6px) rotate(-3deg); } 80% { transform: translateX(4px) rotate(2deg); } }
+@keyframes kfSplit { to { transform: translateY(40px) rotate(-30deg) scale(.85); opacity: .35; filter: grayscale(1); } }
+@keyframes kfSlash { to { transform: rotate(-35deg) scaleX(1); } }
+@keyframes kfRays { 0% { opacity: 0; transform: rotate(0) scale(.6); } 12% { opacity: 1; transform: rotate(20deg) scale(1); } 100% { opacity: .55; transform: rotate(120deg) scale(1.1); } }
+@keyframes kfRing { from { opacity: .9; transform: scale(.4); } to { opacity: 0; transform: scale(9); } }
+@keyframes kfShard { 0% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--r)); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(calc(var(--r) + 540deg)); } }
+@keyframes kfFlash { 0% { opacity: .75; } 100% { opacity: 0; } }
+@keyframes kfQuake { 10% { transform: translate(-10px, 6px); } 25% { transform: translate(9px, -7px); } 40% { transform: translate(-7px, 4px); } 60% { transform: translate(5px, -3px); } 80% { transform: translate(-2px, 1px); } }
+@keyframes kfLine { from { opacity: 0; transform: translateY(18px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes kfStamp { from { opacity: 0; transform: scale(2.2); filter: blur(6px); letter-spacing: .5em; } to { opacity: 1; transform: none; filter: none; } }
+@keyframes kfShine { to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { #kingFx *, #kingFx { animation-duration: .01s !important; } }
   .prov { color: var(--muted); font-weight: 600; }
   .userbox .nm { cursor: pointer; }
 
@@ -1402,6 +1450,7 @@
     <button id="navRivals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3"/></svg> Rivalries</button>
     <button id="navSkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.3a1.7 1.7 0 0 0-1.2 2.9A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg> Board &amp; pieces</button>
     <button id="navLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Leaderboard</button>
+    <button id="navFrenzy" class="hidden" title="A crown just fell"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 6l4.5 4L12 3l5.5 7L22 6l-2 13H4z"/></svg> Frenzy <span class="fz-t"></span></button>
     <button id="navProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile</button>
     <button id="navAdmin" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg> Admin</button>
   </div>
@@ -2141,7 +2190,7 @@ function sseEnsure() {
     for (const t of SSE.topics.values()) t.onState && t.onState(false);
     if (es.readyState === 2) setTimeout(sseEnsure, 1000);               // closed for good: reopen
   };
-  for (const ev of ['m', 's', 'c', 'cd', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem', 'sbreak', 'tune']) es.addEventListener(ev, (e) => {
+  for (const ev of ['m', 's', 'c', 'cd', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem', 'sbreak', 'tune', 'kingfall', 'king']) es.addEventListener(ev, (e) => {
     let d; try { d = JSON.parse(e.data); } catch { return; }
     for (const t of SSE.topics.values()) if (t.handlers[ev]) t.handlers[ev](d);
   });
@@ -2199,7 +2248,8 @@ function ensureSessionSubs() {
   if (rtSession || !user || !user.topic) return;
   rtSession = true;
   rtSubscribe(user.topic, { ping: onUserPing }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok && view === 'lobby') pollLobby(false); });
-  rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel, sbreak: onStreakBreak, tune: (e) => onTune(e) }, () => {});
+  rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel, sbreak: onStreakBreak, tune: (e) => onTune(e), kingfall: onKingFall, king: onKing }, (ok) => { if (ok) loadKing(); });
+  loadKing();
 }
 function onUserPing(d) {
   if (d.why === 'cd' && d.ev && d.code === gameCode) return onGameChatDel(d.ev);
@@ -7759,7 +7809,7 @@ function paintHunt() {
     <td class="r big">${r.cur}</td><td class="r muted sh-opt">${r.best}</td><td class="r muted sh-opt">${esc(huntAgo(r.lastTs))}</td><td class="r act">${r.name === user.name ? '' : `<button class="small" data-ch="${esc(r.name)}">Challenge</button>`}</td></tr>`).join('')
     : '');
   $('#shTable').classList.toggle('hidden', !h.length);
-  setHTML($('#shFeed'), hunt.feed.length ? hunt.feed.map(huntEvHTML).join('') : '<div class="muted" style="padding:6px 0">No streak has been broken yet. The first one is history.</div>');
+  setHTML($('#shFeed'), kingPinHTML() + (hunt.feed.length ? hunt.feed.map(huntEvHTML).join('') : '<div class="muted" style="padding:6px 0">No streak has been broken yet. The first one is history.</div>'));
 }
 async function loadHunt(force) {
   if (!$('#shcard') || (!force && hunt && Date.now() - huntAt < 120000)) return paintHunt();
@@ -7769,6 +7819,7 @@ async function loadHunt(force) {
 $('#shcard').addEventListener('click', async (e) => {
   const c = e.target.closest('[data-ch]'); if (c) { if (!c.disabled) challenge(c.dataset.ch); return; }
   const g = e.target.closest('[data-shg]'); if (g) return enterArchive(g.dataset.shg);
+  if (e.target.closest('[data-kfx]')) return KING.frenzy && kingPlay(KING.frenzy.ev, true);
   const l = e.target.closest('[data-shline]');
   if (l) { l.disabled = true; const r = await api('streak_line', { on: l.dataset.shline === '1' }); if (!r.ok) { l.disabled = false; return showToast('⚠', `<span class="ct-t">${esc(r.error || 'Could not do that.')}</span>`, ''); } return loadHunt(true); }
   const n = e.target.closest('.plink'); if (n) enterProfile(n.dataset.name);
@@ -7777,12 +7828,111 @@ $('#shcard').addEventListener('click', async (e) => {
 function onStreakBreak(e) {
   if (!e || !e.victim) return;
   if (hunt) { hunt.feed = [e, ...hunt.feed.filter((x) => x.id !== e.id)].slice(0, 12); hunt.hunted = hunt.hunted.filter((x) => x.name !== e.victim); paintHunt(); }
+  if (KING.king && KING.king.name === e.victim) return;                 // the King's loss gets the crown-falling cinematic instead
   if (e.victim === user.name || (view === 'game' && snap && !snap.status.over && (snap.you === 'w' || snap.you === 'b'))) return;   // your own loss has its own toast; never in the middle of your game
   const me = e.breaker === user.name;
   showToast('🎯', `<span class="ct-n">${esc(e.head)}</span> <span class="ct-t">${esc(me ? 'You' : e.breaker)} ended ${esc(e.victim)}'s ${e.len}-game win streak.${e.level >= 2 ? ' ' + esc(e.tail) : ''}</span>`, 'Tap to watch the game');
   const t = $('#chatToast'); t.dataset.game = e.id;
   if (e.level >= 2 || me) { t.classList.add('shbig'); clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 9000); }
   sfx(e.level >= 2 ? 'end' : 'chAccepted');
+}
+// ---------- KING OF THE SERVER ----------
+// The server owns the crown (api 'king_state', lobby events 'kingfall' and 'king'); this browser only shows it. The frenzy countdown runs
+// on the server's clock (KING.off), so every screen ends it at the same second. A fall seen live, or found on load while the frenzy is
+// still on, plays once in this browser, and never in the middle of your own game: it waits until the game is over.
+const KING = { king: null, slayers: [], frenzy: null, off: 0, pending: null, timer: null };
+const kSvg = (fill, d) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='${fill}'><path d='${d}'/></svg>`)}")`;
+const K_CROWN = 'M2 6l4.5 4L12 3l5.5 7L22 6l-2 13H4z', K_SWORD = 'M14.5 17.5 3 6V3h3l11.5 11.5-1.5 1.5zM13 19l6-6 1.5 1.5-2 2 2.5 2.5-1.5 1.5-2.5-2.5-2 2z';
+const kNow = () => Date.now() + KING.off;
+const kSeen = () => { try { return JSON.parse(localStorage.getItem('chess:kingSeen')) || []; } catch { return []; } };
+const SCRAMBLE_MS = 120e3;
+// hold the cinematic during your own live game, and while watching a live game in a time scramble (either clock under 2 minutes)
+const inOwnGame = () => view === 'game' && snap && !snap.status.over && ((snap.you === 'w' || snap.you === 'b') || (snap.clock && ['w', 'b'].some((c) => snap.clock[c] - (snap.clock.running === c ? Date.now() - snapAt : 0) < SCRAMBLE_MS)));
+function kingSync(r) { if (r && r.now) KING.off = r.now - Date.now(); }
+async function loadKing() {
+  const r = await api('king_state'); if (!r.ok) return;
+  kingSync(r); KING.king = r.king; KING.slayers = r.slayers || []; KING.frenzy = r.frenzy;
+  if (r.frenzy && !kSeen().includes(r.frenzy.ev.id)) KING.pending = r.frenzy.ev;   // missed it while away or offline: still live, so show it
+  paintKing();
+}
+function onKing(d) { kingSync(d); KING.king = d.king; paintKing(); }
+function onKingFall(d) {
+  if (!d || !d.ev) return;
+  kingSync(d); KING.king = d.king; KING.frenzy = { until: d.until, ev: d.ev };
+  if (d.ev.type === 'kingslayer' && !KING.slayers.includes(d.ev.by)) KING.slayers.push(d.ev.by);
+  if (!kSeen().includes(d.ev.id)) KING.pending = d.ev;
+  paintKing();
+}
+function paintKing() {
+  const css = new Map(), fr = KING.frenzy && KING.frenzy.until > kNow();
+  const add = (n, img) => { if (n) { const k = n.toLowerCase(); css.set(k, { n, imgs: [...((css.get(k) || {}).imgs || []), img] }); } };
+  if (KING.king) add(KING.king.name, kSvg('#f7c631', K_CROWN));
+  for (const n of KING.slayers) add(n, kSvg('#fa412d', K_SWORD));
+  let rules = '';
+  for (const { n, imgs } of css.values()) {
+    const sel = `.plink[data-name="${CSS.escape(n)}" i]`;
+    rules += `${sel}::after{content:'';display:inline-block;height:1em;width:${imgs.length * 1.15 - .15}em;margin-left:4px;vertical-align:-.12em;background:${imgs.join(',')};background-repeat:no-repeat;background-size:1em 1em;background-position:0 0,1.15em 0}`;
+  }
+  if (fr && KING.king) rules += `.plink[data-name="${CSS.escape(KING.king.name)}" i]{color:var(--gold);text-shadow:0 0 10px rgba(247,198,49,.6);font-weight:800}`;
+  let st = $('#kingCss'); if (!st) { st = document.createElement('style'); st.id = 'kingCss'; document.head.appendChild(st); }
+  st.textContent = rules;
+  $('#navFrenzy').classList.toggle('hidden', !fr);
+  if (hunt) paintHunt();
+  clearInterval(KING.timer);
+  if (fr || KING.pending) KING.timer = setInterval(kingTick, 500);
+  kingTick();
+}
+function kingTick() {
+  const fr = KING.frenzy, left = fr ? fr.until - kNow() : 0;
+  if (fr && left <= 0) { KING.frenzy = null; KING.pending = null; return paintKing(); }          // over: drop the pin, the glow and the countdown
+  if (fr) { const s = Math.ceil(left / 1000); $('#navFrenzy .fz-t').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+  if (KING.pending && !inOwnGame() && !$('#kingFx')) { const ev = KING.pending; KING.pending = null; kingPlay(ev); }
+}
+function kingPinHTML() {
+  const fr = KING.frenzy; if (!fr || fr.until <= kNow()) return '';
+  const e = fr.ev, ks = e.type === 'kingslayer', pl = (n) => `<span class="plink" data-name="${esc(n)}">${esc(n)}</span>`;
+  return `<div class="shev kpin${ks ? ' ks' : ''}"><div><span class="shk">${ks ? 'AN UPSET FOR THE AGES' : 'THE KING HAS FALLEN'}</span><span class="sht">${pl(e.by)}${ks ? ', THE KINGSLAYER,' : ''} dethroned ${pl(e.fallen)} and ended a <b>${e.streak}</b>-game reign.${e.heir ? ` ${pl(e.heir)} now wears the crown.` : ' The throne is empty.'}</span></div>
+    <div class="shw muted">Pinned for the frenzy<br>${e.code ? `<button class="small" data-shg="${esc(e.game)}">Watch game</button> ` : ''}<button class="small" data-kfx="1">Replay</button></div></div>`;
+}
+// the cinematic: plain DOM and CSS animations, about 5.5s, any click, Esc or the button skips it
+function kingPlay(ev, replay) {
+  if (!ev || $('#kingFx')) return;
+  if (!replay) { try { localStorage.setItem('chess:kingSeen', JSON.stringify([...kSeen(), ev.id].slice(-30))); } catch {} }
+  const ks = ev.type === 'kingslayer', at = (t) => `style="animation-delay:${t}s"`;
+  const crown = `<svg class="kf-crown" viewBox="0 0 24 24" fill="currentColor"><path d="${K_CROWN}"/></svg>`;
+  const burst = '<div class="kf-rays"></div><div class="kf-ring"></div><div class="kf-ring r2"></div>' + Array.from({ length: 22 }, (_, i) => { const a = (i / 22) * Math.PI * 2, d = 160 + (i % 4) * 45; return `<i class="kf-shard" style="--dx:${Math.round(Math.cos(a) * d)}px;--dy:${Math.round(Math.sin(a) * d)}px;--r:${Math.round(a * 57)}deg"></i>`; }).join('');
+  const html = ks
+    ? `<div class="kf-art">${burst}${crown}<div class="kf-slash"></div></div>
+       <div class="kf-l kf-big" ${at(.5)}>AN UPSET FOR THE AGES.</div>
+       <div class="kf-l kf-mid" ${at(1.4)}><b>${esc(ev.fallen)}</b>, King of the Server, on a <b>${ev.streak}</b>-game win streak</div>
+       <div class="kf-l kf-mid" ${at(2.4)}>was taken down by <b>${esc(ev.by)}</b></div>
+       <div class="kf-l kf-title" ${at(2.7)}>THE KINGSLAYER</div>
+       <div class="kf-l kf-mid" ${at(3.8)}>YOU DON'T NEED A STREAK TO TAKE DOWN A KING.</div>`
+    : `<div class="kf-art">${burst}${crown}</div>
+       <div class="kf-l kf-big" ${at(1.5)}>THE KING HAS FALLEN.</div>
+       <div class="kf-l kf-mid" ${at(2.3)}><b>${esc(ev.fallen)}</b> and a <b>${ev.streak}</b>-game win streak</div>
+       <div class="kf-l kf-mid" ${at(3.0)}>defeated by <b>${esc(ev.by)}</b></div>
+       <div class="kf-l kf-big${ev.heir ? ' kf-rise' : ''}" ${at(3.9)}>${ev.heir ? 'A NEW KING HAS RISEN.' : 'THE THRONE STANDS EMPTY.'}</div>
+       ${ev.heir ? `<div class="kf-l kf-mid" ${at(4.3)}>Long live <b>${esc(ev.heir)}</b> (${ev.heirStreak} in a row)</div>` : ''}`;
+  const fx = document.createElement('div');
+  fx.id = 'kingFx'; fx.className = ks ? 'ks' : 'fall'; fx.setAttribute('role', 'dialog'); fx.setAttribute('aria-label', ks ? 'An upset for the ages' : 'The king has fallen');
+  fx.innerHTML = `<div class="kf-flash"></div><div class="kf-stage">${html}</div><button class="small kf-skip">Skip</button>`;
+  document.body.appendChild(fx);
+  sfx(ks ? 'end' : 'chAccepted');
+  let done = false;
+  const close = () => { if (done) return; done = true; clearTimeout(t); document.removeEventListener('keydown', key); fx.classList.add('out'); setTimeout(() => fx.remove(), 400); };
+  const key = (e) => { if (e.key === 'Escape') close(); };
+  const t = setTimeout(close, ks ? 6000 : 5600);
+  fx.addEventListener('click', close); document.addEventListener('keydown', key);
+  fx.querySelector('.kf-skip').focus();
+}
+$('#navFrenzy').onclick = () => { const fr = KING.frenzy; if (!fr) return; if (fr.ev.code) enterArchive(fr.ev.game); else kingPlay(fr.ev, true); };
+function pfKingCards(k) {
+  if (!k || (!k.crown && !k.slayer && !k.reigns.length)) return '';
+  const day = (t) => (t ? new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '');
+  const best = k.reigns.reduce((m, h) => Math.max(m, h.best || 0), 0);
+  return (k.crown || k.reigns.length ? `<div class="rcard static"><div class="rc-l">King of the Server</div><div class="rc-r" style="font-size:1.15rem">${k.crown ? 'Reigning' : 'Former'}</div><div class="rc-s">${k.crown ? `${k.crown.streak} in a row and holding the crown` : `Best reign: ${best} in a row, ended by ${esc(k.reigns[0].by || 'a draw')}`}</div></div>` : '')
+    + (k.slayer ? `<div class="rcard static"><div class="rc-l">Kingslayer</div><div class="rc-r">${k.slayer.n}</div><div class="rc-s">Took down ${esc(k.slayer.last.victim)}'s ${k.slayer.last.streak}-game reign without a streak, ${esc(day(k.slayer.last.at))}</div></div>` : '');
 }
 function pfHuntCards(s) {
   if (!s || !s.total) return '';                                       // only once they have broken a streak: no row of zeros
@@ -7800,7 +7950,7 @@ function paintPfStreak(r) {
     <div class="rcard static"><div class="rc-l">Longest streak</div><div class="rc-r">${s.best}</div><div class="rc-s">${s.best >= 2 ? `Your record${s.bestTs ? `, set ${esc(day(s.bestTs))}` : ''}${s.cur && s.cur === s.best ? '. Still going' : ''}` : 'Your record to beat'}</div></div>
     <div class="rcard static"><div class="rc-l">Win rate</div><div class="rc-r">${pctOf(s.rate)}</div><div class="rc-s">${s.w} win${s.w === 1 ? '' : 's'} · ${s.l} loss${s.l === 1 ? '' : 'es'} · ${s.d} draw${s.d === 1 ? '' : 's'}</div></div>
     <div class="rcard static"><div class="rc-l">Milestones</div><div class="rc-r">${ms.length}<span class="prov" style="font-size:.9rem"> of 6</span></div><div class="rc-s">${ms.length ? ms.map((m) => m + ' in a row').join(' · ') : 'Win 3 in a row for the first'}${s.partial ? '. Counted from the latest 1000 games' : ''}</div></div>
-    ${pfHuntCards(r.hunt)}`;
+    ${pfHuntCards(r.hunt)}${pfKingCards(r.king)}`;
 }
 // the moment after a game: a milestone, a new record or the end of a streak, in the site's own toast (once per game, remembered in this browser)
 async function streakToast(r) {
