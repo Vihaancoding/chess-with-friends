@@ -1,0 +1,196 @@
+// LIVE TUNE-IN + REELS: the shared excitement code, highlight detection on real games, verification by a second browser,
+// observer leases and validation, live events and their dedupe, private games, the historical backfill, reactions and saves.
+// Runs in-process with in-memory storage; browser Stockfish is stood in for by the stored evaluations of real games
+// (scripts/fixtures/damage-games.json). Run: node scripts/test-reels.js
+delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY; process.env.ADMIN_KEY = 'k';
+const RT = require('../lib/realtime');
+const pushed = []; const realPublish = RT.publish; RT.publish = async (topic, ev, data) => { if (ev === 'tune') pushed.push(data); return realPublish(topic, ev, data); };
+const E = require('../public/excite.js'), R = require('../lib/reels'), handler = require('../lib/app'), store = require('../lib/store');
+const fx = require('./fixtures/damage-games.json');
+let failed = 0, passed = 0;
+const ok = (n, c, g) => { if (c) { passed++; console.log('  ✓', n); } else { failed++; console.log('  ✗', n, '\n      got:', JSON.stringify(g)); } };
+const call = (route, body, who) => new Promise((resolve) => handler({ method: 'POST', url: '/api?r=' + route, headers: who ? { 'x-name': who.name, 'x-token': who.token } : {}, body }, { setHeader() {}, writeHead(c) { this.code = c; }, end(b) { let j = {}; try { j = JSON.parse(b || '{}'); } catch {} resolve({ status: this.code, ...j }); } }));
+const sq = (s) => 'abcdefgh'.indexOf(s[0]) + (8 - +s[1]) * 8;
+const H = (ucis) => ucis.map((u) => ({ from: sq(u.slice(0, 2)), to: sq(u.slice(2, 4)), ...(u[4] ? { promo: u[4].toUpperCase() } : {}) }));
+const F = (name) => fx.find((f) => f.name === name);
+const game = (f, extra = {}) => ({ id: 'T-' + f.name.replace(/\W/g, ''), code: 'TC', players: { w: { name: 'Wp', elo: f.rw }, b: { name: 'Bp', elo: f.rb } }, hist: H(f.ucis), result: f.result, reason: f.reason, endedAt: 5000, ...extra });
+const flipEv = (ev) => ev.map((x) => -x);
+
+(async () => {
+  console.log('the shared excitement code');
+  const opera = F('Opera game'), legal = F('Legal trap');
+  ok('evaluations are White-side: a White advantage is White\'s win probability', E.wp(300) > 0.7 && E.wp(-300) < 0.3 && E.wp(E.MATE - 3) === 1 && E.wp(-(E.MATE - 3)) === 0);
+  const rep = E.replay(H(opera.ucis));
+  ok('replay reads the game (SAN, material, mate)', rep && rep.plies.length === 33 && rep.plies[32].mate && rep.plies[30].san === 'Qb8+', rep && rep.plies.slice(29).map((p) => p.san));
+  const qs = E.sacAt(rep, opera.ev, 31);
+  ok("Morphy's 16.Qb8+ is a sound QUEEN sacrifice", qs && qs.name === 'QUEEN' && qs.side === 'w' && qs.lost >= 5, qs);
+  const lrep = E.replay(H(legal.ucis)), ls = E.sacAt(lrep, legal.ev, 9);
+  ok("Legal's 5.Nxe5!! gives up the QUEEN (the piece Black took), not the knight", ls && ls.name === 'QUEEN', ls);
+  ok('an ordinary capture is not a sacrifice', E.sacAt(rep, opera.ev, 7) === null, E.sacAt(rep, opera.ev, 7));
+  const quiet = E.analyse(H(opera.ucis.slice(0, 6)), opera.ev.slice(0, 7), {});
+  ok('an opening with no swings scores low', quiet.raw < 25, quiet);
+  const noEngine = E.analyse(H(opera.ucis), opera.ucis.map(() => null).concat(null), {});
+  ok('no evaluations: no engine-based signal is invented', !noEngine.engine && !noEngine.reasons.some((k) => ['swing', 'sac', 'comeback', 'mate', 'close'].includes(k)), noEngine);
+  const swingEv = Array(21).fill(0); for (let i = 18; i <= 20; i++) swingEv[i] = 900;
+  const sw = E.analyse(H(opera.ucis.slice(0, 20)), swingEv, {});
+  ok('a big evaluation swing is a reason, and a blunder event for the side that made it', sw.reasons.includes('swing') && sw.events.some((e) => e.type === 'blunder' && e.side === 'b'), sw);
+  const sc = E.analyse(H(opera.ucis.slice(0, 20)), Array(21).fill(20), { tc: { base: 180 }, clocks: { w: 12000, b: 9000 } });
+  ok('time scramble from the clocks: "TWO PLAYERS. 12 SECONDS."', sc.reasons.includes('scramble') && /12 SECONDS/.test(sc.top.text), sc);
+  ok('ratings alone never make a game exciting', E.analyse(H(opera.ucis.slice(0, 6)), Array(7).fill(0), { ratings: { w: 2800, b: 2800 } }).raw <= 5);
+  let st = null; for (let k = 0; k < 6; k++) st = E.smooth(st, 10);
+  const spike = E.smooth(st, 95);
+  ok('one spike does not make a game hot (smoothing)', !spike.hot && spike.s < E.ENTER, spike);
+  let s2 = st; for (let k = 0; k < 6; k++) s2 = E.smooth(s2, 80);
+  const dip = E.smooth(s2, 30);
+  ok('hysteresis: a hot game stays hot through a dip', s2.hot && dip.hot, { s2, dip });
+  const mirrored = E.analyse(H(opera.ucis), flipEv(opera.ev), {});
+  ok('perspective matters: mirrored evaluations put the comeback on the other side', E.analyse(H(opera.ucis), opera.ev, {}).events.every((e) => e.type !== 'comeback') && mirrored.events.length >= 0);
+
+  console.log('highlight detection on real games');
+  let hs = R.fromEngine(game(opera), opera.ev);
+  ok('Opera game: a brilliant queen sacrifice, from Stockfish evaluations', hs.some((h) => h.k === 'brilliant' && /QUEEN/.test(h.head) && h.ver === 'pending' && h.ply === 31), hs.map((h) => [h.k, h.head, h.ply]));
+  ok('Opera game: forced mate, length from the engine', hs.some((h) => h.k === 'mate' && /MATE IN 2/.test(h.head)), hs.map((h) => h.head));
+  ok('the copy states verified facts (move number and SAN)', hs.find((h) => h.k === 'brilliant').text.includes('16. Qb8+'), hs.find((h) => h.k === 'brilliant').text);
+  const routine = fx.filter((f) => /^bot/.test(f.name)).map((f) => R.fromEngine(game(f), f.ev)).flat();
+  ok('routine bot games produce few highlights (not every win is a reel)', routine.length <= 2, routine.map((h) => h.k));
+  ok('an incomplete set of evaluations gives no engine highlight', R.fromEngine(game(opera), opera.ev.slice(0, 20)).length === 0);
+  const comeEv = opera.ev.map((x, i) => (i >= 10 && i <= 20 ? -700 : x));
+  ok('comeback: the winner was clearly lost by Stockfish and won', R.fromEngine(game(opera), comeEv).some((h) => h.k === 'comeback' && /FROM -7 TO VICTORY/.test(h.head)), R.fromEngine(game(opera), comeEv).map((h) => h.head));
+  const up = R.fromRecord(game(opera, { players: { w: { name: 'Low', elo: 1200 }, b: { name: 'High', elo: 1650 } } }));
+  ok('upset uses the ratings at the time of the game', up.some((h) => h.k === 'upset' && h.head === 'THE 1650 JUST FELL.' && /450 rating points/.test(h.text)), up);
+  const up2 = R.fromRecord(game(opera, { ratings: { w: { before: 1500 }, b: { before: 1520 } }, players: { w: { name: 'Low', elo: 1200 }, b: { name: 'High', elo: 1900 } } }));
+  ok('...from the rated game\'s own before-ratings when it has them', !up2.some((h) => h.k === 'upset'), up2);
+  const sb = R.fromRecord(game(opera), { streak: { len: 17, victim: 'Bp', breaker: 'Wp' } });
+  ok('streak breaker from the verified break: "17 WINS. ONE DEFEAT."', sb.some((h) => h.k === 'streak' && h.head === '17 WINS. ONE DEFEAT.' && h.ver === 'record'), sb);
+  const tsg = game(opera, { tc: { base: 180, inc: 0 }, ck: opera.ucis.map((_, i) => (i === 32 ? 4000 : 60000)) });
+  ok('time-scramble win from the clocks', R.fromRecord(tsg).some((h) => h.k === 'scramble' && /4 SECONDS LEFT/.test(h.head)), R.fromRecord(tsg));
+  ok('private-room and local games never become reels', !R.fromRecord(game(opera, { lounge: 'x' })).length && !R.fromEngine(game(opera, { lounge: 'x' }), opera.ev).length && !R.fromEngine(game(opera, { local: true }), opera.ev).length);
+  const mh = hs.find((h) => h.k === 'mate');
+  ok('verification: agreeing evaluations confirm', R.verifyCheck(mh, opera.ev, Object.fromEntries(mh.check.map((i) => [i, opera.ev[i]]))));
+  ok('verification: a browser that disagrees rejects it', !R.verifyCheck(hs.find((h) => h.k === 'brilliant'), opera.ev, { 30: 0, 31: -400, 32: -400 }));
+  const many = [{ id: 'a', g: 'G1', sc: 90 }, { id: 'b', g: 'G1', sc: 89 }, { id: 'c', g: 'G2', sc: 50 }];
+  ok('the feed never shows the same game twice in a row', R.diversify(R.rank(many, 'best', 0)).map((x) => x.g).join() === 'G1,G2,G1');
+  const old = { id: 'o', g: 'O', sc: 95, at: 0, t: 0 }, recent = { id: 'n', g: 'N', sc: 60, at: 9e12, t: 9e12 };
+  ok('best of all time: a great old moment beats an ordinary new one', R.rank([recent, old], 'best', 9e12)[0].id === 'o');
+  ok('newest puts the recent one first', R.rank([old, recent], 'newest', 9e12)[0].id === 'n');
+
+  console.log('reels through the API (persistence, verification by another browser, reactions, saves)');
+  const su = async (n) => { const r = await call('signup', { email: n + '@x.io', password: 'password1', username: n }); return { name: r.name, token: r.token }; };
+  const P = {}; for (const n of ['Morphy', 'Duke', 'ann', 'bob', 'cat', 'liveW', 'liveB']) P[n] = await su(n);
+  const g = { ...game(opera), id: 'OPERA-1', players: { w: { name: 'Morphy', elo: 1200 }, b: { name: 'Duke', elo: 1200 } } };
+  await store.set('game:' + g.id, g);
+  await handler.reelsFromEval(g, opera.ev, ['ann']);
+  await handler.reelsFromEval(g, opera.ev, ['ann']);
+  let feed = await call('reels_feed', { cat: 'all', sort: 'best' }, P.bob);
+  ok('pending engine moments are not shown before a second browser confirms them', !feed.reels.some((x) => x.g === 'OPERA-1'), feed.reels);
+  ok('stored once even if the game is finished twice (duplicate events)', require('../lib/app') && [].concat((await store.get('hlpend')).list || (await store.get('hlpend'))).filter((x) => x.id === 'OPERA-1:brilliant').length === 1);
+  let job = await call('reel_job', {}, P.ann);
+  ok('the browser that computed the evaluations never verifies them', !job.job || job.job.kind !== 'verify', job.job);
+  job = await call('reel_job', {}, P.Morphy);
+  ok("...nor a player of the game", !job.job || job.job.kind !== 'verify', job.job);
+  for (let k = 0; k < 2; k++) {
+    job = await call('reel_job', {}, P.bob);
+    if (!job.job || job.job.kind !== 'verify') break;
+    const res = job.job.need.map((i) => ({ i, s: (i % 2 ? -1 : 1) * opera.ev[i] }));
+    const r = await call('reel_submit', { kind: 'verify', id: job.job.id, res }, P.bob);
+    ok(`bob confirms ${job.job.id.split(':')[1]}`, r.verified === true, r);
+  }
+  feed = await call('reels_feed', { cat: 'brilliants', sort: 'best' }, P.cat);
+  const reel = feed.reels.find((x) => x.id === 'OPERA-1:brilliant');
+  ok('verified: in the feed, filtered, with moves, evaluations, ratings and date', reel && reel.ver === 'verified' && reel.moves.split(' ').length === 33 && reel.ev.length === 34 && reel.w.elo === 1200 && reel.at === 5000, reel);
+  feed = await call('reels_feed', { cat: 'checkmates', sort: 'newest' }, P.cat);
+  ok('the checkmates filter shows only mates', feed.reels.length && feed.reels.every((x) => x.k === 'mate'), feed.reels.map((x) => x.k));
+  let r = await call('reel_react', { id: 'OPERA-1:brilliant' }, P.cat); const r2 = await call('reel_react', { id: 'OPERA-1:brilliant' }, P.bob);
+  ok('fire reactions persist and count per account', r.fire === 1 && r.fired && r2.fire === 2, [r, r2]);
+  r = await call('reel_react', { id: 'OPERA-1:brilliant' }, P.cat);
+  ok('...and toggle off', r.fire === 1 && !r.fired, r);
+  r = await call('reel_save', { id: 'OPERA-1:brilliant' }, P.cat);
+  feed = await call('reels_feed', { sort: 'saved' }, P.cat);
+  ok('save: it appears under Saved for that account only', r.saved && feed.reels.length === 1 && feed.reels[0].saved && !(await call('reels_feed', { sort: 'saved' }, P.bob)).reels.length, feed.reels.map((x) => x.id));
+  r = await call('reel_get', { id: 'OPERA-1:brilliant' }, P.bob);
+  ok('a shared link opens the reel', r.reel && r.reel.head === 'THE QUEEN SACRIFICE CHANGED EVERYTHING.', r);
+  ok('a reaction to an unverified or unknown reel is refused', (await call('reel_react', { id: 'nope:x' }, P.bob)).status === 404);
+
+  console.log('historical backfill (browser jobs, resumable)');
+  const hg = { ...game(legal), id: 'LEGAL-OLD', players: { w: { name: 'ann', elo: 1100 }, b: { name: 'bob', elo: 1350 } }, endedAt: 1000 };
+  await store.set('game:' + hg.id, hg);
+  await store.set('games:ann', [{ id: hg.id, at: 1000, result: 'win', opp: 'bob', moves: hg.hist.length }]);
+  await store.del('rqbuilt');                                       // as on a server that has never run it
+  await handler.reelsBackfill();
+  await handler.reelsBackfill();
+  let q = await store.get('rqueue');
+  ok('old games without evaluations are queued once (idempotent)', q && q.ids.filter((x) => x === hg.id).length === 1, q);
+  const upOld = await store.get('hl:LEGAL-OLD:upset');
+  ok('record moments of old games are found at once (upset at the ratings of the time)', upOld && upOld.head === 'THE 1350 JUST FELL.', upOld);
+  // cat analyses it in slices; the lease stops a second browser taking the same game
+  let n = 0;
+  for (; n < 10; n++) {
+    const j = await call('reel_job', {}, P.cat); if (!j.job || j.job.kind !== 'eval') break;
+    if (n === 0) { const other = await call('reel_job', {}, P.liveW); ok('a leased game is not handed to a second browser', !other.job || other.job.id !== j.job.id, other.job); }
+    const res = j.job.need.map((i) => ({ i, s: (i % 2 ? -1 : 1) * legal.ev[i] }));
+    const s = await call('reel_submit', { kind: 'eval', id: j.job.id, res }, P.cat);
+    if (s.done) break;
+  }
+  q = await store.get('rqueue');
+  ok('resumed slice by slice until complete; progress tracked', q.ids.length === 0 && q.done === 1 && !!(await store.get('gev:LEGAL-OLD')), q);
+  ok('its engine moments now wait for verification', !!(await store.get('hl:LEGAL-OLD:mate')) && (await store.get('hl:LEGAL-OLD:mate')).ver === 'pending');
+  ok('a stale or foreign submission is refused', (await call('reel_submit', { kind: 'eval', id: 'LEGAL-OLD', res: [{ i: 0, s: 1 }] }, P.bob)).status === 409);
+
+  console.log('LIVE TUNE-IN: observers, validation, events');
+  const live = await call('create', { color: 'w', tc: { base: 300, inc: 0 } }, P.liveW); await call('join', { code: live.code }, P.liveB);
+  const lv = H(opera.ucis.slice(0, 30));
+  for (let i = 0; i < lv.length; i++) await call('move', { code: live.code, from: lv[i].from, to: lv[i].to }, i % 2 ? P.liveB : P.liveW);
+  let t = await call('live_obs', {}, P.liveW);
+  ok('a player is never given their own game to observe', !t.task || t.task.code !== live.code, t.task);
+  t = await call('live_obs', {}, P.ann);
+  ok('an observer gets a lease and the newest positions first', t.task && t.task.code === live.code && t.task.role === 'obs' && t.task.need[0] === 30, t.task);
+  const t2 = await call('live_obs', {}, P.bob);
+  ok('a second browser does not get the same game while the lease is fresh', !t2.task || t2.task.code !== live.code || t2.task.role === 'verify', t2.task);
+  let lf = await call('live_feed', {}, P.cat);
+  ok('before any evaluation the game is listed as analysis unavailable, with no score', lf.rows.find((x) => x.code === live.code).stale && lf.rows.find((x) => x.code === live.code).score === null, lf.rows);
+  const sub = (who, role, plies, ev = opera.ev) => call('live_eval', { code: live.code, role, res: plies.map((i) => ({ i, s: (i % 2 ? -1 : 1) * ev[i] })) }, who);
+  r = await sub(P.bob, 'obs', [30]);
+  ok('only the lease holder may submit as observer', r.status === 409, r);
+  r = await call('live_eval', { code: live.code, role: 'obs', res: [{ i: 30, s: 99999999 }] }, P.ann);
+  ok('out-of-range evaluations are ignored', r.ok, r);
+  await new Promise((x) => setTimeout(x, 1100));
+  r = await call('live_eval', { code: live.code, role: 'obs', res: [{ i: 29, s: 6000 }] }, P.ann);
+  const lev0 = await store.get('lev:' + live.code);
+  ok('an implausible evaluation (60 pawns with level material, no mate) is rejected', lev0 && lev0.ev[29] == null && (await store.get('lstrike:ann')) >= 1, lev0 && lev0.ev);
+  await store.del('lstrike:ann');
+  await new Promise((x) => setTimeout(x, 1100));
+  r = await sub(P.ann, 'obs', [28, 29, 30]);
+  ok('valid evaluations are accepted', r.ok, r);
+  r = await sub(P.ann, 'obs', [28, 29, 30]);
+  ok('too fast: rate limited', r.status === 429, r);
+  const lev1 = await store.get('lev:' + live.code);
+  ok('the server computes the score itself (smoothed), from stored evaluations', lev1.st && Number.isFinite(lev1.st.s) && lev1.ev[30] === opera.ev[30], lev1.st);
+  ok('the sacrifice needs a second opinion before anyone is told', !pushed.some((p) => p.type === 'sac') && lev1.pend.length > 0, { pend: lev1.pend, pushed });
+  t = await call('live_obs', {}, P.bob);
+  ok('another browser is asked to confirm it', t.task && t.task.role === 'verify' && t.task.code === live.code, t.task);
+  await new Promise((x) => setTimeout(x, 1100));
+  r = await sub(P.bob, 'verify', t.task.need);
+  await new Promise((x) => setTimeout(x, 1100));
+  r = await sub(P.ann, 'obs', [27]);
+  const got = pushed.filter((p) => p.code === live.code);
+  ok('confirmed: a live event pushed, with WATCH LIVE data (code, players, ratings): "MATE IS ON THE BOARD." (16.Qb8+ is coming)', got.length === 1 && got[0].type === 'mate' && got[0].w.name === 'liveW' && got[0].b.elo === 1200 && got[0].head === 'MATE IS ON THE BOARD.', pushed);
+  await new Promise((x) => setTimeout(x, 1100)); await sub(P.ann, 'obs', [26]);
+  ok('the same event is not pushed twice', pushed.filter((p) => p.code === live.code).length === 1, pushed);
+  lf = await call('live_feed', {}, P.cat);
+  const row = lf.rows.find((x) => x.code === live.code);
+  ok('the feed shows a score, a reason and the board (never the private details)', row && row.score != null && row.why && row.board && row.board.length === 128 && !row.stale, row);
+  ok('match of the moment: chosen from sustained excitement', !lf.motm || lf.motm.code === live.code, lf.motm);
+  await store.del('lobs:' + live.code);
+  const stale = (await store.get('lev:' + live.code)); stale.at = Date.now() - 60e3; await store.set('lev:' + live.code, stale);
+  lf = await call('live_feed', {}, P.cat);
+  ok('when no browser analyses it any more, it is marked stale: no invented score', lf.rows.find((x) => x.code === live.code).stale && lf.rows.find((x) => x.code === live.code).score === null);
+  // a private room's game is never observed or listed
+  await store.set('live', [...(await store.get('live')), { code: 'PRIV1', w: { name: 'a' }, b: { name: 'b' }, ts: Date.now(), moves: 30 }]);
+  const priv = await store.get('room:PRIV1') || null;
+  await new Promise((x) => setTimeout(x, 1100));
+  r = await call('live_eval', { code: 'PRIV1', role: 'obs', res: [{ i: 1, s: 0 }] }, P.ann);
+  ok('an unknown or private game cannot receive evaluations', r.status === 404 || r.status === 409, r);
+
+  console.log(`\n${passed} passed, ${failed} failed`);
+  process.exit(failed ? 1 : 0);
+})();

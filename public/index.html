@@ -714,6 +714,39 @@
   /* ---------- win streaks: the same card, tabs and table as the leaderboard; profile cards reuse .rcard ---------- */
   #strkcard, #statscard, #shcard { margin-top: 16px; } #shcard h2, #strkcard h2, #statscard h2 { margin: 0 0 10px; font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 10px; } #strkcard h2 svg, #shcard h2 svg { width: 22px; height: 22px; color: var(--gold); }
   #strkcard .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; } #strkcard .head h2 { margin: 0; } #strkcard .lbtabs { max-width: 100%; overflow-x: auto; }
+  /* LIVE TUNE-IN */
+  #tune { max-width: 1000px; margin: 0 auto; padding: 22px 20px 40px; display: flex; flex-direction: column; gap: 16px; }
+  .tnhead { display: flex; align-items: baseline; gap: 12px; } .tnhead .ptitle { margin: 0; }
+  #tune .head h2 { margin: 0 0 6px; font-size: 1.25rem; font-weight: 800; } #tune h3 { margin: 14px 0 2px; font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .tnmotm { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; border-left: 4px solid var(--gold); }
+  .tnmb { display: flex; gap: 6px; } .tnboard { display: grid; grid-template-columns: repeat(8, 1fr); width: 260px; aspect-ratio: 1; border-radius: 5px; overflow: hidden; }
+  .tnmi { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; } .tnk { font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+  .tnhd { font-size: 1.35rem; font-weight: 800; text-transform: uppercase; line-height: 1.2; } .tnp { font-weight: 700; } .tnmeta { font-size: .85rem; } .tnmeta b { color: var(--text); }
+  .tnrow { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); } .tnrow:first-child { border-top: 0; }
+  .tnmini { display: grid; grid-template-columns: repeat(8, 1fr); width: 72px; aspect-ratio: 1; border-radius: 3px; overflow: hidden; } .tnmini .sq, .tnboard .sq { cursor: default; }
+  .tnopt, #tune label.tnopt { display: flex; flex-direction: row; gap: 10px; align-items: center; justify-content: flex-start; text-align: left; padding: 5px 0; margin: 0; font-weight: 600; cursor: pointer; } .tnopt input { order: 0; flex: none; } .tnopt input { min-height: 0; width: 16px; height: 16px; accent-color: var(--green); }
+  .tnwhy { font-weight: 700; font-size: .9rem; margin: 2px 0; } .tncats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 4px 0 6px 22px; } .tnnote { font-size: .85rem; margin: 6px 0 10px; }
+  .rlbar { position: relative; width: 22px; flex: none; border-radius: 4px; overflow: hidden; background: #403d39; } .rlbar i { position: absolute; left: 0; right: 0; bottom: 0; background: #f1f1f1; transition: height .45s ease; }
+  .rlbar.flip i { bottom: auto; top: 0; } .rlbar span { position: absolute; left: 0; right: 0; text-align: center; font-size: .6rem; font-weight: 800; z-index: 1; } .rlbar span.w { bottom: 4px; color: #403d39; } .rlbar span.b { top: 4px; color: #f1f1f1; }
+  .rlbar.flip span.w { bottom: auto; top: 4px; } .rlbar.flip span.b { top: auto; bottom: 4px; }
+  /* REELS */
+  #reels { padding: 14px 20px 0; } .rlhead { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .rlgrid { display: grid; grid-template-columns: 240px minmax(0, 540px) 270px; gap: 76px; justify-content: center; align-items: start; }
+  .rlside { background: var(--panel); border-radius: 10px; padding: 14px; max-height: calc(100vh - 110px); overflow-y: auto; font-size: .88rem; } .rlsh { font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 8px; } .rlsh:first-child { margin-top: 0; }
+  .rlmain { position: relative; } .rlfeed { height: calc(100vh - 92px); overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; } .rlfeed::-webkit-scrollbar { display: none; }
+  .reel { scroll-snap-align: start; height: calc(100% - 64px); display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; box-sizing: border-box; }
+  .rlboardrow { display: flex; gap: 6px; justify-content: center; } .rlboard { display: grid; grid-template-columns: repeat(8, 1fr); width: min(100% - 28px, calc(100vh - 390px)); aspect-ratio: 1; border-radius: 5px; overflow: hidden; box-shadow: 0 8px 24px -10px #0009; cursor: pointer; } .rlboard .sq { cursor: pointer; }
+  .rlpills { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .rlpill { display: flex; align-items: center; gap: 8px; min-height: 0; padding: 5px 14px 5px 5px; border-radius: 999px; background: var(--panel); box-shadow: none; font-weight: 700; justify-content: flex-start; } .rlpill .avi { border-radius: 50%; } .rlpn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .rlpill .muted { margin-left: auto; font-weight: 600; }
+  .rlcard { background: var(--panel); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; } .rltags { display: flex; gap: 6px; align-items: center; } .rltags .badge { margin-left: 0; } .rldate { font-size: .8rem; }
+  .rlhd { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; line-height: 1.2; } .rltx { font-weight: 600; color: var(--muted); font-size: .92rem; }
+  .rlempty { padding: 60px 20px; text-align: center; } .rlmore { height: 64px; align-items: center; justify-content: center; }
+  .rlrail { position: absolute; right: -60px; top: 18%; display: flex; flex-direction: column; gap: 10px; } .rlrail button { width: 46px; height: 46px; min-height: 0; padding: 0; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1.05rem; position: relative; }
+  .rlrail button svg { width: 20px; height: 20px; } .rlrail button span { position: absolute; bottom: -15px; font-size: .7rem; color: var(--muted); } .rlrail button[data-ra="fire"] { margin-bottom: 12px; } .rlrail button.on { background: #3b4a2b; } .rlrail button:disabled { opacity: .4; cursor: default; }
+  .rlmoves { display: grid; gap: 2px; } .rlmv { display: grid; grid-template-columns: 30px 1fr 1fr; align-items: center; } .rlmv button { min-height: 0; padding: 2px 6px; background: none; box-shadow: none; text-align: left; font-weight: 600; border-radius: 4px; } .rlmv button.inseq { color: var(--text); background: #ffffff0d; } .rlmv button.on { background: #3b4a2b; color: #fff; }
+  .rlspark { width: 100%; height: 48px; background: #1f1e1b; border-radius: 6px; } .rlspark polyline { fill: none; stroke: var(--green); stroke-width: 1.6; vector-effect: non-scaling-stroke; } .rlspark line { stroke: var(--line); vector-effect: non-scaling-stroke; } .rlspark circle { fill: var(--gold); }
+  .rlnext { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-height: 0; padding: 8px 10px; margin-bottom: 6px; background: #1f1e1b; box-shadow: none; text-align: left; font-size: .85rem; } .rlnext .badge { margin-left: 0; }
+  .rllive { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: start; margin-bottom: 10px; } .rllive .tnmini { width: 64px; } .rllp { font-weight: 700; } .rllw { font-size: .8rem; margin: 2px 0 6px; }
+  @media (max-width: 1199px) { .rlside { display: none; } .rlgrid { grid-template-columns: minmax(0, 540px); } }
   #shcard .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; } #shcard .head h2 { margin: 0; }
   #shcard td.big { font-weight: 800; font-size: 1.05rem; } #shcard td.act { width: 1%; white-space: nowrap; } #shcard .shnote { margin: 0 0 10px; font-size: .9rem; } #shcard .shnote b { color: var(--text); }
   #shcard .shme { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 12px; background: var(--panel2); border-radius: 8px; font-size: .9rem; font-weight: 600; } #shcard .shme b { color: var(--text); }
@@ -1354,6 +1387,8 @@
   <div class="brand"><img src="/piece/cburnett/wN.svg" alt="" onerror="this.remove()"><span>Chess<b>.</b></span></div>
   <div class="nav">
     <button id="navPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play</button>
+    <button id="navTune"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19.1 4.9a10 10 0 0 1 0 14.2M4.9 19.1a10 10 0 0 1 0-14.2"/></svg> Live</button>
+    <button id="navReels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 8h18M8 3l3 5M14 3l3 5M10 12l5 3-5 3z"/></svg> Reels</button>
     <button id="navLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg> Learn</button>
     <button id="navPuzzles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H7a2 2 0 0 0-2 2v3a2 2 0 1 1 0 4v3a2 2 0 0 0 2 2h3a2 2 0 1 1 4 0h3a2 2 0 0 0 2-2v-3a2 2 0 1 0 0-4V5a2 2 0 0 0-2-2h-3a2 2 0 1 0-4 0z"/></svg> Puzzles</button>
     <button id="navCoach" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg> Coach</button>
@@ -1587,6 +1622,16 @@
 </div>
 
 <!-- coach -->
+<div id="tune" class="hidden">
+  <div class="tnhead"><h1 class="ptitle">Live</h1><span class="muted" id="tnSub"></span></div>
+  <div id="tnMotm"></div>
+  <div class="panel"><div class="head"><h2>Happening now</h2></div><div id="tnList"><div class="muted">Loading…</div></div></div>
+  <div class="panel" id="tnPrefs"></div>
+</div>
+<div id="reels" class="hidden">
+  <div class="rlhead"><div class="lbtabs" id="rlCats"></div><div class="lbtabs" id="rlSort"></div></div>
+  <div class="rlgrid"><aside class="rlside" id="rlLeft"></aside><div class="rlmain"><div class="rlfeed" id="rlFeed"></div><div class="rlrail" id="rlRail"></div></div><aside class="rlside" id="rlRight"></aside></div>
+</div>
 <div id="rivals" class="hidden">
   <div id="rvHome">
     <header class="rvhead">
@@ -1925,6 +1970,7 @@
 <script src="match.js"></script>
 <script src="tournament.js"></script>
 <script src="sfengine.js"></script>
+<script src="excite.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
@@ -1961,7 +2007,7 @@ function pieceHTML(p) {
 }
 // The Coach is archived: hidden from the menu, and ?coach links open the main page. Set to false to bring it back.
 const COACH_ARCHIVED = true;
-const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge', 'sandbox', 'puzzles'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
+const show = (id) => { if (id === 'game') ensureOpenings(); document.body.dataset.view = id; ['welcome', 'lobby', 'game', 'admin', 'profile', 'learn', 'coach', 'tours', 'rivals', 'lounge', 'sandbox', 'puzzles', 'tune', 'reels'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== id)); };
 
 let user = null;       // { name, token, elo, ... }
 let view = 'welcome';
@@ -2090,7 +2136,7 @@ function sseEnsure() {
     for (const t of SSE.topics.values()) t.onState && t.onState(false);
     if (es.readyState === 2) setTimeout(sseEnsure, 1000);               // closed for good: reopen
   };
-  for (const ev of ['m', 's', 'c', 'cd', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem', 'sbreak']) es.addEventListener(ev, (e) => {
+  for (const ev of ['m', 's', 'c', 'cd', 'r', 'ping', 'chat', 'chatdel', 'tbl', 'mem', 'sbreak', 'tune']) es.addEventListener(ev, (e) => {
     let d; try { d = JSON.parse(e.data); } catch { return; }
     for (const t of SSE.topics.values()) if (t.handlers[ev]) t.handlers[ev](d);
   });
@@ -2148,7 +2194,7 @@ function ensureSessionSubs() {
   if (rtSession || !user || !user.topic) return;
   rtSession = true;
   rtSubscribe(user.topic, { ping: onUserPing }, (ok) => { rtLobbyLive = ok; paintRtDot(); if (ok && view === 'lobby') pollLobby(false); });
-  rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel, sbreak: onStreakBreak }, () => {});
+  rtSubscribe('lobby', { chat: onRtChat, chatdel: onRtChatDel, sbreak: onStreakBreak, tune: (e) => onTune(e) }, () => {});
 }
 function onUserPing(d) {
   if (d.why === 'cd' && d.ev && d.code === gameCode) return onGameChatDel(d.ev);
@@ -2354,6 +2400,9 @@ async function start() {
   if (params.has('rival')) return enterRivals(params.get('rival'));
   if (params.has('rivalry')) { const [a, b] = String(params.get('rivalry')).split('~'); if (a && b) return enterRivals(null, { a, b }); }
   if (params.has('rivals')) return enterRivals();
+  if (params.has('reel')) return enterReels({ id: params.get('reel') });
+  if (params.has('reels')) return enterReels();
+  if (params.has('live')) return enterTune();
   if (params.has('admin')) wantAdmin = true;
   const q = params.get('game'), aid = params.get('archive');
   if (aid) return enterArchive(aid);
@@ -2880,6 +2929,8 @@ function enterRivals(name, pub) {
   }, 5000);
 }
 $('#navRivals').onclick = () => enterRivals();
+$('#navTune').onclick = () => enterTune();
+$('#navReels').onclick = () => enterReels();
 async function rvLoad() {
   const name = RV.name, pub = RV.pub;
   if (pub) {                                                                 // someone else's rivalry
@@ -4410,7 +4461,7 @@ function chatToast(m, awayCode) {
 }
 function showToast(icon, html, more, awayCode) {
   const t = $('#chatToast');
-  t.dataset.code = awayCode || ''; t.dataset.lobby = ''; t.dataset.tour = ''; t.dataset.chat = ''; t.dataset.profile = ''; t.dataset.game = ''; t.classList.remove('shbig');
+  t.dataset.code = awayCode || ''; t.dataset.lobby = ''; t.dataset.tour = ''; t.dataset.chat = ''; t.dataset.profile = ''; t.dataset.game = ''; t.dataset.watch = ''; t.classList.remove('shbig');
   t.innerHTML = `<span class="ct-i">${icon}</span><div>${html}<div class="ct-more">${more}</div></div>`;
   t.classList.add('show');
   clearTimeout(chatToastTimer); chatToastTimer = setTimeout(hideChatToast, 5000);
@@ -4433,6 +4484,7 @@ $('#chatToast').onclick = () => {
   const tt = $('#chatToast').dataset;
   if (tt.profile) { tt.profile = ''; return enterProfile(user.name); }
   if (tt.game) { const g = tt.game; tt.game = ''; return enterArchive(g); }
+  if (tt.watch) { const c = tt.watch; tt.watch = ''; return watchLive(c); }
   if (tt.tour) { enterTours(tt.tour); if (tt.chat) setTimeout(() => $('#tcIn').focus({ preventScroll: false }), 400); return; }
   if (tt.lobby) { enterLobby(); if (tt.chat) setTimeout(() => { $('#chatcard').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('#chatIn').focus({ preventScroll: true }); }, 300); return; }
   if (code) { enterGame(code); setTimeout(() => $('#gcIn').focus({ preventScroll: true }), 300); return; }
@@ -7360,6 +7412,304 @@ async function loadStreaks(force) {
   const r = await api('streak_board'); if (r.ok) { strkRows = r.rows; strkMin = r.min || 10; paintStreaks(); }
 }
 $('#strkcard').addEventListener('click', (e) => { const b = e.target.closest('[data-sk]'); if (b) { strkTab = b.dataset.sk; paintStreaks(); } });
+// ===================== SHARED BROWSER ANALYSIS (LIVE TUNE-IN + REELS) =====================
+// Stockfish runs here, in Web Workers (sfengine.js), never on the server. One job at a time, bounded per position, only
+// while the tab is visible and you aren't playing. In order: a public live game to observe (LIVE TUNE-IN), the existing
+// move-stats queue (every finished game's evaluations: they also feed REELS), then a REELS check or an old game (backfill).
+const HELP = { busy: false, cancel: 0, last: null, on: (() => { try { return localStorage.getItem('chess:help') !== '0'; } catch { return true; } })() };
+const helpPlaying = () => view === 'game' && snap && !snap.status.over && (snap.you === 'w' || snap.you === 'b');
+function sfEval(job, token) {                                                // [{ i, s }]: s from the side to move's point of view
+  const hist = job.hist, states = [Chess.initial()];
+  for (let k = 0; k < hist.length; k++) { const st = states[k], h = hist[k]; const m = Chess.legalMoves(st).find((x) => x.from === h.from && x.to === h.to && (x.promo || null) === (h.promo || null)); if (!m) throw new Error('illegal game'); states.push(Chess.apply(st, m)); }
+  const one = (i) => new Promise((resolve, reject) => {
+    const w = new StockfishWorker(), id = 'h' + Math.random().toString(36).slice(2), to = setTimeout(() => { w.terminate(); reject(new Error('timeout')); }, 15000);
+    let got = null;
+    w.onmessage = (e) => { const d = e.data; if (d.id !== id) return; if (d.done) { clearTimeout(to); w.terminate(); got ? resolve(got) : reject(new Error('no result')); } else got = { i: d.i, s: d.bestScore }; };
+    w.onerror = (e) => { clearTimeout(to); w.terminate(); reject(new Error(e.message || 'engine error')); };
+    w.postMessage({ type: 'analyze', id, states, hist, order: [i], ms: job.ms || 300 });
+  });
+  return (async () => {
+    const out = [];
+    for (const i of job.need) {
+      if (token !== HELP.cancel) throw new Error('cancelled');                // superseded: the page changed or you started a game
+      out.push(await one(i));
+      await new Promise((r) => setTimeout(r, document.hidden ? 1500 : 60));   // breathe: never hog the processor
+    }
+    return out;
+  })();
+}
+async function helpTick() {
+  if (HELP.busy || !HELP.on || !user || !window.StockfishWorker || !(window.Stockfish && Stockfish.available) || document.hidden || helpPlaying() || statsBusy) return;
+  HELP.busy = true; const token = HELP.cancel;
+  try {
+    let r = await api('live_obs');
+    if (r.ok && r.task && r.task.need.length) { HELP.last = 'live'; const res = await sfEval(r.task, token); await api('live_eval', { code: r.task.code, role: r.task.role, res }); return; }
+    r = await api('stats_job');
+    if (r.ok && r.job) { HELP.last = 'stats'; const res = await sfEval({ hist: r.job.hist, need: r.job.need, ms: r.job.verify ? 900 : 220 }, token); await api('stats_submit', { id: r.job.id, res }); return; }
+    r = await api('reel_job');
+    if (r.ok && r.job && r.job.need.length) { HELP.last = 'reel'; const res = await sfEval(r.job, token); await api('reel_submit', { kind: r.job.kind, id: r.job.id, res }); }
+  } catch (e) { if (e.message !== 'cancelled') console.warn('analysis helper:', e && e.message); }
+  finally { HELP.busy = false; }
+}
+setInterval(helpTick, 4000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) HELP.cancel++; });   // background tab: stop at the next position
+
+// a board from a position: an array of 64 ('wK', null, ...) or the server's 128-character string; hl = squares to mark
+function boardOf(src) { if (Array.isArray(src)) return src; const out = []; for (let i = 0; i < 64; i++) { const p = String(src || '').slice(2 * i, 2 * i + 2); out.push(p && p !== '--' ? p : null); } return out; }
+function miniBoardHTML(src, { flip = false, hl = [] } = {}) {
+  const b = boardOf(src); let h = '';
+  for (let k = 0; k < 64; k++) { const sq = flip ? 63 - k : k; h += `<div class="sq ${((sq >> 3) + (sq & 7)) % 2 ? 'd' : 'l'}${hl.includes(sq) ? ' last' : ''}">${b[sq] ? pieceHTML(b[sq]) : ''}</div>`; }
+  return h;
+}
+const evPct = (cp) => (cp == null ? 50 : Math.round(100 * Excite.wp(cp)));
+const evLabel = (cp) => { if (cp == null) return ''; if (!Excite.isMate(cp)) return (Math.abs(cp) / 100).toFixed(1); const m = Math.ceil((Excite.MATE - Math.abs(cp)) / 2); return m ? 'M' + m : '#'; };
+function evBarHTML(cp, flip) {
+  const p = evPct(cp), w = cp == null || cp >= 0;
+  return `<div class="rlbar${flip ? ' flip' : ''}" title="Stockfish"><i style="height:${p}%"></i><span class="${w ? 'w' : 'b'}">${esc(evLabel(cp))}</span></div>`;
+}
+
+// ===================== LIVE TUNE-IN =====================
+let TN = { rows: [], motm: null, order: [], timer: null };
+function enterTune() {
+  stopLobby(); stopGame(); stopAdmin(); stopTour(); stopRivals();
+  view = 'tune'; gameCode = null; history.replaceState(null, '', '/?live');
+  show('tune'); paintTunePrefs(); loadTune();
+  clearInterval(TN.timer); TN.timer = setInterval(() => { if (view !== 'tune') { clearInterval(TN.timer); TN.timer = null; return; } if (!document.hidden) loadTune(); }, 5000);
+}
+async function loadTune() { const r = await api('live_feed'); if (!r.ok) return; TN.rows = r.rows; TN.motm = r.motm; paintTune(); }
+// stable order: a game only moves up past another when it is clearly more exciting (8+ points), so the list doesn't jump
+function tuneOrder(rows) {
+  const sc = (r) => (r.score == null ? -1 : r.score), prev = TN.order.filter((c) => rows.some((r) => r.code === c));
+  const fresh = rows.filter((r) => !prev.includes(r.code)).map((r) => r.code), list = [...prev, ...fresh].map((c) => rows.find((r) => r.code === c));
+  for (let i = 1; i < list.length; i++) for (let j = i; j > 0 && sc(list[j]) > sc(list[j - 1]) + 8; j--) [list[j - 1], list[j]] = [list[j], list[j - 1]];
+  TN.order = list.map((r) => r.code);
+  return list;
+}
+const tnPlayers = (r) => `<span class="plink" data-name="${esc(r.w.name)}">${esc(r.w.name)}</span> <span class="muted">${r.w.elo || ''}</span> <span class="muted">vs</span> <span class="plink" data-name="${esc(r.b.name)}">${esc(r.b.name)}</span> <span class="muted">${r.b.elo || ''}</span>`;
+function paintTune() {
+  const m = TN.motm && TN.motm.row;
+  setHTML($('#tnMotm'), m ? `<div class="panel tnmotm"><div class="tnmb">${evBarHTML(m.ev)}<div class="tnboard">${miniBoardHTML(m.board || '')}</div></div>
+    <div class="tnmi"><div class="tnk">Match of the moment</div><div class="tnhd">${esc(TN.motm.why || m.why || 'The most exciting game on the site right now.')}</div><div class="tnp">${tnPlayers(m)}</div>
+    <div class="muted tnmeta">Excitement <b>${m.score}</b> · move ${Math.ceil(m.moves / 2)}${m.viewers ? ` · ${m.viewers} watching` : ''}</div><button class="primary" data-tnw="${esc(m.code)}">Watch live</button></div></div>` : '');
+  const rows = tuneOrder(TN.rows.filter((r) => !m || r.code !== m.code)), hot = rows.filter((r) => r.hot), rest = rows.filter((r) => !r.hot);
+  const row = (r) => `<div class="tnrow"><div class="tnmini">${miniBoardHTML(r.board || '')}</div><div class="tnri"><div class="tnp">${tnPlayers(r)}</div>
+    <div class="tnwhy">${r.stale ? '<span class="muted">Analysis unavailable: no browser is analysing this game right now.</span>' : esc(r.why || 'Quiet for now.')}</div>
+    <div class="muted tnmeta">${r.score != null ? `Excitement <b>${r.score}</b> · ` : ''}move ${Math.ceil((r.moves || 0) / 2)}${r.viewers ? ` · ${r.viewers} watching` : ''}${r.mx ? ` · ${esc(r.mx.t)} game ${r.mx.g}` : ''}</div></div>
+    <button class="${r.hot ? 'primary' : ''} small" data-tnw="${esc(r.code)}">Watch live</button></div>`;
+  setHTML($('#tnList'), rows.length ? `${hot.map(row).join('')}${rest.length ? `${hot.length ? '<h3>Also live</h3>' : ''}${rest.map(row).join('')}` : ''}` : '<div class="muted" style="padding:8px 0">No public games are being played right now.</div>');
+  setText($('#tnSub'), `${TN.rows.length} live game${TN.rows.length === 1 ? '' : 's'}`);
+}
+async function watchLive(code) { const r = await api('join', { code }); if (r.ok) enterGame(r.code || code, r.snap); else showToast('⚠', `<span class="ct-t">${esc(r.error || 'That game is over.')}</span>`, ''); }
+$('#tune').addEventListener('click', (e) => {
+  const w = e.target.closest('[data-tnw]'); if (w) return watchLive(w.dataset.tnw);
+  const n = e.target.closest('.plink'); if (n) return enterProfile(n.dataset.name);
+});
+// notification preferences: the categories you want to hear about (this device), on top of the browser's own permission
+const TUNE_CATS = [['tactics', 'Tactical battles'], ['comeback', 'Comebacks'], ['scramble', 'Time scrambles'], ['brilliant', 'Brilliant moves'], ['high', 'High-rated games'], ['friends', 'Games with people from your rooms'], ['streak', 'Players on big streaks'], ['motm', 'Match of the moment']];
+let TP = (() => { try { return { on: true, cats: { tactics: 1, comeback: 1, scramble: 1, brilliant: 1, streak: 1, motm: 1 }, ...(JSON.parse(localStorage.getItem('chess:tune')) || {}) }; } catch { return { on: true, cats: {} }; } })();
+const saveTP = () => { try { localStorage.setItem('chess:tune', JSON.stringify(TP)); } catch {} };
+function paintTunePrefs() {
+  const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+  setHTML($('#tnPrefs'), `<div class="head"><h2>Alerts</h2></div>
+    <label class="tnopt"><input type="checkbox" data-tp="on" ${TP.on ? 'checked' : ''}> Tell me when something big happens in a live game</label>
+    <div class="tncats">${TUNE_CATS.map(([k, l]) => `<label class="tnopt"><input type="checkbox" data-tpc="${k}" ${TP.cats[k] ? 'checked' : ''} ${TP.on ? '' : 'disabled'}> ${l}</label>`).join('')}</div>
+    <div class="muted tnnote">Alerts show on the page wherever you are on the site${perm === 'granted' ? ', and as a system notification when this tab is in the background' : perm === 'default' ? '. <button class="small" data-tp="perm">Also notify me when the tab is in the background</button>' : ''}. Never while you're playing, never for a game you're already watching, at most one every 75 seconds.</div>
+    <label class="tnopt"><input type="checkbox" data-tp="help" ${HELP.on ? 'checked' : ''}> Help analyse live games and highlights with Stockfish in this browser (only while the tab is open and you're not playing)</label>`);
+}
+$('#tnPrefs').addEventListener('change', (e) => {
+  const c = e.target.closest('[data-tpc]'); if (c) { TP.cats[c.dataset.tpc] = c.checked ? 1 : 0; saveTP(); return; }
+  const t = e.target.closest('[data-tp]');
+  if (t && t.dataset.tp === 'on') { TP.on = t.checked; saveTP(); paintTunePrefs(); }
+  if (t && t.dataset.tp === 'help') { HELP.on = t.checked; HELP.cancel++; try { localStorage.setItem('chess:help', t.checked ? '1' : '0'); } catch {} }
+});
+$('#tnPrefs').addEventListener('click', async (e) => { if (e.target.closest('[data-tp="perm"]')) { try { await Notification.requestPermission(); } catch {} paintTunePrefs(); } });
+let myRoomPeople = null;
+async function roomPeople() {
+  if (myRoomPeople) return myRoomPeople;
+  myRoomPeople = new Set();
+  const r = await api('lounge_mine'); if (!r.ok) return myRoomPeople;
+  for (const x of (r.rooms || []).filter((x) => x.st === 'in').slice(0, 10)) { const g = await api('lounge_get', { id: x.id }); if (g.ok && g.room) for (const m of g.room.members || []) if (m !== user.name) myRoomPeople.add(m); }
+  return myRoomPeople;
+}
+// a pushed LIVE TUNE-IN event (lobby channel): show it if it's for you
+async function onTune(e) {
+  if (!e || !e.code || !TP.on || !user) return;
+  if (e.w.name === user.name || e.b.name === user.name || helpPlaying() || (view === 'game' && gameCode === e.code)) return;   // yours, or you're busy or already there
+  const avg = ((e.w.elo || 0) + (e.b.elo || 0)) / 2;
+  let want = !!TP.cats[e.cat] || (TP.cats.high && avg >= 1600);
+  if (!want && TP.cats.friends) { const ppl = await roomPeople(); want = ppl.has(e.w.name) || ppl.has(e.b.name); }
+  if (!want) return;
+  const seen = (() => { try { return JSON.parse(localStorage.getItem('chess:tuneSeen')) || {}; } catch { return {}; } })(), now = Date.now();
+  if (seen[e.code + e.type] || now - (seen._last || 0) < 75e3) return;                     // once per game and kind; one alert per 75 seconds
+  seen[e.code + e.type] = now; seen._last = now;
+  for (const k of Object.keys(seen)) if (k !== '_last' && now - seen[k] > 86400e3) delete seen[k];
+  try { localStorage.setItem('chess:tuneSeen', JSON.stringify(seen)); } catch {}
+  if (view === 'tune') loadTune();
+  showToast('📺', `<span class="ct-n">${esc(e.head)}</span> <span class="ct-t">${esc(e.text)}</span>`, `${esc(e.w.name)} vs ${esc(e.b.name)} · Tap to WATCH LIVE`);
+  $('#chatToast').dataset.watch = e.code;
+  if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+    try { const n = new Notification(e.head, { body: `${e.text} ${e.w.name} vs ${e.b.name}. Watch live.`, tag: 'chess-tune-' + e.code }); n.onclick = () => { window.focus(); watchLive(e.code); n.close(); }; } catch {}
+  }
+}
+
+// ===================== REELS =====================
+const RL = { cat: 'all', sort: 'trending', items: [], more: true, next: 0, cur: 0, flip: false, ply: {}, loading: false, timer: null, playing: null, live: [] };
+const RL_CATS = [['all', 'All'], ['brilliants', 'Brilliants'], ['checkmates', 'Checkmates'], ['upsets', 'Upsets'], ['streaks', 'Streak breakers'], ['comebacks', 'Comebacks']];
+const RL_SORTS = [['trending', 'Trending'], ['newest', 'Newest'], ['best', 'Best of all time'], ['saved', 'Saved']];
+function enterReels(opts = {}) {
+  stopLobby(); stopGame(); stopAdmin(); stopTour(); stopRivals();
+  view = 'reels'; gameCode = null; history.replaceState(null, '', opts.id ? '/?reel=' + encodeURIComponent(opts.id) : '/?reels');
+  show('reels');
+  setHTML($('#rlCats'), RL_CATS.map(([k, l]) => `<button data-rc="${k}" class="${k === RL.cat ? 'on' : ''}">${l}</button>`).join(''));
+  setHTML($('#rlSort'), RL_SORTS.map(([k, l]) => `<button data-rs="${k}" class="${k === RL.sort ? 'on' : ''}">${l}</button>`).join(''));
+  reelsReset(opts.id);
+  clearInterval(RL.timer); RL.timer = setInterval(() => { if (view !== 'reels') { clearInterval(RL.timer); RL.timer = null; return; } if (!document.hidden) reelsLive(); }, 6000);
+}
+async function reelsReset(firstId) {
+  Object.assign(RL, { items: [], more: true, next: 0, cur: 0, ply: {} });
+  setHTML($('#rlFeed'), '<div class="reel"><div class="muted" style="padding:40px 0;text-align:center">Loading…</div></div>');
+  if (firstId) { const r = await api('reel_get', { id: firstId }); if (r.ok) RL.items.push(r.reel); }
+  await reelsMore(); paintReels(); reelsLive();
+}
+async function reelsMore() {
+  if (RL.loading || !RL.more) return;
+  RL.loading = true;
+  try {
+    const r = await api('reels_feed', { cat: RL.cat, sort: RL.sort, off: RL.next, n: 6 });
+    if (!r.ok) return;
+    const have = new Set(RL.items.map((x) => x.id));
+    RL.items.push(...r.reels.filter((x) => !have.has(x.id))); RL.more = r.more; RL.next = r.next; RL.backfill = r.backfill;
+  } finally { RL.loading = false; }
+}
+// the position shown by a reel: its key move, or wherever you stepped to
+function reelStates(it) {
+  if (it._states) return it._states;
+  const st = [Chess.initial()];
+  for (const u of String(it.moves || '').split(' ').filter(Boolean)) { const m = Chess.findUci(st[st.length - 1], u); if (!m) break; st.push(Chess.apply(st[st.length - 1], m)); }
+  it._states = st; return st;
+}
+const reelPly = (it) => (RL.ply[it.id] != null ? RL.ply[it.id] : it.ply);
+function reelHL(it, ply) { const u = String(it.moves || '').split(' ')[ply - 1]; return u ? ['abcdefgh'.indexOf(u[0]) + (8 - +u[1]) * 8, 'abcdefgh'.indexOf(u[2]) + (8 - +u[3]) * 8] : []; }
+function reelHTML(it, i) {
+  const flip = RL.flip, ply = reelPly(it);
+  const board = it.live ? miniBoardHTML(it.board || '', { flip }) : miniBoardHTML(reelStates(it)[Math.min(ply, reelStates(it).length - 1)].board, { flip, hl: reelHL(it, ply) });
+  const cp = it.live ? it.evNow : it.ev ? it.ev[ply] : null;
+  const pill = (p) => `<button class="rlpill" data-pf="${esc(p.name)}">${avImg(p.name, 28)}<span class="rlpn">${esc(p.name)}</span><span class="muted">${p.elo || ''}</span></button>`;
+  const status = it.live ? '<span class="badge red">Live</span>' : `<span class="badge">Completed · ${it.result === 'draw' ? 'Draw' : 'Decisive'}</span>`;
+  const date = it.at ? new Date(it.at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+  return `<section class="reel" data-i="${i}"><div class="rlboardrow">${evBarHTML(cp, flip)}<div class="rlboard" data-rb="${i}" title="${it.live ? 'Live position' : 'Tap to replay the moment'}">${board}</div></div>
+    <div class="rlpills">${pill(it.w)}${pill(it.b)}</div>
+    <div class="rlcard"><div class="rltags"><span class="badge gold">${esc(it.cat)}</span>${status}${date && !it.live ? `<span class="muted rldate">${esc(date)}</span>` : ''}</div>
+      <div class="rlhd">${esc(it.head)}</div><div class="rltx">${esc(it.text)}</div>
+      <button class="primary small" data-rcta="${i}">${it.live ? 'Watch live' : 'View full game'}</button></div></section>`;
+}
+function paintReels() {
+  const feed = $('#rlFeed');
+  if (!RL.items.length) { setHTML(feed, `<div class="reel"><div class="rlempty muted">${RL.sort === 'saved' ? 'Nothing saved yet. Tap the bookmark on a reel to keep it.' : 'No highlights here yet.'}${RL.backfill && RL.backfill.left ? ` Stockfish is still looking through ${RL.backfill.left} older games in players' browsers; new moments appear as they are verified.` : ''}</div></div>`); paintRail(); paintSides(); return; }
+  setHTML(feed, RL.items.map(reelHTML).join('') + (RL.more ? '<div class="reel rlmore muted">Loading more…</div>' : ''));
+  feed.scrollTop = RL.cur * reelStep();
+  observeReels(); paintRail(); paintSides();
+}
+const reelStep = () => { const r = $('#rlFeed .reel'); return r ? r.offsetHeight : 1; };
+function repaintReel(i) { const el = $(`#rlFeed .reel[data-i="${i}"]`); if (el) el.outerHTML = reelHTML(RL.items[i], i); observeReels(); if (i === RL.cur) paintSides(); }
+let rlObs = null;
+function observeReels() {
+  if (rlObs) rlObs.disconnect();
+  rlObs = new IntersectionObserver((ents) => { for (const e of ents) if (e.isIntersecting && e.intersectionRatio >= 0.6) { const i = +e.target.dataset.i; if (Number.isInteger(i) && i !== RL.cur) { RL.cur = i; reelStop(); paintRail(); paintSides(); if (RL.items.length - i <= 2) reelsMore().then(() => { if (view === 'reels') appendReels(); }); } } }, { root: $('#rlFeed'), threshold: [0.6] });
+  document.querySelectorAll('#rlFeed .reel[data-i]').forEach((el) => rlObs.observe(el));
+}
+function appendReels() {
+  const feed = $('#rlFeed'), have = feed.querySelectorAll('.reel[data-i]').length, more = feed.querySelector('.rlmore');
+  if (more) more.remove();
+  feed.insertAdjacentHTML('beforeend', RL.items.slice(have).map((it, k) => reelHTML(it, have + k)).join('') + (RL.more ? '<div class="reel rlmore muted">Loading more…</div>' : ''));
+  observeReels();
+}
+function reelGo(d) { const i = Math.max(0, Math.min(RL.items.length - 1, RL.cur + d)); $('#rlFeed').scrollTo({ top: i * reelStep(), behavior: 'smooth' }); }
+function paintRail() {
+  const it = RL.items[RL.cur], none = !it || it.live;
+  setHTML($('#rlRail'), `<button data-ra="up" title="Previous" aria-label="Previous reel" ${RL.cur ? '' : 'disabled'}>${ICON.up}</button><button data-ra="down" title="Next" aria-label="Next reel" ${RL.cur < RL.items.length - 1 || RL.more ? '' : 'disabled'}>${ICON.down}</button>
+    <button data-ra="fire" class="${it && it.fired ? 'on' : ''}" title="Fire" aria-label="Fire reaction" ${none ? 'disabled' : ''}>🔥<span>${it && !it.live ? it.fire || 0 : ''}</span></button>
+    <button data-ra="save" class="${it && it.saved ? 'on' : ''}" title="${it && it.saved ? 'Saved' : 'Save'}" aria-label="Save" ${none ? 'disabled' : ''}>${it && it.saved ? ICON.saved : ICON.save}</button>
+    <button data-ra="flip" title="Flip board" aria-label="Flip board">${ICON.flip}</button><button data-ra="share" title="Share" aria-label="Share" ${it ? '' : 'disabled'}>${ICON.share}</button>`);
+}
+const ICON = {
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+  saved: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+  flip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
+};
+// left: the moves (current one marked) and the evaluation over the game; right: up next and what's live
+function paintSides() {
+  const it = RL.items[RL.cur];
+  if (!it || it.live) setHTML($('#rlLeft'), it ? '<div class="rlsh">Moves</div><div class="muted">Live game: watch it to follow every move.</div>' : '');
+  else {
+    const st = reelStates(it), ply = reelPly(it), us = String(it.moves).split(' ');
+    let h = '';
+    for (let i = 0; i < us.length && i + 1 < st.length; i += 2) {
+      const a = Chess.notate(st[i], Chess.findUci(st[i], us[i])), b = us[i + 1] && st[i + 2] ? Chess.notate(st[i + 1], Chess.findUci(st[i + 1], us[i + 1])) : '';
+      h += `<div class="rlmv"><span class="muted">${i / 2 + 1}.</span><button data-rp="${i + 1}" class="${ply === i + 1 ? 'on' : ''}${i + 1 >= it.seq[0] && i + 1 <= it.seq[1] ? ' inseq' : ''}">${esc(a)}</button>${b ? `<button data-rp="${i + 2}" class="${ply === i + 2 ? 'on' : ''}${i + 2 >= it.seq[0] && i + 2 <= it.seq[1] ? ' inseq' : ''}">${esc(b)}</button>` : ''}</div>`;
+    }
+    setHTML($('#rlLeft'), `<div class="rlsh">Moves</div><div class="rlmoves">${h}</div>${it.ev ? `<div class="rlsh">Evaluation</div>${sparkHTML(it.ev, ply)}` : ''}`);
+    const on = $('#rlLeft .rlmv button.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+  }
+  const up = RL.items.slice(RL.cur + 1, RL.cur + 4);
+  setHTML($('#rlRight'), `<div class="rlsh">Up next</div>${up.length ? up.map((x, k) => `<button class="rlnext" data-rn="${RL.cur + 1 + k}"><span class="badge${x.live ? ' red' : ' gold'}">${esc(x.cat)}</span><b>${esc(x.head)}</b><span class="muted">${esc(x.w.name)} vs ${esc(x.b.name)}</span></button>`).join('') : '<div class="muted">That\'s everything for now.</div>'}
+    <div class="rlsh">Happening live</div>${RL.live.length ? RL.live.map((r) => `<div class="rllive"><div class="tnmini">${miniBoardHTML(r.board || '')}</div><div><div class="rllp">${esc(r.w.name)} <span class="muted">vs</span> ${esc(r.b.name)}</div><div class="muted rllw">${r.why ? esc(r.why) : r.stale ? 'Not analysed yet' : 'Quiet for now'}</div><button class="small" data-tnw="${esc(r.code)}">Watch live</button></div></div>`).join('') : '<div class="muted">No public games right now.</div>'}`);
+}
+function sparkHTML(ev, ply) {
+  const n = ev.length - 1, W = 220, H = 48, y = (cp) => (H * (1 - Excite.wp(cp))).toFixed(1), x = (i) => ((W * i) / Math.max(1, n)).toFixed(1);
+  const pts = ev.map((cp, i) => `${x(i)},${y(cp)}`).join(' ');
+  return `<svg class="rlspark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" /><polyline points="${pts}"/><circle cx="${x(ply)}" cy="${y(ev[ply])}" r="3"/></svg>`;
+}
+async function reelsLive() {
+  const r = await api('live_feed'); if (!r.ok || view !== 'reels') return;
+  RL.live = r.rows.filter((x) => !x.stale).sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 3);
+  if (!RL.live.length) RL.live = r.rows.slice(0, 3);
+  // a live reel on screen keeps its board and bar current
+  RL.items.forEach((it, i) => { if (!it.live) return; const row = r.rows.find((x) => x.code === it.code); if (row && (row.board !== it.board || row.ev !== it.evNow)) { it.board = row.board; it.evNow = row.ev; repaintReel(i); } });
+  paintSides();
+}
+// replay the moment: from the start of its sequence to its end, one move at a time
+function reelStop() { clearInterval(RL.playing); RL.playing = null; }
+function reelReplay(i) {
+  const it = RL.items[i]; if (!it || it.live) return;
+  reelStop(); let p = it.seq[0]; RL.ply[it.id] = p; repaintReel(i);
+  RL.playing = setInterval(() => { p++; if (p > it.seq[1] || view !== 'reels') return reelStop(); RL.ply[it.id] = p; repaintReel(i); }, 750);
+}
+function reelStepTo(i, ply) { const it = RL.items[i]; if (!it || it.live) return; reelStop(); RL.ply[it.id] = Math.max(0, Math.min(reelStates(it).length - 1, ply)); repaintReel(i); }
+$('#reels').addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-rc]'); if (c) { RL.cat = c.dataset.rc; return enterReels(); }
+  const s = e.target.closest('[data-rs]'); if (s) { RL.sort = s.dataset.rs; return enterReels(); }
+  const b = e.target.closest('[data-rb]'); if (b) return reelReplay(+b.dataset.rb);
+  const p = e.target.closest('[data-pf]'); if (p) return enterProfile(p.dataset.pf);
+  const t = e.target.closest('[data-rcta]'); if (t) { const it = RL.items[+t.dataset.rcta]; return it.live ? watchLive(it.code) : enterArchive(it.g, { at: reelPly(it), back: null }); }
+  const mv = e.target.closest('[data-rp]'); if (mv) return reelStepTo(RL.cur, +mv.dataset.rp);
+  const nx = e.target.closest('[data-rn]'); if (nx) return $('#rlFeed').scrollTo({ top: +nx.dataset.rn * reelStep(), behavior: 'smooth' });
+  const w = e.target.closest('[data-tnw]'); if (w) return watchLive(w.dataset.tnw);
+  const a = e.target.closest('[data-ra]'); if (!a || a.disabled) return;
+  const it = RL.items[RL.cur];
+  if (a.dataset.ra === 'up') return reelGo(-1);
+  if (a.dataset.ra === 'down') return reelGo(1);
+  if (a.dataset.ra === 'flip') { RL.flip = !RL.flip; return repaintReel(RL.cur); }
+  if (a.dataset.ra === 'share') {
+    const url = location.origin + (it.live ? '/?game=' + it.code : '/?reel=' + encodeURIComponent(it.id));
+    if (navigator.share) { try { await navigator.share({ title: it.head, text: it.text, url }); return; } catch (x) { if (x && x.name === 'AbortError') return; } }
+    try { await navigator.clipboard.writeText(url); showToast('🔗', '<span class="ct-t">Link copied.</span>', ''); } catch { showToast('🔗', `<span class="ct-t">${esc(url)}</span>`, ''); }
+    return;
+  }
+  if (a.dataset.ra === 'fire') { const r = await api('reel_react', { id: it.id }); if (r.ok) { it.fire = r.fire; it.fired = r.fired; paintRail(); } return; }
+  if (a.dataset.ra === 'save') { const r = await api('reel_save', { id: it.id }); if (r.ok) { it.saved = r.saved; paintRail(); showToast('🔖', `<span class="ct-t">${r.saved ? 'Saved. Find it under Saved in Reels.' : 'Removed from Saved.'}</span>`, ''); } }
+});
+document.addEventListener('keydown', (e) => {
+  if (view !== 'reels' || e.target.closest('input, textarea, select')) return;
+  if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); reelGo(1); }
+  else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); reelGo(-1); }
+  else if (e.key === 'ArrowLeft') { const it = RL.items[RL.cur]; if (it) reelStepTo(RL.cur, reelPly(it) - 1); }
+  else if (e.key === 'ArrowRight') { const it = RL.items[RL.cur]; if (it) reelStepTo(RL.cur, reelPly(it) + 1); }
+});
+
 // ----- STREAK HUNT: the hunted, the takedowns, your breaker record, ON THE LINE (server: lib/streakhunt.js) -----
 let hunt = null, huntAt = 0;
 const HUNT_ACH = { first: 'First Blood', giant: 'Giant Slayer', legend: 'Legend Hunter', exec: 'Streak Executioner' }, HUNT_NEED = { first: 'break a 3+ streak', giant: 'end a 10+ streak', legend: 'end a 15+ streak', exec: 'end a 20+ streak' };
