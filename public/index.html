@@ -725,6 +725,7 @@
   .tnrow { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); } .tnrow:first-child { border-top: 0; }
   .tnmini { display: grid; grid-template-columns: repeat(8, 1fr); width: 72px; aspect-ratio: 1; border-radius: 3px; overflow: hidden; } .tnmini .sq, .tnboard .sq { cursor: default; }
   .adanl a { color: var(--text); }
+  .tnnote a:not(.dlbtn) { color: var(--text); } .tnnote .dlbtn { margin: 0 4px; }
   .dlbtn { display: inline-flex; align-items: center; min-height: 34px; padding: 4px 12px; font-size: .82rem; font-weight: 700; color: var(--text); background: var(--btn); border-radius: 8px; box-shadow: 0 2px 0 var(--btn-shadow); text-decoration: none; white-space: nowrap; }
   .adana { padding: 10px 0; border-top: 1px solid var(--line); } .adana:first-of-type { border-top: 0; } .adanh { display: flex; justify-content: space-between; gap: 10px; } .adanb { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; } .adanb .stprogbar { flex: 1; margin-top: 0; } .adanl { font-size: .85rem; }
   .tnopt, #tune label.tnopt { display: flex; flex-direction: row; gap: 10px; align-items: center; justify-content: flex-start; text-align: left; padding: 5px 0; margin: 0; font-weight: 600; cursor: pointer; } .tnopt input { order: 0; flex: none; } .tnopt input { min-height: 0; width: 16px; height: 16px; accent-color: var(--green); }
@@ -7540,7 +7541,8 @@ function paintTunePrefs() {
     <label class="tnopt"><input type="checkbox" data-tp="on" ${TP.on ? 'checked' : ''}> Tell me when something big happens in a live game</label>
     <div class="tncats">${TUNE_CATS.map(([k, l]) => `<label class="tnopt"><input type="checkbox" data-tpc="${k}" ${TP.cats[k] ? 'checked' : ''} ${TP.on ? '' : 'disabled'}> ${l}</label>`).join('')}</div>
     <div class="muted tnnote">Alerts show on the page wherever you are on the site${perm === 'granted' ? ', and as a system notification when this tab is in the background' : perm === 'default' ? '. <button class="small" data-tp="perm">Also notify me when the tab is in the background</button>' : ''}. Never while you're playing, never for a game you're already watching, at most one every 75 seconds.</div>
-    <label class="tnopt"><input type="checkbox" data-tp="help" ${HELP.on ? 'checked' : ''}> Help analyse live games and highlights with Stockfish in this browser (only while the tab is open and you're not playing)</label>`);
+    <label class="tnopt"><input type="checkbox" data-tp="help" ${HELP.on ? 'checked' : ''}> Help analyse live games and highlights with Stockfish in this browser (only while the tab is open and you're not playing)</label>
+    <div class="muted tnnote">Have a spare Windows laptop? <a class="dlbtn" href="/helpers/chess-helpers.bat" download="chess-helpers.bat">Download the Windows helper</a> and double-click it to keep it analysing (needs <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js</a>).</div>`);
 }
 $('#tnPrefs').addEventListener('change', (e) => {
   const c = e.target.closest('[data-tpc]'); if (c) { TP.cats[c.dataset.tpc] = c.checked ? 1 : 0; saveTP(); return; }
