@@ -724,6 +724,8 @@
   .tnhd { font-size: 1.35rem; font-weight: 800; text-transform: uppercase; line-height: 1.2; } .tnp { font-weight: 700; } .tnmeta { font-size: .85rem; } .tnmeta b { color: var(--text); }
   .tnrow { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); } .tnrow:first-child { border-top: 0; }
   .tnmini { display: grid; grid-template-columns: repeat(8, 1fr); width: 72px; aspect-ratio: 1; border-radius: 3px; overflow: hidden; } .tnmini .sq, .tnboard .sq { cursor: default; }
+  .adanl a { color: var(--text); }
+  .dlbtn { display: inline-flex; align-items: center; min-height: 34px; padding: 4px 12px; font-size: .82rem; font-weight: 700; color: var(--text); background: var(--btn); border-radius: 8px; box-shadow: 0 2px 0 var(--btn-shadow); text-decoration: none; white-space: nowrap; }
   .adana { padding: 10px 0; border-top: 1px solid var(--line); } .adana:first-of-type { border-top: 0; } .adanh { display: flex; justify-content: space-between; gap: 10px; } .adanb { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; } .adanb .stprogbar { flex: 1; margin-top: 0; } .adanl { font-size: .85rem; }
   .tnopt, #tune label.tnopt { display: flex; flex-direction: row; gap: 10px; align-items: center; justify-content: flex-start; text-align: left; padding: 5px 0; margin: 0; font-weight: 600; cursor: pointer; } .tnopt input { order: 0; flex: none; } .tnopt input { min-height: 0; width: 16px; height: 16px; accent-color: var(--green); }
   .tnwhy { font-weight: 700; font-size: .9rem; margin: 2px 0; } .tncats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 4px 0 6px 22px; } .tnnote { font-size: .85rem; margin: 6px 0 10px; }
@@ -3509,6 +3511,8 @@ function paintAdAnalysis(a) {
     ${b ? row('Reels: older games', b.done, b.total, [b.left ? `${b.left} still to analyse${b.working ? `, ${b.working} in progress now` : ''}. Started ${ago(b.at)}.` : 'All older games analysed.']) : row('Reels: older games', 0, 0, ['Not started yet: it starts the first time someone opens Reels.'], true)}
     <div class="adana"><div class="adanh"><b>Reels: highlights</b><span class="muted">${a.reels.published} published</span></div>
       <div class="muted adanl">${a.reels.checking ? `${a.reels.checking} waiting for a second browser to confirm. ` : ''}${Object.entries(a.reels.kinds).map(([k, n]) => `${n} ${K[k] ? K[k][n === 1 ? 0 : 1] : k}`).join(' · ') || 'None yet.'}</div></div>
+    <div class="adana"><div class="adanh"><b>Helper computer (Windows)</b><a class="dlbtn" href="/helpers/chess-helpers.bat" download="chess-helpers.bat">Download Windows helper</a></div>
+      <div class="muted adanl">Keeps headless browsers on the site doing this analysis. Install <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js</a> (LTS) on the laptop, then double-click the file. It asks once for 2 or more helper accounts (saved only on that laptop). If Windows says it protected your PC: More info → Run anyway.</div></div>
     <div class="adana"><div class="adanh"><b>Live games</b><span class="muted">${a.live.observed} of ${a.live.games} being analysed</span></div>
       <div class="muted adanl">${a.live.games ? `${a.live.scored} with a fresh score${a.live.motm ? `. Match of the moment: ${esc(a.live.motm)}` : ''}.` : 'No public games right now.'}</div></div>`);
 }
