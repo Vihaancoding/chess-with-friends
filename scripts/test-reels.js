@@ -191,6 +191,12 @@ const flipEv = (ev) => ev.map((x) => -x);
   r = await call('live_eval', { code: 'PRIV1', role: 'obs', res: [{ i: 1, s: 0 }] }, P.ann);
   ok('an unknown or private game cannot receive evaluations', r.status === 404 || r.status === 409, r);
 
+  console.log('admin: analysis progress');
+  r = await call('admin_analysis', {}, P.cat);
+  ok('only admins see it', r.status === 403 || r.status === 401, r.status);
+  await call('admin_claim', { key: 'k' }, P.cat);
+  r = await call('admin_analysis', {}, P.cat);
+  ok('it reports the move-stats queue, the Reels backfill, highlights by kind, checks waiting, and live observing', r.stats && Number.isFinite(r.stats.pending) && r.reels.backfill && r.reels.backfill.done === 1 && r.reels.published >= 3 && r.reels.kinds.brilliant >= 1 && Number.isFinite(r.reels.checking) && r.live.games >= 1 && Number.isFinite(r.browsers), r);
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })();

@@ -724,6 +724,7 @@
   .tnhd { font-size: 1.35rem; font-weight: 800; text-transform: uppercase; line-height: 1.2; } .tnp { font-weight: 700; } .tnmeta { font-size: .85rem; } .tnmeta b { color: var(--text); }
   .tnrow { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); } .tnrow:first-child { border-top: 0; }
   .tnmini { display: grid; grid-template-columns: repeat(8, 1fr); width: 72px; aspect-ratio: 1; border-radius: 3px; overflow: hidden; } .tnmini .sq, .tnboard .sq { cursor: default; }
+  .adana { padding: 10px 0; border-top: 1px solid var(--line); } .adana:first-of-type { border-top: 0; } .adanh { display: flex; justify-content: space-between; gap: 10px; } .adanb { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; } .adanb .stprogbar { flex: 1; margin-top: 0; } .adanl { font-size: .85rem; }
   .tnopt, #tune label.tnopt { display: flex; flex-direction: row; gap: 10px; align-items: center; justify-content: flex-start; text-align: left; padding: 5px 0; margin: 0; font-weight: 600; cursor: pointer; } .tnopt input { order: 0; flex: none; } .tnopt input { min-height: 0; width: 16px; height: 16px; accent-color: var(--green); }
   .tnwhy { font-weight: 700; font-size: .9rem; margin: 2px 0; } .tncats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 4px 0 6px 22px; } .tnnote { font-size: .85rem; margin: 6px 0 10px; }
   .rlbar { position: relative; width: 22px; flex: none; border-radius: 4px; overflow: hidden; background: #403d39; } .rlbar i { position: absolute; left: 0; right: 0; bottom: 0; background: #f1f1f1; transition: height .45s ease; }
@@ -1762,6 +1763,7 @@
 <div id="admin" class="hidden">
   <h1 class="ptitle">Admin panel</h1>
   <div class="statrow" id="adstats"></div>
+  <div class="panel" id="adAna"><h2 class="ph">Game analysis</h2><div class="muted">Loading…</div></div>
   <div class="panel">
     <h2 class="ph">Servers <button class="small" id="adNewSrv">New server</button></h2>
     <div class="muted" style="font-size:.9rem;font-weight:600;margin-bottom:8px">Each server has its own players, games, chat and leaderboard. New players sign up with a server's code, or with its invite link, which fills the code in for them. Server 1 has no code, so nobody new can join it. You see the server you're on below; switch to manage another.</div>
@@ -3491,10 +3493,30 @@ function enterAdmin() {
 function stopAdmin() { clearInterval(adminTimer); adminTimer = null; }
 $('#navAdmin').onclick = enterAdmin;
 
+// Admin: how far the analysis has got (finished games, Reels, live games), refreshed with the rest of the panel
+function paintAdAnalysis(a) {
+  const ago = (t) => { if (!t) return 'never'; const m = Math.round((a.now - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; };
+  const bar = (done, total) => { const pct = total ? Math.round((100 * done) / total) : 100; return `<div class="stprogbar"><i style="width:${pct}%"></i></div><b>${pct}%</b>`; };
+  const s = a.stats, b = a.reels.backfill, K = { brilliant: ['brilliant move', 'brilliant moves'], mate: ['forced mate', 'forced mates'], comeback: ['comeback', 'comebacks'], tactic: ['tactic', 'tactics'], upset: ['upset', 'upsets'], streak: ['streak breaker', 'streak breakers'], scramble: ['time scramble', 'time scrambles'] };
+  const row = (title, done, total, lines, noBar) => `<div class="adana"><div class="adanh"><b>${title}</b><span class="muted">${noBar ? '' : `${done} of ${total}`}</span></div>${noBar ? '' : `<div class="adanb">${bar(done, total)}</div>`}${lines.filter(Boolean).map((x) => `<div class="muted adanl">${x}</div>`).join('')}</div>`;
+  setHTML($('#adAna'), `<h2 class="ph">Game analysis <span class="muted" style="font-size:.85rem;font-weight:600">${a.browsers} browser${a.browsers === 1 ? '' : 's'} working now${a.server ? ' · the server also counts move stats' : ''}</span></h2>
+    ${row('Finished games (Stockfish evaluations)', Math.max(0, s.total - s.pending), s.total, [
+      s.pending ? `${s.pending} waiting${s.working ? `, ${s.working} being analysed now` : ''}.` : 'Every finished game has been analysed.',
+      s.current ? `Current game: position ${esc(String(s.current.done))} of ${esc(String(s.current.total))}.` : '',
+      s.last && s.last.at ? `Last finished ${ago(s.last.at)}.` : '',
+      s.error && s.error.at && a.now - s.error.at < 86400e3 ? `<span style="color:var(--bad)">Last error ${ago(s.error.at)}: ${esc(s.error.msg || '')}</span>` : '',
+    ])}
+    ${b ? row('Reels: older games', b.done, b.total, [b.left ? `${b.left} still to analyse${b.working ? `, ${b.working} in progress now` : ''}. Started ${ago(b.at)}.` : 'All older games analysed.']) : row('Reels: older games', 0, 0, ['Not started yet: it starts the first time someone opens Reels.'], true)}
+    <div class="adana"><div class="adanh"><b>Reels: highlights</b><span class="muted">${a.reels.published} published</span></div>
+      <div class="muted adanl">${a.reels.checking ? `${a.reels.checking} waiting for a second browser to confirm. ` : ''}${Object.entries(a.reels.kinds).map(([k, n]) => `${n} ${K[k] ? K[k][n === 1 ? 0 : 1] : k}`).join(' · ') || 'None yet.'}</div></div>
+    <div class="adana"><div class="adanh"><b>Live games</b><span class="muted">${a.live.observed} of ${a.live.games} being analysed</span></div>
+      <div class="muted adanl">${a.live.games ? `${a.live.scored} with a fresh score${a.live.motm ? `. Match of the moment: ${esc(a.live.motm)}` : ''}.` : 'No public games right now.'}</div></div>`);
+}
 async function loadAdmin() {
   loadDmgTargets(); loadFpPhrases(); loadFpExempt(); loadFairInv(); loadAccess();
   if (view !== 'admin') return;
   const [r, sv] = await Promise.all([api('admin_overview'), api('admin_servers')]);
+  api('admin_analysis').then((a) => { if (a.ok && view === 'admin') paintAdAnalysis(a); });
   if (view !== 'admin') return;
   if (!r.ok) { if (r.status === 403 || r.status === 401) enterLobby(); return; }
   if (sv.ok) {
