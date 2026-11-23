@@ -1515,6 +1515,17 @@
       <div class="recode" id="recCode"></div>
       <div class="row"><button id="recCopy" type="button">Copy</button><button class="primary" id="recDone" type="button">I've saved it</button></div>
     </div>
+    <form id="verifyBox" class="hidden" novalidate>
+      <h2 class="ph">Verify your email</h2>
+      <div class="muted" id="vfMsg" style="font-size:.9rem;font-weight:600">Every account now needs a verified email address. We're sending you a 6-digit code.</div>
+      <label class="label" for="vfCode">Code</label><input id="vfCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456">
+      <div id="vfErr" role="alert"></div><div id="vfOk" class="okmsg" role="status"></div>
+      <div class="row"><button class="primary big" id="vfGo" type="submit">Verify</button></div>
+      <details style="margin-top:12px"><summary class="muted" style="cursor:pointer;font-weight:600">Wrong email address?</summary>
+        <label class="label" for="vfEmail">Email</label><input id="vfEmail" type="email" maxlength="254" autocomplete="email" inputmode="email">
+        <div class="row"><button type="button" id="vfChange">Send the code here</button></div></details>
+      <div class="row"><button type="button" class="link" id="vfResend">Send a new code</button><button type="button" class="link" id="vfOut">Sign out</button></div>
+    </form>
   </div>
 </div>
 
@@ -2099,6 +2110,7 @@ async function api(route, body) {
     const r = await fetch('/api?r=' + route, { method: 'POST', headers, body: JSON.stringify(body || {}), signal: ctl.signal });
     const j = await r.json().catch(() => (ctl.signal.aborted ? null : { error: 'Bad response.' }));
     if (!j) return { ok: false, error: 'Connection problem.' };            // timed out mid-download: same as no answer
+    if (j.verify && user && !user.needVerify) { user.needVerify = true; showVerify(); }   // the account must verify its email first
     return { ok: r.ok, status: r.status, ...j };
   } catch { return { ok: false, error: 'Connection problem.' }; }
   finally {
@@ -2328,7 +2340,7 @@ function onRtMove(ev) {
 
 // ---------- sign in ----------
 function finishAuth(r) {
-  user = { name: r.name, token: r.token, topic: r.topic, srv: r.srv, ns: r.ns || '' };
+  user = { name: r.name, token: r.token, topic: r.topic, srv: r.srv, ns: r.ns || '', needVerify: !!r.needVerify };
   if (r.ratings) myRatings = r.ratings;
   localStorage.setItem('chess:user', JSON.stringify(user));
   // the sidebar account card: filled here too, so it isn't left as placeholders when a game link opens straight into a game
@@ -2400,6 +2412,33 @@ $('#authForm').addEventListener('submit', async (e) => {
   if (r.recovery) return showRecovery(r.recovery);       // new account, or the old code was just used up
   start();
 });
+// ---- email verification: every account confirms its email with a 6-digit code before it can play ----
+async function verifySend(email) {
+  $('#vfErr').textContent = ''; $('#vfOk').textContent = '';
+  const r = await api('verify_send', email ? { email } : {});
+  if (!r.ok) return ($('#vfErr').textContent = r.error);
+  if (r.verified) return verifyDone();
+  $('#vfEmail').value = r.email || '';
+  $('#vfOk').textContent = r.msg || '';
+}
+function showVerify() {
+  show('welcome');
+  ['authForm', 'authTabs', 'recoverBox', 'reqBox'].forEach((id) => $('#' + id).classList.add('hidden'));
+  $('#verifyBox').classList.remove('hidden'); $('#vfCode').value = ''; $('#vfCode').focus();
+  verifySend();
+}
+function verifyDone() { user.needVerify = false; $('#verifyBox').classList.add('hidden'); $('#authForm').classList.remove('hidden'); $('#authTabs').classList.remove('hidden'); start(); }
+$('#verifyBox').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('#vfErr').textContent = '';
+  $('#vfGo').disabled = true;
+  const r = await api('verify_email', { code: $('#vfCode').value });
+  $('#vfGo').disabled = false;
+  if (!r.ok) return ($('#vfErr').textContent = r.error);
+  verifyDone();
+});
+$('#vfResend').onclick = () => verifySend();
+$('#vfChange').onclick = () => verifySend($('#vfEmail').value.trim());
+$('#vfOut').onclick = () => { localStorage.removeItem('chess:user'); location.href = '/'; };
 // Show a freshly made recovery code once, then carry on into the app.
 function showRecovery(code) {
   $('#authForm').classList.add('hidden'); $('#authTabs').classList.add('hidden');
@@ -2442,6 +2481,7 @@ async function boot() {
   show('welcome');
 }
 async function start() {
+  if (user && user.needVerify) return showVerify();
   ensureSessionSubs();
   const params = new URLSearchParams(location.search);
   if (params.has('puzzles')) return enterPuzzles();
