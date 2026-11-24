@@ -2693,7 +2693,7 @@ function enterLobby() {
   lobbyTimer = setInterval(() => {
     if (document.hidden) return;
     lobbyTick++;
-    const fullEvery = 10, pingEvery = 5;                               // same pace with or without live updates (keeps server load down)
+    const fullEvery = rtLobbyLive ? 60 : 10, pingEvery = rtLobbyLive ? 30 : 5;   // with live updates on, polling is only a safety net
     if (lobbyTick % fullEvery === 0) pollLobby(true); else if (lobbyTick % pingEvery === 0) pollLobby(false);
   }, 1000);
 }
@@ -7529,7 +7529,7 @@ async function helpTick() {
   } catch (e) { if (e.message !== 'cancelled') console.warn('analysis helper:', e && e.message); }
   finally { HELP.busy = false; }
 }
-setInterval(helpTick, 4000);
+setInterval(helpTick, 12000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) HELP.cancel++; });   // background tab: stop at the next position
 
 // a board from a position: an array of 64 ('wK', null, ...) or the server's 128-character string; hl = squares to mark

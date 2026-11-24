@@ -1,0 +1,23 @@
+# Render free web service (a free host while Vercel is unavailable). The data stays in Supabase.
+# LITE=1: no Stockfish on the server (the free instance has a fraction of one CPU); browsers still do the move stats and Reels.
+services:
+  - type: web
+    name: chess-with-friends
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: LITE
+        value: "1"
+      - key: NODE_VERSION
+        value: "22"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: ADMIN_KEY
+        sync: false
